@@ -14,7 +14,7 @@ I used to be in love with ORMs like EF and NHibernate, but I've come to realize 
 There are other bad assumptions made by ORMs, but these are the ones that were biting me. For comparison, here are the things that I wanted from a DB access tool:
 
 1. I know how to write SQL, and I recognize that some problems can be well-solved using features like temporary tables, CTEs, stored procs, sequences, merges, functions, pivoting, etc.
-1. I would like to be able to use the QueryObject pattern to encapsulate my querues as objects.
+1. I would like to be able to use the QueryObject pattern to encapsulate my queries as objects.
 1. I would like to be able to use multiple result sets in my queries, when they have better characteristics than a single result set with many joins.
 
 The disconnect between what modern ORMs offer and what I wanted is what eventually lead me to write CastIron.
@@ -35,6 +35,15 @@ My recommendations for systems written in OOP languages which need to store pers
 ## Overview
 
 CastIron is a bare-minimum, bare-metal implementation of the QueryObject pattern for SQL. You create an implementation of either `ISqlQuery` or `ISqlCommand` with your SQL code and query reading logic and pass it to an instance of `SqlQueryRunner`. The runner will do all the dirty stuff like opening the `SqlConnection`, creating the `SqlCommand` and obtaining an `SqlDataReader`. CastIron gives you all the tools to work with things like In/InOut parameters or multiple result sets. CastIron also provides tools to automatically map result sets to objects and `IEnumerable`s of objects. You can use these features if you want them, and ignore them if you don't. 
+
+### Goals of CastIron
+
+CastIron currently has a few principles and goals:
+
+1. Use the QueryObject pattern for working with the DB, as opposed to the Repository, Active Record, Unit Of Work, Table Data Gateway or other data access patterns.
+1. Allow the programmer to write SQL without interference
+1. Do not do anything fancy like caching, but enable the programmer to add those features later
+1. Provide some basic tools and helpers, but allow the programmer to easily opt-out of anything which isn't needed.
 
 ## Examples
 
