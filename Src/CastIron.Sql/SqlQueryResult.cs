@@ -1,17 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
-using System.Data.SqlClient;
+using System.Data.Common;
 
 namespace CastIron.Sql
 {
     public class SqlQueryResult
     {
-        private readonly SqlCommand _command;
-        private readonly SqlDataReader _reader;
+        private readonly IDbCommand _command;
+        private readonly IDataReader _reader;
         private bool _isConsumed;
 
-        public SqlQueryResult(SqlCommand command, SqlDataReader reader)
+        public SqlQueryResult(IDbCommand command, IDataReader reader)
         {
             _command = command;
             _reader = reader;
@@ -40,7 +40,10 @@ namespace CastIron.Sql
         {
             if (!_command.Parameters.Contains(name))
                 return null;
-            var param = _command.Parameters[name];
+
+            if (!(_command.Parameters[name] is DbParameter param))
+                return null;
+
             if (param.Direction == ParameterDirection.Input)
                 return null;
             if (param.Value == DBNull.Value)
