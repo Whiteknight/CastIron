@@ -1,0 +1,1 @@
+dotnet test --no-build --no-restore --verbosity normal Src/CastIron.Sql.Tests/CastIron.Sql.Tests.csproj
