@@ -2,9 +2,9 @@
 
 namespace CastIron.Sql
 {
-    public static class ParameterizedQueryExtensions
+    public static class ParameterizedExtensions
     {
-        public static T AddInParameter<T>(this T query, string name, object value)
+        public static T AddInParameter<T>(this T query, string name, object value, int size)
             where T : Parameterized
         {
             query.AddParameter(new Parameter(name, value));
