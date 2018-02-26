@@ -1,9 +1,7 @@
 ﻿using System;
-using System.Runtime.Serialization;
 
 namespace CastIron.Sql
 {
-    [Serializable]
     public class SqlProblemException : Exception
     {
         public SqlProblemException()
@@ -24,13 +22,6 @@ namespace CastIron.Sql
             : this(message + "\n\n" + (sql ?? ""), inner)
         {
 
-        }
-
-        protected SqlProblemException(
-            SerializationInfo info,
-            StreamingContext context)
-            : base(info, context)
-        {
         }
     }
 }
