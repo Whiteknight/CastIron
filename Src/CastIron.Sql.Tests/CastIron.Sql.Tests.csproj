@@ -11,10 +11,19 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.3.0-preview-20170628-02" />
     <PackageReference Include="NUnit" Version="3.9.0" />
     <PackageReference Include="NUnit3TestAdapter" Version="3.9.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="10.0.1"/>
+    <PackageReference Include="Microsoft.Extensions.Configuration.FileExtensions" Version="2.0.0"/>
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="2.0.0"/>
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="2.0.0"/>
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\CastIron.Sql\CastIron.Sql.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="appsettings.linux.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="appsettings.windows.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>
