@@ -25,7 +25,7 @@
 *.lib
 *.sbr
 *.sdf
-ipch/ 
+ipch/
 *.dbmdl
 *.csproj.user
 *.cache
@@ -45,6 +45,7 @@ _ReSharper*/
 Ankh.NoLoad
 *.ncrunchproject
 *.ncrunchsolution
+.vscode/
 
 #Other
 .svn
