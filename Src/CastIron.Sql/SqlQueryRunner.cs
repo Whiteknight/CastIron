@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Data;
 using CastIron.Sql.Execution;
 
 namespace CastIron.Sql
@@ -12,14 +13,26 @@ namespace CastIron.Sql
             _connectionFactory = connectionFactory ?? new SqlServerDbConnectionFactory(connectionString);
         }
 
-        public object[] Execute(IReadOnlyList<IExecutionStrategy> statements)
+        public object[] Execute(IReadOnlyList<IExecutionStrategy> statements, bool useTransaction = false)
         {
             var results = new object[statements.Count];
             using (var connection = _connectionFactory.Create())
             {
-                connection.Open();
-                for (int i = 0; i < statements.Count; i++)
-                    results[i] = statements[i].Execute(connection, i);
+                IDbTransaction transaction = null;
+                if (useTransaction)
+                    transaction = connection.BeginTransaction();
+                try
+                {
+                    
+                    connection.Open();
+                    for (int i = 0; i < statements.Count; i++)
+                        results[i] = statements[i].Execute(connection, transaction, i);
+                }
+                finally
+                {
+                    transaction?.Commit();
+                    transaction?.Dispose();
+                }
             }
 
             return results;

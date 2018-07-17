@@ -7,7 +7,7 @@ namespace CastIron.Sql.Execution
 {
     public interface IExecutionStrategy
     {
-        object Execute(IDbConnection connection, int index);
+        object Execute(IDbConnection connection, IDbTransaction transaction, int index);
     }
 
     public class SqlQueryStratgy<T> : IExecutionStrategy
@@ -19,7 +19,7 @@ namespace CastIron.Sql.Execution
             _query = query;
         }
 
-        public object Execute(IDbConnection connection, int index)
+        public object Execute(IDbConnection connection, IDbTransaction transaction, int index)
         {
             var text = _query.GetSql();
             if (string.IsNullOrEmpty(text))
@@ -29,6 +29,7 @@ namespace CastIron.Sql.Execution
             {
                 try
                 {
+                    command.Transaction = transaction;
                     command.CommandText = text;
                     command.CommandType = (_query is ISqlStoredProc) ? CommandType.StoredProcedure : CommandType.Text;
                     command.MaybeAddParameters(_query);
@@ -61,11 +62,11 @@ namespace CastIron.Sql.Execution
             _query = query;
         }
 
-
-        public object Execute(IDbConnection connection, int index)
+        public object Execute(IDbConnection connection, IDbTransaction transaction, int index)
         {
             using (var command = connection.CreateCommand())
             {
+                command.Transaction = transaction;
                 if (!_query.SetupCommand(command))
                     return default(T);
                 try
@@ -99,10 +100,9 @@ namespace CastIron.Sql.Execution
             _query = query;
         }
 
-
-        public object Execute(IDbConnection connection, int index)
+        public object Execute(IDbConnection connection, IDbTransaction transaction, int index)
         {
-            return _query.Query(connection);
+            return _query.Query(connection, transaction);
             // We can't do anything fancy with error handling, because we don't know what the user
             // is trying to do
         }
@@ -118,7 +118,7 @@ namespace CastIron.Sql.Execution
         }
 
 
-        public object Execute(IDbConnection connection, int index)
+        public object Execute(IDbConnection connection, IDbTransaction transaction, int index)
         {
             var text = _command.GetSql();
             if (string.IsNullOrEmpty(text))
@@ -128,6 +128,7 @@ namespace CastIron.Sql.Execution
             {
                 using (var dbCommand = connection.CreateCommand())
                 {
+                    dbCommand.Transaction = transaction;
                     dbCommand.CommandText = text;
                     dbCommand.CommandType = (_command is ISqlStoredProc) ? CommandType.StoredProcedure : CommandType.Text;
                     dbCommand.MaybeAddParameters(_command);
@@ -156,7 +157,7 @@ namespace CastIron.Sql.Execution
         }
 
 
-        public object Execute(IDbConnection connection, int index)
+        public object Execute(IDbConnection connection, IDbTransaction transaction, int index)
         {
             var text = _command.GetSql();
             if (string.IsNullOrEmpty(text))
@@ -166,6 +167,7 @@ namespace CastIron.Sql.Execution
             {
                 using (var dbCommand = connection.CreateCommand())
                 {
+                    dbCommand.Transaction = transaction;
                     dbCommand.CommandText = text;
                     dbCommand.CommandType = (_command is ISqlStoredProc) ? CommandType.StoredProcedure : CommandType.Text;
                     dbCommand.MaybeAddParameters(_command);
@@ -195,12 +197,13 @@ namespace CastIron.Sql.Execution
         }
 
 
-        public object Execute(IDbConnection connection, int index)
+        public object Execute(IDbConnection connection, IDbTransaction transaction, int index)
         {
             try
             {
                 using (var dbCommand = connection.CreateCommand())
                 {
+                    dbCommand.Transaction = transaction;
                     if (!_command.SetupCommand(dbCommand))
                         return null;
                     
@@ -228,13 +231,13 @@ namespace CastIron.Sql.Execution
             _command = command;
         }
 
-
-        public object Execute(IDbConnection connection, int index)
+        public object Execute(IDbConnection connection, IDbTransaction transaction, int index)
         {
             try
             {
                 using (var dbCommand = connection.CreateCommand())
                 {
+                    dbCommand.Transaction = transaction;
                     if (!_command.SetupCommand(dbCommand))
                         return null;
 

@@ -4,6 +4,6 @@ namespace CastIron.Sql
 {
     public interface ISqlQueryRawConnection<out T> : ISqlQueryBase
     {
-        T Query(IDbConnection connection);
+        T Query(IDbConnection connection, IDbTransaction transaction);
     }
 }
