@@ -33,7 +33,7 @@ namespace CastIron.Sql.Tests
                 return "SELECT 5 AS TestInt, 'TEST' AS TestString, CAST(1 AS BIT) AS TestBool;";
             }
 
-            public TestObject1 Read(SqlQueryResult result)
+            public TestObject1 Read(SqlQueryRawResultSet result)
             {
                 return result.AsEnumerable<TestObject1>().FirstOrDefault();
             }

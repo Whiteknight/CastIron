@@ -10,6 +10,6 @@ namespace CastIron.Sql
     // TODO: Should this implement ISqlParameterized
     public interface ISqlCommandRaw<out T> : ISqlCommandRaw
     {
-        T ReadOutputs(SqlQueryResult result);
+        T ReadOutputs(SqlQueryRawResultSet result);
     }
 }

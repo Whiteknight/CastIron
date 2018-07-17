@@ -5,13 +5,13 @@ using System.Data.Common;
 
 namespace CastIron.Sql
 {
-    public class SqlQueryResult
+    public class SqlQueryRawResultSet
     {
         private readonly IDbCommand _command;
         private readonly IDataReader _reader;
         private bool _isConsumed;
 
-        public SqlQueryResult(IDbCommand command, IDataReader reader)
+        public SqlQueryRawResultSet(IDbCommand command, IDataReader reader)
         {
             _command = command;
             _reader = reader;

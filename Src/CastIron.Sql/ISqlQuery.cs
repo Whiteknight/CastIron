@@ -1,8 +1,13 @@
 ﻿namespace CastIron.Sql
 {
-    public interface ISqlQuery<out T>
+    public interface ISqlQueryBase
+    {
+
+    }
+
+    public interface ISqlQuery<out T> : ISqlQueryBase
     {
         string GetSql();
-        T Read(SqlQueryResult result);
+        T Read(SqlQueryRawResultSet result);
     }
 }

@@ -6,16 +6,16 @@ namespace CastIron.Sql.Tests
 {
     public static class RunnerFactory
     {
-        private readonly static string _connectionString;
+        private static readonly string _connectionString;
 
         static RunnerFactory()
         {
             var builder = new ConfigurationBuilder()
                 .SetBasePath(Directory.GetCurrentDirectory());
 
-            if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
                 builder = builder.AddJsonFile("appsettings.linux.json");
-            else if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 builder = builder.AddJsonFile("appsettings.windows.json");
 
             var configuration = builder.Build();

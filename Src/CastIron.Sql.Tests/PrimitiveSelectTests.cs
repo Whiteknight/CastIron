@@ -21,7 +21,7 @@ namespace CastIron.Sql.Tests
                 return _sql;
             }
 
-            public T Read(SqlQueryResult result)
+            public T Read(SqlQueryRawResultSet result)
             {
                 return result.AsEnumerable<T>().First();
             }
