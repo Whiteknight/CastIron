@@ -22,9 +22,9 @@ namespace CastIron.Sql.Tests
             _connectionString = configuration["ConnectionString"];
         }
 
-        public static SqlQueryRunner Create()
+        public static SqlRunner Create()
         {
-            return new SqlQueryRunner(_connectionString);
+            return new SqlRunner(_connectionString);
         }
     }
 }

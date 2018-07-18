@@ -5,11 +5,11 @@ using CastIron.Sql.Execution;
 
 namespace CastIron.Sql
 {
-    public class SqlQueryRunner
+    public class SqlRunner
     {
         private readonly IDbConnectionFactory _connectionFactory;
 
-        public SqlQueryRunner(string connectionString, IDbConnectionFactory connectionFactory = null)
+        public SqlRunner(string connectionString, IDbConnectionFactory connectionFactory = null)
         {
             _connectionFactory = connectionFactory ?? new SqlServerDbConnectionFactory(connectionString);
         }
@@ -47,6 +47,11 @@ namespace CastIron.Sql
                 context.Connection.Open();
                 executor(context);
             }
+        }
+
+        public void Execute(SqlStatementBatch batch, bool useTransaction = false)
+        {
+            Execute(batch.GetExecutors(), useTransaction);
         }
 
         public T Query<T>(ISqlQuery<T> query)

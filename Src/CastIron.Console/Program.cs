@@ -8,7 +8,7 @@ namespace CastIron.Console
     {
         static void Main(string[] args)
         {
-            var runner = new SqlQueryRunner("server=localhost;Integrated Security=SSPI;");
+            var runner = new SqlRunner("server=localhost;Integrated Security=SSPI;");
             var result = runner.Query(new TestQuery());
         }
     }
