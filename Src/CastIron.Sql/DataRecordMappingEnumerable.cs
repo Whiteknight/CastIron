@@ -33,6 +33,9 @@ namespace CastIron.Sql
 
         private static Func<IDataRecord, T> CreateDefaultMap(IDataReader reader)
         {
+            if (reader == null)
+                return r => default(T);
+
             var columnNames = new Dictionary<string, int>();
             for (int i = 0; i < reader.FieldCount; i++)
             {

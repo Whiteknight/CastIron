@@ -33,6 +33,8 @@ namespace CastIron.Sql
 
         public IEnumerable<T> AsEnumerable<T>(Func<IDataRecord, T> map = null)
         {
+            if (_reader == null)
+                throw new InvalidOperationException("Cannot map results to enumerable because the reader is null. Are you executing an ISqlCommand variant?");
             return new DataRecordMappingEnumerable<T>(_reader, map);
         }
 

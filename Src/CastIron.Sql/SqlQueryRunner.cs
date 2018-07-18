@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Data;
 using CastIron.Sql.Execution;
 
@@ -13,64 +14,74 @@ namespace CastIron.Sql
             _connectionFactory = connectionFactory ?? new SqlServerDbConnectionFactory(connectionString);
         }
 
-        public object[] Execute(IReadOnlyList<IExecutionStrategy> statements, bool useTransaction = false)
+        private ExecutionContext CreateExecutionContext(bool useTransaction)
         {
-            var results = new object[statements.Count];
-            using (var connection = _connectionFactory.Create())
-            {
-                IDbTransaction transaction = null;
-                if (useTransaction)
-                    transaction = connection.BeginTransaction();
-                try
-                {
-                    
-                    connection.Open();
-                    for (int i = 0; i < statements.Count; i++)
-                        results[i] = statements[i].Execute(connection, transaction, i);
-                }
-                finally
-                {
-                    transaction?.Commit();
-                    transaction?.Dispose();
-                }
-            }
+            var connection = _connectionFactory.Create();
+            IDbTransaction transaction = useTransaction ? connection.BeginTransaction() : null;
+            return new ExecutionContext(connection, transaction);
+        }
 
-            return results;
+        public void Execute(IReadOnlyList<Action<IExecutionContext, int>> statements, bool useTransaction = false)
+        {
+            using (var context = CreateExecutionContext(useTransaction))
+            {
+                context.Connection.Open();
+                for (int i = 0; i < statements.Count; i++)
+                    statements[i](context, i);
+            }
+        }
+
+        public T Execute<T>(Func<IExecutionContext, T> executor, bool useTransaction = false)
+        {
+            using (var context = CreateExecutionContext(useTransaction))
+            {
+                context.Connection.Open();
+                return executor(context);
+            }
+        }
+
+        public void Execute(Action<IExecutionContext> executor, bool useTransaction = false)
+        {
+            using (var context = CreateExecutionContext(useTransaction))
+            {
+                context.Connection.Open();
+                executor(context);
+            }
         }
 
         public T Query<T>(ISqlQuery<T> query)
         {
-            return (T) Execute(new [] {new SqlQueryStratgy<T>(query) })[0];
+            return Execute(c => new SqlQueryStrategy<T>(query).Execute(c, 0));
         }
 
         public T Query<T>(ISqlQueryRawCommand<T> query)
         {
-            return (T)Execute(new[] { new SqlQueryRawCommandStrategy<T>(query) })[0];
+            return Execute(c => new SqlQueryRawCommandStrategy<T>(query).Execute(c, 0));
         }
 
         public T Query<T>(ISqlQueryRawConnection<T> query)
         {
-            return (T)Execute(new[] { new SqlQueryRawConnectionStrategy<T>(query) })[0];
+            return Execute(c => new SqlQueryRawConnectionStrategy<T>(query).Execute(c, 0));
         }
 
         public void Execute(ISqlCommand commandObject)
         {
-            Execute(new[] { new SqlCommandStrategy(commandObject) });
+            Execute(c => new SqlCommandStrategy(commandObject).Execute(c, 0));
         }
 
         public T Execute<T>(ISqlCommand<T> commandObject)
         {
-            return (T) Execute(new[] { new SqlCommandStrategy<T>(commandObject) })[0];
+            return Execute(c => new SqlCommandStrategy<T>(commandObject).Execute(c, 0));
         }
 
         public void Execute(ISqlCommandRaw commandObject)
         {
-            Execute(new[] { new SqlCommandRawStrategy(commandObject) });
+            Execute(c => new SqlCommandRawStrategy(commandObject).Execute(c, 0));
         }
 
         public T Execute<T>(ISqlCommandRaw<T> commandObject)
         {
-            return (T) Execute(new[] { new SqlCommandRawStrategy<T>(commandObject) })[0];
+            return Execute(c => new SqlCommandRawStrategy<T>(commandObject).Execute(c, 0));
         }
     }
 }

@@ -2,7 +2,7 @@ using System.Linq;
 using FluentAssertions;
 using NUnit.Framework;
 
-namespace CastIron.Sql.Tests
+namespace CastIron.Sql.Tests.Mapping
 {
     [TestFixture]
     public class MultiSelectTests

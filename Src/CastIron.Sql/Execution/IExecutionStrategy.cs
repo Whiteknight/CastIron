@@ -1,35 +1,93 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
+using System.Linq;
 using System.Text;
 
 namespace CastIron.Sql.Execution
 {
-    public interface IExecutionStrategy
+    public interface IExecutionContext : IDisposable
     {
-        object Execute(IDbConnection connection, IDbTransaction transaction, int index);
+        IDbConnection Connection { get; }
+
+        IDbTransaction Transaction { get; }
+
+        IDbCommand CreateCommand();
     }
 
-    public class SqlQueryStratgy<T> : IExecutionStrategy
+    public class ExecutionContext : IExecutionContext
+    {
+        private readonly Dictionary<int, SqlProblemException> _exceptions;
+        private readonly List<Action<IExecutionContext, int>> _executors;
+
+        public ExecutionContext(IDbConnection connection, IDbTransaction transaction)
+        {
+            Connection = connection;
+            Transaction = transaction;
+            _exceptions = new Dictionary<int, SqlProblemException>();
+            _executors = new List<Action<IExecutionContext, int>>();
+        }
+
+        public IDbConnection Connection { get; }
+        public IDbTransaction Transaction { get; }
+
+        public IDbCommand CreateCommand()
+        {
+            var command = Connection.CreateCommand();
+            if (Transaction != null)
+                command.Transaction = Transaction;
+            return command;
+        }
+
+        public Exception GetException()
+        {
+            if (_exceptions.Count == 0)
+                return null;
+            if (_exceptions.Count == 1)
+                return _exceptions.Values.Single();
+            return new AggregateException(_exceptions.Values);
+        }
+
+        public void ThrowExceptionIfAny()
+        {
+            var e = GetException();
+            if (e != null)
+                throw e;
+        }
+
+        public void AddExecutor(Action<IExecutionContext, int> executor)
+        {
+            _executors.Add(executor);
+        }
+
+        public void Dispose()
+        {
+            Connection?.Dispose();
+            Transaction?.Commit();
+            Transaction?.Dispose();
+        }
+    }
+
+    public class SqlQueryStrategy<T>
     {
         private readonly ISqlQuery<T> _query;
 
-        public SqlQueryStratgy(ISqlQuery<T> query)
+        public SqlQueryStrategy(ISqlQuery<T> query)
         {
             _query = query;
         }
 
-        public object Execute(IDbConnection connection, IDbTransaction transaction, int index)
+        public T Execute(IExecutionContext context, int index)
         {
             var text = _query.GetSql();
             if (string.IsNullOrEmpty(text))
                 return default(T);
 
-            using (var command = connection.CreateCommand())
+            using (var command = context.CreateCommand())
             {
                 try
                 {
-                    command.Transaction = transaction;
                     command.CommandText = text;
                     command.CommandType = (_query is ISqlStoredProc) ? CommandType.StoredProcedure : CommandType.Text;
                     command.MaybeAddParameters(_query);
@@ -45,15 +103,13 @@ namespace CastIron.Sql.Execution
                 }
                 catch (Exception e)
                 {
-                    e.ThrowAsSqlProblemException(command, text, index);
+                    throw e.WrapAsSqlProblemException(command, text, index);
                 }
             }
-
-            return default(T);
         }
     }
 
-    public class SqlQueryRawCommandStrategy<T> : IExecutionStrategy
+    public class SqlQueryRawCommandStrategy<T>
     {
         private readonly ISqlQueryRawCommand<T> _query;
 
@@ -62,19 +118,19 @@ namespace CastIron.Sql.Execution
             _query = query;
         }
 
-        public object Execute(IDbConnection connection, IDbTransaction transaction, int index)
+        public T Execute(IExecutionContext context, int index)
         {
-            using (var command = connection.CreateCommand())
+            using (var command = context.CreateCommand())
             {
-                command.Transaction = transaction;
                 if (!_query.SetupCommand(command))
                     return default(T);
+
                 try
                 {
                     using (var reader = command.ExecuteReader())
                     {
-                        var result = new SqlQueryRawResultSet(command, reader);
-                        return _query.Read(result);
+                        var resultSet = new SqlQueryRawResultSet(command, reader);
+                        return _query.Read(resultSet);
                     }
                 }
                 catch (SqlProblemException)
@@ -83,15 +139,13 @@ namespace CastIron.Sql.Execution
                 }
                 catch (Exception e)
                 {
-                    e.ThrowAsSqlProblemException(command, command.CommandText, index);
+                    throw e.WrapAsSqlProblemException(command, command.CommandText, index);
                 }
             }
-
-            return default(T);
         }
     }
 
-    public class SqlQueryRawConnectionStrategy<T> : IExecutionStrategy
+    public class SqlQueryRawConnectionStrategy<T> 
     {
         private readonly ISqlQueryRawConnection<T> _query;
 
@@ -100,15 +154,26 @@ namespace CastIron.Sql.Execution
             _query = query;
         }
 
-        public object Execute(IDbConnection connection, IDbTransaction transaction, int index)
+        public T Execute(IExecutionContext context, int index)
         {
-            return _query.Query(connection, transaction);
-            // We can't do anything fancy with error handling, because we don't know what the user
-            // is trying to do
+            try
+            {
+                return _query.Query(context.Connection, context.Transaction);
+            }
+            catch (SqlProblemException)
+            {
+                throw;
+            }
+            catch (Exception e)
+            {
+                // We can't do anything fancy with error handling, because we don't know what the user
+                // is trying to do
+                throw e.WrapAsSqlProblemException(null, null, index);
+            }
         }
     }
 
-    public class SqlCommandStrategy : IExecutionStrategy
+    public class SqlCommandStrategy
     {
         private readonly ISqlCommand _command;
 
@@ -117,37 +182,34 @@ namespace CastIron.Sql.Execution
             _command = command;
         }
 
-
-        public object Execute(IDbConnection connection, IDbTransaction transaction, int index)
+        public void Execute(IExecutionContext context, int index)
         {
             var text = _command.GetSql();
             if (string.IsNullOrEmpty(text))
-                return null;
+                return;
 
-            try
+            using (var dbCommand = context.CreateCommand())
             {
-                using (var dbCommand = connection.CreateCommand())
+                try
                 {
-                    dbCommand.Transaction = transaction;
                     dbCommand.CommandText = text;
                     dbCommand.CommandType = (_command is ISqlStoredProc) ? CommandType.StoredProcedure : CommandType.Text;
                     dbCommand.MaybeAddParameters(_command);
                     dbCommand.ExecuteNonQuery();
-                    return null;
                 }
-            }
-            catch (SqlProblemException)
-            {
-                throw;
-            }
-            catch (Exception e)
-            {
-                throw new SqlProblemException(e.Message, text, e);
+                catch (SqlProblemException)
+                {
+                    throw;
+                }
+                catch (Exception e)
+                {
+                    throw e.WrapAsSqlProblemException(dbCommand, text, index);
+                }
             }
         }
     }
 
-    public class SqlCommandStrategy<T> : IExecutionStrategy
+    public class SqlCommandStrategy<T>
     {
         private readonly ISqlCommand<T> _command;
 
@@ -156,38 +218,36 @@ namespace CastIron.Sql.Execution
             _command = command;
         }
 
-
-        public object Execute(IDbConnection connection, IDbTransaction transaction, int index)
+        public T Execute(IExecutionContext context, int index)
         {
             var text = _command.GetSql();
             if (string.IsNullOrEmpty(text))
-                return null;
+                return default(T);
 
-            try
+            using (var dbCommand = context.CreateCommand())
             {
-                using (var dbCommand = connection.CreateCommand())
+                try
                 {
-                    dbCommand.Transaction = transaction;
                     dbCommand.CommandText = text;
                     dbCommand.CommandType = (_command is ISqlStoredProc) ? CommandType.StoredProcedure : CommandType.Text;
                     dbCommand.MaybeAddParameters(_command);
                     dbCommand.ExecuteNonQuery();
-                    var result = new SqlQueryRawResultSet(dbCommand, null);
-                    return _command.ReadOutputs(result);
+                    var resultSet = new SqlQueryRawResultSet(dbCommand, null);
+                    return _command.ReadOutputs(resultSet);
                 }
-            }
-            catch (SqlProblemException)
-            {
-                throw;
-            }
-            catch (Exception e)
-            {
-                throw new SqlProblemException(e.Message, text, e);
+                catch (SqlProblemException)
+                {
+                    throw;
+                }
+                catch (Exception e)
+                {
+                    throw e.WrapAsSqlProblemException(dbCommand, text, index);
+                }
             }
         }
     }
 
-    public class SqlCommandRawStrategy : IExecutionStrategy
+    public class SqlCommandRawStrategy
     {
         private readonly ISqlCommandRaw _command;
 
@@ -196,33 +256,31 @@ namespace CastIron.Sql.Execution
             _command = command;
         }
 
-
-        public object Execute(IDbConnection connection, IDbTransaction transaction, int index)
+        public void Execute(IExecutionContext context, int index)
         {
-            try
+            using (var dbCommand = context.CreateCommand())
             {
-                using (var dbCommand = connection.CreateCommand())
+                try
                 {
-                    dbCommand.Transaction = transaction;
                     if (!_command.SetupCommand(dbCommand))
-                        return null;
-                    
+                        return;
+
                     dbCommand.ExecuteNonQuery();
-                    return null;
+
                 }
-            }
-            catch (SqlProblemException)
-            {
-                throw;
-            }
-            catch (Exception e)
-            {
-                throw new SqlProblemException(e.Message, "", e);
+                catch (SqlProblemException)
+                {
+                    throw;
+                }
+                catch (Exception e)
+                {
+                    throw e.WrapAsSqlProblemException(dbCommand, dbCommand.CommandText, index);
+                }
             }
         }
     }
 
-    public class SqlCommandRawStrategy<T> : IExecutionStrategy
+    public class SqlCommandRawStrategy<T>
     {
         private readonly ISqlCommandRaw<T> _command;
 
@@ -231,28 +289,27 @@ namespace CastIron.Sql.Execution
             _command = command;
         }
 
-        public object Execute(IDbConnection connection, IDbTransaction transaction, int index)
+        public T Execute(IExecutionContext context, int index)
         {
-            try
+            using (var dbCommand = context.CreateCommand())
             {
-                using (var dbCommand = connection.CreateCommand())
+                try
                 {
-                    dbCommand.Transaction = transaction;
                     if (!_command.SetupCommand(dbCommand))
-                        return null;
+                        return default(T);
 
                     dbCommand.ExecuteNonQuery();
-                    var result = new SqlQueryRawResultSet(dbCommand, null);
-                    return _command.ReadOutputs(result);
+                    var resultSet = new SqlQueryRawResultSet(dbCommand, null);
+                    return _command.ReadOutputs(resultSet);
                 }
-            }
-            catch (SqlProblemException)
-            {
-                throw;
-            }
-            catch (Exception e)
-            {
-                throw new SqlProblemException(e.Message, "", e);
+                catch (SqlProblemException)
+                {
+                    throw;
+                }
+                catch (Exception e)
+                {
+                    throw e.WrapAsSqlProblemException(dbCommand, dbCommand.CommandText, index);
+                }
             }
         }
     }
@@ -274,16 +331,20 @@ namespace CastIron.Sql.Execution
             var param = command.CreateParameter();
             param.ParameterName = parameter.Name;
             param.Value = parameter.Value;
+            param.DbType = parameter.Type;
+            param.Size = parameter.Size;
             param.Direction = parameter.Direction;
             command.Parameters.Add(param);
         }
     }
 
     public static class ExceptionExtensions
+    {
+        public static SqlProblemException WrapAsSqlProblemException(this Exception e, IDbCommand command, string text, int index = -1)
         {
-            public static void ThrowAsSqlProblemException(this Exception e, IDbCommand command, string text, int index = -1)
+            var sb = new StringBuilder();
+            if (command != null)
             {
-                var sb = new StringBuilder();
                 for (int i = 0; i < command.Parameters.Count; i++)
                 {
                     if (!(command.Parameters[i] is SqlParameter param))
@@ -296,14 +357,16 @@ namespace CastIron.Sql.Execution
                     sb.Append(param.SqlValue);
                     sb.AppendLine(";");
                 }
-
                 sb.AppendLine();
+            }
+
+            if (!string.IsNullOrEmpty(text))
                 sb.AppendLine(text);
 
-                var message = e.Message;
-                if (index >= 0)
-                    message = $"Error executing statement {index}\n{e.Message}";
-                throw new SqlProblemException(message, sb.ToString(), e);
-            }
+            var message = e.Message;
+            if (index >= 0)
+                message = $"Error executing statement {index}\n{e.Message}";
+            return new SqlProblemException(message, sb.ToString(), e);
         }
+    }
 }
