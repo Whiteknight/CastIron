@@ -13,12 +13,13 @@ namespace CastIron.Sql.Commands
 
         public static string Quote(string s)
         {   
+            // TODO: Need real method to sanitize strings
             return "'" + s.Replace("'", "''") + "'";
         }
 
         public static string GetDateTimeString(DateTime value)
         {
-            return string.Format("'{0:yyyy-MM-dd HH:mm:ss.fff}'", value);
+            return $"'{value:yyyy-MM-dd HH:mm:ss.fff}'";
         }
 
         public SqlInsertCommand(string tableName)

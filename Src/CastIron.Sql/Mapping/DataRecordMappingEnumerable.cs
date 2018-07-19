@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Data;
 
-namespace CastIron.Sql
+namespace CastIron.Sql.Mapping
 {
     public class DataRecordMappingEnumerable<T> : IEnumerable<T>
     {

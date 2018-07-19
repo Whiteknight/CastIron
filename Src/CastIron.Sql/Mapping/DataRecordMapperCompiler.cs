@@ -4,26 +4,10 @@ using System.Data;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using CastIron.Sql.Mapping;
 
 namespace CastIron.Sql
 {
-    public class DataRecordMapperCompileContext
-    {
-        public DataRecordMapperCompileContext(IReadOnlyDictionary<string, int> columnNames, ParameterExpression recordParam)
-        {
-            ColumnNames = columnNames;
-            RecordParam = recordParam;
-            BindingExpressions = new List<MemberAssignment>();
-            MappedColumns = new HashSet<string>();
-        }
-
-        public IReadOnlyDictionary<string, int> ColumnNames { get;  }
-        public ParameterExpression RecordParam { get; }
-
-        public List<MemberAssignment> BindingExpressions { get; }
-
-        public HashSet<string> MappedColumns { get; }
-    }
 
     public static class DataRecordMapperCompiler
     {
