@@ -2,7 +2,7 @@
 
 namespace CastIron.Sql
 {
-    public class SqlResult : ISqlResult
+    public class SqlResultPromise : ISqlResultPromise
     {
         public bool IsComplete { get; set; }
 
@@ -10,7 +10,7 @@ namespace CastIron.Sql
         // TODO: Thread safety?
     }
 
-    public class SqlResult<T> : ISqlResult<T>
+    public class SqlResultPromise<T> : ISqlResultPromise<T>
     {
         private T _result;
 

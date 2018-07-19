@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
+using CastIron.Sql.Debugging;
 using CastIron.Sql.Mapping;
 
 namespace CastIron.Sql
@@ -25,6 +26,13 @@ namespace CastIron.Sql
             AssertHasReader();
             MarkConsumed();
             return _reader;
+        }
+
+        public IDataReader AsRawReaderWithBetterErrorMessages()
+        {
+            AssertHasReader();
+            MarkConsumed();
+            return new DataReaderWithBetterErrorMessages(_reader);
         }
 
         public MultiResultMapper AsResultMapper()

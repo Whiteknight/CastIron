@@ -22,30 +22,30 @@ namespace CastIron.Sql
             _executors.Add(executor);
         }
 
-        public ISqlResult<T> Add<T>(ISqlQuery<T> query)
+        public ISqlResultPromise<T> Add<T>(ISqlQuery<T> query)
         {
-            var result = new SqlResult<T>();
+            var result = new SqlResultPromise<T>();
             AddExecutor((c, i) => result.SetValue(new SqlQueryStrategy<T>(query).Execute(c, i)));
             return result;
         }
 
-        public ISqlResult<T> Add<T>(ISqlQueryRawCommand<T> query)
+        public ISqlResultPromise<T> Add<T>(ISqlQueryRawCommand<T> query)
         {
-            var result = new SqlResult<T>();
+            var result = new SqlResultPromise<T>();
             AddExecutor((c, i) => result.SetValue(new SqlQueryRawCommandStrategy<T>(query).Execute(c, i)));
             return result;
         }
 
-        public ISqlResult<T> Add<T>(ISqlQueryRawConnection<T> query)
+        public ISqlResultPromise<T> Add<T>(ISqlQueryRawConnection<T> query)
         {
-            var result = new SqlResult<T>();
+            var result = new SqlResultPromise<T>();
             AddExecutor((c, i) => result.SetValue(new SqlQueryRawConnectionStrategy<T>(query).Execute(c, i)));
             return result;
         }
 
-        public ISqlResult Add(ISqlCommand command)
+        public ISqlResultPromise Add(ISqlCommand command)
         {
-            var result = new SqlResult();
+            var result = new SqlResultPromise();
             AddExecutor((c, i) =>
             {
                 new SqlCommandStrategy(command).Execute(c, i);
@@ -54,9 +54,9 @@ namespace CastIron.Sql
             return result;
         }
 
-        public ISqlResult Add(ISqlCommandRawCommand command)
+        public ISqlResultPromise Add(ISqlCommandRawCommand command)
         {
-            var result = new SqlResult();
+            var result = new SqlResultPromise();
             AddExecutor((c, i) =>
             {
                 new SqlCommandRawStrategy(command).Execute(c, i);
@@ -65,9 +65,9 @@ namespace CastIron.Sql
             return result;
         }
 
-        public ISqlResult<T> Add<T>(ISqlCommandRawCommand<T> command)
+        public ISqlResultPromise<T> Add<T>(ISqlCommandRawCommand<T> command)
         {
-            var result = new SqlResult<T>();
+            var result = new SqlResultPromise<T>();
             AddExecutor((c, i) => result.SetValue(new SqlCommandRawStrategy<T>(command).Execute(c, i)));
             return result;
         }
