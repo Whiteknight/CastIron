@@ -22,7 +22,7 @@ namespace CastIron.Sql.Tests.Mapping
                     SELECT 'TEST' AS TestString;";
             }
 
-            public TestObject Read(SqlQueryRawResultSet result)
+            public TestObject Read(SqlResultSet result)
             {
                 var mapper = result.AsResultMapper();
                 var obj1 = mapper.AsEnumerable<TestObject>().First();

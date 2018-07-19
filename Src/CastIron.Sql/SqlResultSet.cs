@@ -5,13 +5,15 @@ using System.Data.Common;
 
 namespace CastIron.Sql
 {
-    public class SqlQueryRawResultSet
+    // Encapsulates both the IDataReader and the IDbCommand to give unified access to all results
+    // from the statements and access to features like result set mapping
+    public class SqlResultSet
     {
         private readonly IDbCommand _command;
         private readonly IDataReader _reader;
         private bool _isConsumed;
 
-        public SqlQueryRawResultSet(IDbCommand command, IDataReader reader)
+        public SqlResultSet(IDbCommand command, IDataReader reader)
         {
             _command = command;
             _reader = reader;
@@ -35,6 +37,7 @@ namespace CastIron.Sql
         {
             if (_reader == null)
                 throw new InvalidOperationException("Cannot map results to enumerable because the reader is null. Are you executing an ISqlCommand variant?");
+            MarkConsumed();
             return new DataRecordMappingEnumerable<T>(_reader, map);
         }
 

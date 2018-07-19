@@ -15,17 +15,38 @@ namespace CastIron.Sql
             _executors = new List<Action<IExecutionContext, int>>();
         }
 
+        private void AddExecutor(Action<IExecutionContext, int> executor)
+        {
+            // TODO: Make this thread safe.
+            // TODO: When we start to read the list of executors, it cannot be modified anymore.
+            _executors.Add(executor);
+        }
+
         public ISqlResult<T> Add<T>(ISqlQuery<T> query)
         {
             var result = new SqlResult<T>();
-            _executors.Add((c, i) => result.SetValue(new SqlQueryStrategy<T>(query).Execute(c, i)));
+            AddExecutor((c, i) => result.SetValue(new SqlQueryStrategy<T>(query).Execute(c, i)));
+            return result;
+        }
+
+        public ISqlResult<T> Add<T>(ISqlQueryRawCommand<T> query)
+        {
+            var result = new SqlResult<T>();
+            AddExecutor((c, i) => result.SetValue(new SqlQueryRawCommandStrategy<T>(query).Execute(c, i)));
+            return result;
+        }
+
+        public ISqlResult<T> Add<T>(ISqlQueryRawConnection<T> query)
+        {
+            var result = new SqlResult<T>();
+            AddExecutor((c, i) => result.SetValue(new SqlQueryRawConnectionStrategy<T>(query).Execute(c, i)));
             return result;
         }
 
         public ISqlResult Add(ISqlCommand command)
         {
             var result = new SqlResult();
-            _executors.Add((c, i) =>
+            AddExecutor((c, i) =>
             {
                 new SqlCommandStrategy(command).Execute(c, i);
                 result.IsComplete = true;
@@ -33,11 +54,27 @@ namespace CastIron.Sql
             return result;
         }
 
+        public ISqlResult Add(ISqlCommandRawCommand command)
+        {
+            var result = new SqlResult();
+            AddExecutor((c, i) =>
+            {
+                new SqlCommandRawStrategy(command).Execute(c, i);
+                result.IsComplete = true;
+            });
+            return result;
+        }
+
+        public ISqlResult<T> Add<T>(ISqlCommandRawCommand<T> command)
+        {
+            var result = new SqlResult<T>();
+            AddExecutor((c, i) => result.SetValue(new SqlCommandRawStrategy<T>(command).Execute(c, i)));
+            return result;
+        }
+
         public IReadOnlyList<Action<IExecutionContext, int>> GetExecutors()
         {
             return _executors;
         }
-
-        // TODO: More methods to add different ISql* query and command variants
     }
 }

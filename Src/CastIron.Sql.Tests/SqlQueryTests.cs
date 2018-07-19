@@ -14,7 +14,7 @@ namespace CastIron.Sql.Tests
                 return "SELECT 'TEST';";
             }
 
-            public string Read(SqlQueryRawResultSet result)
+            public string Read(SqlResultSet result)
             {
                 return result.AsEnumerable<string>().FirstOrDefault();
             }

@@ -28,7 +28,7 @@ INSERT INTO #castiron_test ([Value]) VALUES (1),(3),(5),(7);
                 return "SELECT * FROM #castiron_test;";
             }
 
-            public List<int> Read(SqlQueryRawResultSet result)
+            public List<int> Read(SqlResultSet result)
             {
                 return result.AsEnumerable<int>().ToList();
             }

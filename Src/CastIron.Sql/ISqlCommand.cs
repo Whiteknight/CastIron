@@ -1,13 +1,21 @@
 ﻿namespace CastIron.Sql
 {
+    /// <summary>
+    /// Used with .ExecuteNonQuery(), represents a command to modify the database without returning a result set
+    /// </summary>
     public interface ISqlCommand
     {
         string GetSql();
     }
 
-    // TODO: should this implement ISqlParameterized, or is there some other mechanism to get parameters into this?
+    /// <summary>
+    /// Used with .ExecuteNonQuery(), represents a command to modify the database without returning a result set.
+    /// This variant is expected to return some kind of result value, such as output parameters through the use
+    /// of ISqlParameterized
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
     public interface ISqlCommand<out T> : ISqlCommand
     {
-        T ReadOutputs(SqlQueryRawResultSet result);
+        T ReadOutputs(SqlResultSet result);
     }
 }

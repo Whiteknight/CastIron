@@ -11,7 +11,7 @@ namespace CastIron.Sql.Tests
         public class Query1 : ISqlQueryRawConnection<string>
         {
             
-            public string Read(SqlQueryRawResultSet result)
+            public string Read(SqlResultSet result)
             {
                 return result.AsEnumerable<string>().FirstOrDefault();
             }

@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Data;
+﻿using System.Data;
 using System.Data.SqlClient;
 using FluentAssertions;
 using NUnit.Framework;
@@ -11,7 +10,7 @@ namespace CastIron.Sql.Tests
     {
         public class Command1 : ISqlCommand<string>, ISqlParameterized
         {
-            public string ReadOutputs(SqlQueryRawResultSet result)
+            public string ReadOutputs(SqlResultSet result)
             {
                 return result.GetOutputParameter("@param").ToString();
             }
@@ -21,12 +20,11 @@ namespace CastIron.Sql.Tests
                 return "SELECT @param = 'TEST';";
             }
 
-            public IEnumerable<Parameter> GetParameters()
+            public void SetupParameters(IDataParameterCollection parameters)
             {
-                return new[]
-                {
-                    Parameter.CreateStringOutputParameter("@param", 4)
-                };
+                parameters.Add(new SqlParameter("@param", SqlDbType.Char, 4) {
+                    Direction = ParameterDirection.Output
+                });
             }
         }
 
@@ -38,9 +36,9 @@ namespace CastIron.Sql.Tests
             result.Should().Be("TEST");
         }
 
-        public class Command2 : ISqlCommandRaw<string>
+        public class Command2 : ISqlCommandRawCommand<string>
         {
-            public string ReadOutputs(SqlQueryRawResultSet result)
+            public string ReadOutputs(SqlResultSet result)
             {
                 return result.GetOutputParameter("@param").ToString();
             }

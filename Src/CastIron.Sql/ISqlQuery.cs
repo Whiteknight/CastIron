@@ -8,6 +8,6 @@
     public interface ISqlQuery<out T> : ISqlQueryBase
     {
         string GetSql();
-        T Read(SqlQueryRawResultSet result);
+        T Read(SqlResultSet result);
     }
 }

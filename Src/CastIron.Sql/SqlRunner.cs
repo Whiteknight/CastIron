@@ -79,12 +79,12 @@ namespace CastIron.Sql
             return Execute(c => new SqlCommandStrategy<T>(commandObject).Execute(c, 0));
         }
 
-        public void Execute(ISqlCommandRaw commandObject)
+        public void Execute(ISqlCommandRawCommand commandObject)
         {
             Execute(c => new SqlCommandRawStrategy(commandObject).Execute(c, 0));
         }
 
-        public T Execute<T>(ISqlCommandRaw<T> commandObject)
+        public T Execute<T>(ISqlCommandRawCommand<T> commandObject)
         {
             return Execute(c => new SqlCommandRawStrategy<T>(commandObject).Execute(c, 0));
         }

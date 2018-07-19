@@ -8,9 +8,9 @@ namespace CastIron.Sql.Tests
     [TestFixture]
     public class SqlCommandRawTests
     {
-        public class Command1 : ISqlCommandRaw<string>
+        public class Command1 : ISqlCommandRawCommand<string>
         {
-            public string ReadOutputs(SqlQueryRawResultSet result)
+            public string ReadOutputs(SqlResultSet result)
             {
                 return result.GetOutputParameter("@param").ToString();
             }
@@ -35,9 +35,9 @@ namespace CastIron.Sql.Tests
             result.Should().Be("TEST");
         }
 
-        public class Command2 : ISqlCommandRaw<string>
+        public class Command2 : ISqlCommandRawCommand<string>
         {
-            public string ReadOutputs(SqlQueryRawResultSet result)
+            public string ReadOutputs(SqlResultSet result)
             {
                 return result.GetOutputParameter("@param").ToString();
             }

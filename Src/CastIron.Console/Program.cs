@@ -27,7 +27,7 @@ namespace CastIron.Console
             return "SELECT 1 AS TestInt, 'TEST' AS TestString, CAST(1 AS BIT) AS TestBool;";
         }
 
-        public TestObject Read(SqlQueryRawResultSet result)
+        public TestObject Read(SqlResultSet result)
         {
             return result.AsEnumerable<TestObject>().FirstOrDefault();
         }

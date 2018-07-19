@@ -5,6 +5,6 @@ namespace CastIron.Sql
     public interface ISqlQueryRawCommand<out T> : ISqlQueryBase
     {
         bool SetupCommand(IDbCommand command);
-        T Read(SqlQueryRawResultSet result);
+        T Read(SqlResultSet result);
     }
 }

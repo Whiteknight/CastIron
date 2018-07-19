@@ -21,7 +21,7 @@ namespace CastIron.Sql.Tests.Mapping
                 return _sql;
             }
 
-            public T Read(SqlQueryRawResultSet result)
+            public T Read(SqlResultSet result)
             {
                 return result.AsEnumerable<T>().First();
             }
