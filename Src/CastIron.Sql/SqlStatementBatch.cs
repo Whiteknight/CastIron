@@ -6,6 +6,9 @@ namespace CastIron.Sql
 {
     // TODO: Cross-thread support. I should be able to dispatch executors to a separate thread and wait for the
     // query to be batched and executed in a thread-safe manner.
+    /// <summary>
+    /// Batch of statements to all be executed together on a single open connection.
+    /// </summary>
     public class SqlStatementBatch
     {
         private readonly List<Action<IExecutionContext, int>> _executors;

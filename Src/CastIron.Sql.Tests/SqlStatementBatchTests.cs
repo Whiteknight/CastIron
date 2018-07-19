@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using FluentAssertions;
 using NUnit.Framework;
@@ -47,6 +48,32 @@ INSERT INTO #castiron_test ([Value]) VALUES (1),(3),(5),(7);
             var list = result.GetValue();
             list.Should().NotBeNull();
             list.Should().BeEquivalentTo(1, 3, 5, 7);
+        }
+
+        public class QuerySimpleQuery : ISqlQuery<string>
+        {
+            public string GetSql()
+            {
+                return "SELECT 'TEST';";
+            }
+
+            public string Read(SqlResultSet result)
+            {
+                return result.AsEnumerable<string>().Single();
+            }
+        }
+
+        [Test]
+        public void CommandAndQueryBatch_AsTask()
+        {
+            var runner = RunnerFactory.Create();
+            var batch = new SqlStatementBatch();
+            var promise = batch.Add(new QuerySimpleQuery());
+            var task = promise.AsTask(TimeSpan.FromSeconds(10));
+            runner.Execute(batch);
+
+            var result = task.Result;
+            result.Should().Be("TEST");
         }
 
         public class CreateTempStoredProcCommand : ISqlCommand

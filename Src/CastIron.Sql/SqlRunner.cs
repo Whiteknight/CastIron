@@ -5,6 +5,9 @@ using CastIron.Sql.Execution;
 
 namespace CastIron.Sql
 {
+    /// <summary>
+    /// Runner for Query and Command objects. 
+    /// </summary>
     public class SqlRunner
     {
         private readonly IDbConnectionFactory _connectionFactory;

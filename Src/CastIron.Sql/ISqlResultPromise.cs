@@ -1,15 +1,20 @@
-﻿namespace CastIron.Sql
+﻿using System;
+using System.Threading;
+using System.Threading.Tasks;
+
+namespace CastIron.Sql
 {
     /// <summary>
     /// A promise-like result from a single statement in a batch. Returns a result after the statement has
     /// been executed
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    public interface ISqlResultPromise<out T>
+    public interface ISqlResultPromise<T>
     {
         bool IsComplete { get; }
         T GetValue();
-        // TODO: Expose a wait handle?
+        WaitHandle WaitHandle { get; }
+        Task<T> AsTask(TimeSpan timeout);
     }
 
     /// <summary>
@@ -19,6 +24,7 @@
     public interface ISqlResultPromise
     {
         bool IsComplete { get; }
-        // TODO: Expose a wait handle?
+        WaitHandle WaitHandle { get; }
+        Task AsTask(TimeSpan timeout);
     }
 }

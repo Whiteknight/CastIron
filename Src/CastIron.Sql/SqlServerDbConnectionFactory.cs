@@ -3,6 +3,9 @@ using System.Data.SqlClient;
 
 namespace CastIron.Sql
 {
+    /// <summary>
+    /// Default IDbConnectionFactory implementation for Microsoft SQL Server and compatible databases
+    /// </summary>
     public class SqlServerDbConnectionFactory : IDbConnectionFactory
     {
         private readonly string _connectionString;
