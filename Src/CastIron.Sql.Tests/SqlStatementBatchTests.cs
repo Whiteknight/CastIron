@@ -48,5 +48,44 @@ INSERT INTO #castiron_test ([Value]) VALUES (1),(3),(5),(7);
             list.Should().NotBeNull();
             list.Should().BeEquivalentTo(1, 3, 5, 7);
         }
+
+        public class CreateTempStoredProcCommand : ISqlCommand
+        {
+            public string GetSql()
+            {
+                return @"
+-- Create local temp procedure
+CREATE PROCEDURE #TestProcedure
+AS
+    SELECT 'TEST';
+";
+            }
+        }
+
+        public class ExecuteStoredProcQuery : ISqlQuery<string>, ISqlStoredProc
+        {
+            public string GetSql()
+            {
+                return "#TestProcedure";
+            }
+
+            public string Read(SqlResultSet result)
+            {
+                return result.AsEnumerable<string>().Single();
+            }
+        }
+
+        [Test]
+        public void CreateAndQueryStoredProc_Test()
+        {
+            var runner = RunnerFactory.Create();
+            var batch = new SqlStatementBatch();
+            batch.Add(new CreateTempStoredProcCommand());
+            var result = batch.Add(new ExecuteStoredProcQuery());
+            runner.Execute(batch);
+
+            result.IsComplete.Should().BeTrue();
+            result.GetValue().Should().Be("TEST");
+        }
     }
 }
