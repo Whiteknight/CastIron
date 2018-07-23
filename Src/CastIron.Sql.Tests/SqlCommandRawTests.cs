@@ -8,7 +8,7 @@ namespace CastIron.Sql.Tests
     [TestFixture]
     public class SqlCommandRawTests
     {
-        public class Command1 : ISqlCommandRawCommand<string>
+        public class CommandWithUntypedOutputParameter : ISqlCommandRawCommand<string>
         {
             public string ReadOutputs(SqlResultSet result)
             {
@@ -28,14 +28,41 @@ namespace CastIron.Sql.Tests
         }
 
         [Test]
-        public void SqlCommandRaw_Test()
+        public void SqlCommandRawCommand_UntypedOutputParameter()
         {
             var runner = RunnerFactory.Create();
-            var result = runner.Execute(new Command1());
+            var result = runner.Execute(new CommandWithUntypedOutputParameter());
             result.Should().Be("TEST");
         }
 
-        public class Command2 : ISqlCommandRawCommand<string>
+        public class CommandWithTypedOutputParameter : ISqlCommandRawCommand<string>
+        {
+            public string ReadOutputs(SqlResultSet result)
+            {
+                return result.GetOutputParameter<string>("@param");
+            }
+
+            public bool SetupCommand(IDbCommand command)
+            {
+                command.CommandText = "SELECT @param = 'TEST';";
+                var p = new SqlParameter("@param", SqlDbType.Char, 4)
+                {
+                    Direction = ParameterDirection.Output
+                };
+                command.Parameters.Add(p);
+                return true;
+            }
+        }
+
+        [Test]
+        public void SqlCommandRawCommand_TypedOutputParameter()
+        {
+            var runner = RunnerFactory.Create();
+            var result = runner.Execute(new CommandWithTypedOutputParameter());
+            result.Should().Be("TEST");
+        }
+
+        public class CommandNotExecuted : ISqlCommandRawCommand<string>
         {
             public string ReadOutputs(SqlResultSet result)
             {
@@ -58,7 +85,7 @@ namespace CastIron.Sql.Tests
         public void SqlCommandRaw_NotExecuted()
         {
             var runner = RunnerFactory.Create();
-            var result = runner.Execute(new Command2());
+            var result = runner.Execute(new CommandNotExecuted());
             result.Should().BeNullOrEmpty();
         }
     }

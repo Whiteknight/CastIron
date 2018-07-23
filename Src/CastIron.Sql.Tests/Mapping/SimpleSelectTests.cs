@@ -14,18 +14,6 @@ namespace CastIron.Sql.Tests.Mapping
             public bool TestBool { get; set; }
         }
 
-        public class TestObject2
-        {
-            public TestObject2(int testInt)
-            {
-                TestInt = testInt;
-            }
-
-            public int TestInt { get; }
-            public string TestString { get; set; }
-            public bool TestBool { get; set; }
-        }
-
         public class TestQuery1 : ISqlQuery<TestObject1>
         {
             public string GetSql()
@@ -50,13 +38,64 @@ namespace CastIron.Sql.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery2_ConstructorParams_Test()
+        public void TestQuery1_ConstructorParams_Test()
         {
             var target = RunnerFactory.Create();
             var result = target.Query(new TestQuery1());
             result.TestInt.Should().Be(5);
             result.TestString.Should().Be("TEST");
             result.TestBool.Should().Be(true);
+        }
+
+        public class TestQuery_ObjectArray : ISqlQuery<object[]>
+        {
+            public string GetSql()
+            {
+                return "SELECT 5 AS TestInt, 'TEST' AS TestString, CAST(1 AS BIT) AS TestBool;";
+            }
+
+            public object[] Read(SqlResultSet result)
+            {
+                return result.AsEnumerable<object[]>().FirstOrDefault();
+            }
+        }
+
+        [Test]
+        public void TestQuery_MapToObjectArray()
+        {
+            var target = RunnerFactory.Create();
+            var result = target.Query(new TestQuery_ObjectArray());
+            result.Length.Should().Be(3);
+            result[0].Should().Be(5);
+            result[1].Should().Be("TEST");
+            result[2].Should().Be(true);
+        }
+
+        public class TestQuery_Object : ISqlQuery<object>
+        {
+            public string GetSql()
+            {
+                return "SELECT 5 AS TestInt, 'TEST' AS TestString, CAST(1 AS BIT) AS TestBool;";
+            }
+
+            public object Read(SqlResultSet result)
+            {
+                return result.AsEnumerable<object>().FirstOrDefault();
+            }
+        }
+
+        [Test]
+        public void TestQuery_MapToObject()
+        {
+            var target = RunnerFactory.Create();
+            var result = target.Query(new TestQuery_Object());
+            result.Should().BeOfType<object[]>();
+
+            var array = result as object[];
+            array.Length.Should().Be(3);
+            array[0].Should().Be(5);
+            array[1].Should().Be("TEST");
+            array[2].Should().Be(true);
         }
     }
 }

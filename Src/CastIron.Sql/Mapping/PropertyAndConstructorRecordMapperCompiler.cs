@@ -4,17 +4,16 @@ using System.Data;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-using CastIron.Sql.Mapping;
 
-namespace CastIron.Sql
+namespace CastIron.Sql.Mapping
 {
-
-    public static class DataRecordMapperCompiler
+    public static class PropertyAndConstructorRecordMapperCompiler
     {
         private static readonly MethodInfo GetValueMethod = typeof(IDataRecord).GetMethod("GetValue");
         private static readonly Expression _dbNullExp = Expression.Field(null, typeof(DBNull), "Value");
         private static readonly HashSet<Type> _mappableTypes = new HashSet<Type>
         {
+            // TODO: Expand this list of all primitive types we can map from the DB
             typeof(int),
             typeof(int?),
             typeof(long),

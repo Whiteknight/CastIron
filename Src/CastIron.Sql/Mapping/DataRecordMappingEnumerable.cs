@@ -11,10 +11,11 @@ namespace CastIron.Sql.Mapping
         private readonly Func<IDataRecord, T> _map;
         private bool _alreadyRead;
 
+        // TODO: Provide some standard maps: Map columnName->propertyName, or provide a map of columnNumber->propertyName to use
         public DataRecordMappingEnumerable(IDataReader reader, Func<IDataRecord, T> map = null)
         {
             _reader = reader;
-            _map = map ?? CreateDefaultMap(reader);
+            _map = map;
             _alreadyRead = false;
         }
 
@@ -29,25 +30,6 @@ namespace CastIron.Sql.Mapping
                 throw new Exception("Cannot read the same result set more than once. Please cache your results and read from the cache");
             _alreadyRead = true;
             return new ResultSetEnumerator(_reader, _map);
-        }
-
-        private static Func<IDataRecord, T> CreateDefaultMap(IDataReader reader)
-        {
-            if (reader == null)
-                return r => default(T);
-
-            var columnNames = new Dictionary<string, int>();
-            for (int i = 0; i < reader.FieldCount; i++)
-            {
-                var name = reader.GetName(i).ToLowerInvariant();
-                if (string.IsNullOrEmpty(name))
-                    continue;
-                if (columnNames.ContainsKey(name))
-                    continue;
-                columnNames.Add(name, i);
-            }
-
-            return DataRecordMapperCompiler.CompileExpression<T>(columnNames);
         }
 
         private class ResultSetEnumerator : IEnumerator<T>
