@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace CastIron.Sql.Commands
+namespace CastIron.Sql.Statements
 {
     public class SqlInsertCommand : ISqlCommand
     {

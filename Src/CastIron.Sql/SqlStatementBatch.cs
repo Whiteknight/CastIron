@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using CastIron.Sql.Execution;
+using CastIron.Sql.Statements;
 
 namespace CastIron.Sql
 {
@@ -78,6 +79,16 @@ namespace CastIron.Sql
         public IReadOnlyList<Action<IExecutionContext, int>> GetExecutors()
         {
             return _executors;
+        }
+
+        public ISqlResultPromise Add(string sql)
+        {
+            return Add(new SqlCommand(sql));
+        }
+
+        public ISqlResultPromise<IReadOnlyList<T>> Add<T>(string sql)
+        {
+            return Add(new SqlQuery<T>(sql));
         }
     }
 }

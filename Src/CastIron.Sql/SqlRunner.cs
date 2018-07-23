@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data;
 using CastIron.Sql.Execution;
+using CastIron.Sql.Statements;
 
 namespace CastIron.Sql
 {
@@ -16,6 +17,8 @@ namespace CastIron.Sql
         {
             _connectionFactory = connectionFactory ?? new SqlServerDbConnectionFactory(connectionString);
         }
+
+        // TODO: Instead of "bool useTransaction" use an enum for the isolation level requested
 
         private ExecutionContext CreateExecutionContext(bool useTransaction)
         {
@@ -57,6 +60,11 @@ namespace CastIron.Sql
             Execute(batch.GetExecutors(), useTransaction);
         }
 
+        public void Execute(string sql)
+        {
+            Execute(new SqlCommand(sql));
+        }
+
         public T Query<T>(ISqlQuery<T> query)
         {
             return Execute(c => new SqlQueryStrategy<T>(query).Execute(c, 0));
@@ -70,6 +78,11 @@ namespace CastIron.Sql
         public T Query<T>(ISqlQueryRawConnection<T> query)
         {
             return Execute(c => new SqlQueryRawConnectionStrategy<T>(query).Execute(c, 0));
+        }
+
+        public IReadOnlyList<T> Query<T>(string sql)
+        {
+            return Query(new SqlQuery<T>(sql));
         }
 
         public void Execute(ISqlCommand commandObject)
@@ -91,5 +104,8 @@ namespace CastIron.Sql
         {
             return Execute(c => new SqlCommandRawStrategy<T>(commandObject).Execute(c, 0));
         }
+
+        // TODO: Method variants where we can get a wrapped object which contains the (still open) connection, so we can stream data and then dispose the whole thing
+        // TODO: This will probably be something like SqlResultSet, but with the connection and a .Dispose() method and logic to auto-dispose on stream end.
     }
 }

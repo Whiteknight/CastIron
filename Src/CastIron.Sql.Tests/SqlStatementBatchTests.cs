@@ -50,6 +50,25 @@ INSERT INTO #castiron_test ([Value]) VALUES (1),(3),(5),(7);
             list.Should().BeEquivalentTo(1, 3, 5, 7);
         }
 
+        [Test]
+        public void CommandAndQueryBatch_SimpleSql()
+        {
+            var runner = RunnerFactory.Create();
+            var batch = new SqlStatementBatch();
+            batch.Add(@"
+                CREATE TABLE #castiron_test (
+                    [Value] INT NOT NULL
+                );
+                INSERT INTO #castiron_test ([Value]) VALUES (1),(3),(5),(7);");
+            var result = batch.Add<int>("SELECT * FROM #castiron_test;");
+            runner.Execute(batch);
+
+            result.IsComplete.Should().Be(true);
+            var list = result.GetValue();
+            list.Should().NotBeNull();
+            list.Should().BeEquivalentTo(1, 3, 5, 7);
+        }
+
         public class QuerySimpleQuery : ISqlQuery<string>
         {
             public string GetSql()
@@ -74,6 +93,19 @@ INSERT INTO #castiron_test ([Value]) VALUES (1),(3),(5),(7);
 
             var result = task.Result;
             result.Should().Be("TEST");
+        }
+
+        [Test]
+        public void Batch_SimpleSql()
+        {
+            var runner = RunnerFactory.Create();
+            var batch = new SqlStatementBatch();
+            var result = batch.Add<string>("SELECT 'TEST';");
+            runner.Execute(batch);
+
+            var list = result.GetValue();
+            list.Count.Should().Be(1);
+            list[0].Should().Be("TEST");
         }
 
         public class CreateTempStoredProcCommand : ISqlCommand
