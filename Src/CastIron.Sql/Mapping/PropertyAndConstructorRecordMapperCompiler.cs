@@ -163,7 +163,11 @@ namespace CastIron.Sql.Mapping
 
         private static ConditionalExpression CreateValueFetchExpression(DataRecordMapperCompileContext context, int columnIdx, Type targetType)
         {
+            // var value = record.GetValue(columnIdx)
             var columnValueExpression = Expression.Call(context.RecordParam, GetValueMethod, Expression.Constant(columnIdx));
+
+            // TODO: This can be optimized because we are calling GetValue more than once
+            // value == DbNull ? Convert(value, targetType) : default(targetType)
             return Expression.Condition(
                 Expression.NotEqual(_dbNullExp, columnValueExpression),
                 Expression.Convert(
