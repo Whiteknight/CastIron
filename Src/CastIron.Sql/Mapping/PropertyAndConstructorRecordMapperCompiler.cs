@@ -14,10 +14,16 @@ namespace CastIron.Sql.Mapping
         private static readonly HashSet<Type> _mappableTypes = new HashSet<Type>
         {
             // TODO: Expand this list of all primitive types we can map from the DB
+            typeof(short),
+            typeof(short?),
             typeof(int),
             typeof(int?),
             typeof(long),
             typeof(long?),
+            typeof(float),
+            typeof(float?),
+            typeof(double),
+            typeof(double?),
             typeof(bool),
             typeof(bool?),
             typeof(string),
@@ -32,7 +38,7 @@ namespace CastIron.Sql.Mapping
             {
                 if (string.IsNullOrEmpty(columnNames[i]))
                     continue;
-                dict.Add(columnNames[i], i);
+                dict.Add(columnNames[i].ToLowerInvariant(), i);
             }
 
             return CompileExpression<T>(dict);
