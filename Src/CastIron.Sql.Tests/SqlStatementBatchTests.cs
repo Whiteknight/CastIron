@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using FluentAssertions;
 using NUnit.Framework;
@@ -43,6 +44,21 @@ INSERT INTO #castiron_test ([Value]) VALUES (1),(3),(5),(7);
             batch.Add(new CreateTempTableCommand());
             var result = batch.Add(new QueryTempTableQuery());
             runner.Execute(batch);
+
+            result.IsComplete.Should().Be(true);
+            var list = result.GetValue();
+            list.Should().NotBeNull();
+            list.Should().BeEquivalentTo(1, 3, 5, 7);
+        }
+
+        [Test]
+        public void CommandAndQueryBatch_Transaction()
+        {
+            var runner = RunnerFactory.Create();
+            var batch = new SqlStatementBatch();
+            batch.Add(new CreateTempTableCommand());
+            var result = batch.Add(new QueryTempTableQuery());
+            runner.Execute(batch, b => b.UseTransaction(IsolationLevel.Serializable));
 
             result.IsComplete.Should().Be(true);
             var list = result.GetValue();
@@ -113,11 +129,10 @@ INSERT INTO #castiron_test ([Value]) VALUES (1),(3),(5),(7);
             public string GetSql()
             {
                 return @"
--- Create local temp procedure
-CREATE PROCEDURE #TestProcedure
-AS
-    SELECT 'TEST';
-";
+                -- Create local temp procedure
+                CREATE PROCEDURE #TestProcedure
+                AS
+                    SELECT 'TEST';";
             }
         }
 

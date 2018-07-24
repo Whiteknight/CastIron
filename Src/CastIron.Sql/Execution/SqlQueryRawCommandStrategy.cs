@@ -13,25 +13,33 @@ namespace CastIron.Sql.Execution
 
         public T Execute(IExecutionContext context, int index)
         {
+            context.StartAction(index, "Setup Command");
             using (var command = context.CreateCommand())
             {
                 if (!_query.SetupCommand(command))
+                {
+                    context.MarkAborted();
                     return default(T);
+                }
 
                 try
                 {
+                    context.StartAction(index, "Execute");
                     using (var reader = command.ExecuteReader())
                     {
+                        context.StartAction(index, "Map Results");
                         var resultSet = new SqlResultSet(command, reader);
                         return _query.Read(resultSet);
                     }
                 }
                 catch (SqlProblemException)
                 {
+                    context.MarkAborted();
                     throw;
                 }
                 catch (Exception e)
                 {
+                    context.MarkAborted();
                     throw e.WrapAsSqlProblemException(command, command.CommandText, index);
                 }
             }

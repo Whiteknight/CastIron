@@ -14,6 +14,7 @@ namespace CastIron.Sql.Execution
 
         public void Execute(IExecutionContext context, int index)
         {
+            context.StartAction(index, "Setup Command");
             var text = _command.GetSql();
             if (string.IsNullOrEmpty(text))
                 return;
@@ -26,14 +27,18 @@ namespace CastIron.Sql.Execution
                     dbCommand.CommandType = (_command is ISqlStoredProc) ? CommandType.StoredProcedure : CommandType.Text;
                     if (_command is ISqlParameterized parameterized)
                         parameterized.SetupParameters(dbCommand.Parameters);
+
+                    context.StartAction(index, "Execute");
                     dbCommand.ExecuteNonQuery();
                 }
                 catch (SqlProblemException)
                 {
+                    context.MarkAborted();
                     throw;
                 }
                 catch (Exception e)
                 {
+                    context.MarkAborted();
                     throw e.WrapAsSqlProblemException(dbCommand, text, index);
                 }
             }
@@ -51,6 +56,7 @@ namespace CastIron.Sql.Execution
 
         public T Execute(IExecutionContext context, int index)
         {
+            context.StartAction(index, "Setup Command");
             var text = _command.GetSql();
             if (string.IsNullOrEmpty(text))
                 return default(T);
@@ -63,16 +69,22 @@ namespace CastIron.Sql.Execution
                     dbCommand.CommandType = (_command is ISqlStoredProc) ? CommandType.StoredProcedure : CommandType.Text;
                     if (_command is ISqlParameterized parameterized)
                         parameterized.SetupParameters(dbCommand.Parameters);
+
+                    context.StartAction(index, "Execute");
                     dbCommand.ExecuteNonQuery();
+
+                    context.StartAction(index, "Map Results");
                     var resultSet = new SqlResultSet(dbCommand, null);
                     return _command.ReadOutputs(resultSet);
                 }
                 catch (SqlProblemException)
                 {
+                    context.MarkAborted();
                     throw;
                 }
                 catch (Exception e)
                 {
+                    context.MarkAborted();
                     throw e.WrapAsSqlProblemException(dbCommand, text, index);
                 }
             }

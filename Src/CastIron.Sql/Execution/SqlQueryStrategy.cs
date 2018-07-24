@@ -14,6 +14,7 @@ namespace CastIron.Sql.Execution
 
         public T Execute(IExecutionContext context, int index)
         {
+            context.StartAction(index, "Setup Command");
             var text = _query.GetSql();
             if (string.IsNullOrEmpty(text))
                 return default(T);
@@ -26,18 +27,23 @@ namespace CastIron.Sql.Execution
                     dbCommand.CommandType = (_query is ISqlStoredProc) ? CommandType.StoredProcedure : CommandType.Text;
                     if (_query is ISqlParameterized parameterized)
                         parameterized.SetupParameters(dbCommand.Parameters);
+
+                    context.StartAction(index, "Execute");
                     using (var reader = dbCommand.ExecuteReader())
                     {
+                        context.StartAction(index, "Map Results");
                         var rawResultSet = new SqlResultSet(dbCommand, reader);
                         return _query.Read(rawResultSet);
                     }
                 }
                 catch (SqlProblemException)
                 {
+                    context.MarkAborted();
                     throw;
                 }
                 catch (Exception e)
                 {
+                    context.MarkAborted();
                     throw e.WrapAsSqlProblemException(dbCommand, text, index);
                 }
             }

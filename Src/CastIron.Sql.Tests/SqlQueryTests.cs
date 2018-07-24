@@ -27,5 +27,15 @@ namespace CastIron.Sql.Tests
             var result = runner.Query(new Query1());
             result.Should().Be("TEST");
         }
+
+        [Test]
+        public void SqlQuery_PerformanceReport()
+        {
+            string report = null;
+            var runner = RunnerFactory.Create();
+            var result = runner.Query(new Query1(), b => b.MonitorPerformance(s => report = s));
+            result.Should().Be("TEST");
+            report.Should().NotBeNull();
+        }
     }
 }
