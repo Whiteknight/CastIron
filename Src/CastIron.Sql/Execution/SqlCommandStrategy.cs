@@ -21,9 +21,9 @@ namespace CastIron.Sql.Execution
 
             using (var dbCommand = context.CreateCommand())
             {
+                dbCommand.CommandText = text;
                 try
                 {
-                    dbCommand.CommandText = text;
                     dbCommand.CommandType = (_command is ISqlStoredProc) ? CommandType.StoredProcedure : CommandType.Text;
                     if (_command is ISqlParameterized parameterized)
                         parameterized.SetupParameters(dbCommand.Parameters);
@@ -39,7 +39,7 @@ namespace CastIron.Sql.Execution
                 catch (Exception e)
                 {
                     context.MarkAborted();
-                    throw e.WrapAsSqlProblemException(dbCommand, text, index);
+                    throw e.WrapAsSqlProblemException(dbCommand, index);
                 }
             }
         }
@@ -63,9 +63,9 @@ namespace CastIron.Sql.Execution
 
             using (var dbCommand = context.CreateCommand())
             {
+                dbCommand.CommandText = text;
                 try
                 {
-                    dbCommand.CommandText = text;
                     dbCommand.CommandType = (_command is ISqlStoredProc) ? CommandType.StoredProcedure : CommandType.Text;
                     if (_command is ISqlParameterized parameterized)
                         parameterized.SetupParameters(dbCommand.Parameters);
@@ -85,7 +85,7 @@ namespace CastIron.Sql.Execution
                 catch (Exception e)
                 {
                     context.MarkAborted();
-                    throw e.WrapAsSqlProblemException(dbCommand, text, index);
+                    throw e.WrapAsSqlProblemException(dbCommand, index);
                 }
             }
         }

@@ -40,7 +40,7 @@ namespace CastIron.Sql.Execution
                 catch (Exception e)
                 {
                     context.MarkAborted();
-                    throw e.WrapAsSqlProblemException(command, command.CommandText, index);
+                    throw e.WrapAsSqlProblemException(command, index);
                 }
             }
         }

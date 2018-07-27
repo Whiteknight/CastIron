@@ -28,7 +28,7 @@ namespace CastIron.Sql.Execution
                 context.MarkAborted();
                 // We can't do anything fancy with error handling, because we don't know what the user
                 // is trying to do
-                throw e.WrapAsSqlProblemException(null, null, index);
+                throw e.WrapAsSqlProblemException(null, index);
             }
         }
     }

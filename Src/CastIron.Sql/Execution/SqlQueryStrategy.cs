@@ -21,9 +21,9 @@ namespace CastIron.Sql.Execution
 
             using (var dbCommand = context.CreateCommand())
             {
+                dbCommand.CommandText = text;
                 try
                 {
-                    dbCommand.CommandText = text;
                     dbCommand.CommandType = (_query is ISqlStoredProc) ? CommandType.StoredProcedure : CommandType.Text;
                     if (_query is ISqlParameterized parameterized)
                         parameterized.SetupParameters(dbCommand.Parameters);
@@ -44,7 +44,7 @@ namespace CastIron.Sql.Execution
                 catch (Exception e)
                 {
                     context.MarkAborted();
-                    throw e.WrapAsSqlProblemException(dbCommand, text, index);
+                    throw e.WrapAsSqlProblemException(dbCommand, index);
                 }
             }
         }
