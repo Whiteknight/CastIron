@@ -25,9 +25,20 @@ namespace CastIron.Sql.Execution
                 sb.Append("--DECLARE ");
                 sb.Append(param.ParameterName);
                 sb.Append(" ");
-                sb.Append(param.DbType);
-                sb.Append(" = ");
-                sb.Append(param.SqlValue);
+                sb.Append(param.SqlDbType);
+                if (param.Size > 0)
+                {
+                    sb.Append("(");
+                    sb.Append(param.Size);
+                    sb.Append(")");
+                }
+
+                if (param.Direction == ParameterDirection.Input || param.Direction == ParameterDirection.InputOutput)
+                {
+                    sb.Append(" = ");
+                    sb.Append(param.SqlValue);
+                }
+
                 sb.AppendLine(";");
             }
 
@@ -41,10 +52,9 @@ namespace CastIron.Sql.Execution
                         if (!(command.Parameters[i] is SqlParameter param))
                             continue;
                         sb.Append(param.ParameterName);
-                        if (i == command.Parameters.Count - 1)
-                            sb.Append(";");
-                        else
-                            sb.Append(", ");
+                        if (param.Direction == ParameterDirection.Output || param.Direction == ParameterDirection.InputOutput)
+                            sb.Append(" OUTPUT");
+                        sb.Append(i == command.Parameters.Count - 1 ? ";" : ", ");
                     }
                     break;
                 case CommandType.Text:

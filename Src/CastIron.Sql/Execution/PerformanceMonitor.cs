@@ -14,7 +14,6 @@ namespace CastIron.Sql.Execution
 
         private PerformanceEntry _current;
 
-        // TODO: Alternate callback to take a report object instead of a string
         public PerformanceMonitor(Action<string> onReportString)
         {
             _onReportString = onReportString;

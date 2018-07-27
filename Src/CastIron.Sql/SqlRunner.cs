@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
 using CastIron.Sql.Execution;
 using CastIron.Sql.Statements;
 
@@ -18,8 +16,6 @@ namespace CastIron.Sql
         {
             _connectionFactory = connectionFactory ?? new SqlServerDbConnectionFactory(connectionString);
         }
-
-        // TODO: Instead of "bool useTransaction" use an enum for the isolation level requested
 
         private ExecutionContext CreateExecutionContext(Action<IContextBuilder> build)
         {

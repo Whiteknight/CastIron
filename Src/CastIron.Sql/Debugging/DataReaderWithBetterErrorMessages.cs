@@ -127,7 +127,6 @@ namespace CastIron.Sql.Debugging
 
         public string GetString(int i)
         {
-            // TODO: does DbNull cast to (string)null?
             ThrowIfNullInsteadOfExpected<string>(i);
             return ExpectType<string>(i);
         }
