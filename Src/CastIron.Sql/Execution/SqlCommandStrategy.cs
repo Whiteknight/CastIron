@@ -15,19 +15,16 @@ namespace CastIron.Sql.Execution
         public void Execute(IExecutionContext context, int index)
         {
             context.StartAction(index, "Setup Command");
-            var text = _command.GetSql();
-            if (string.IsNullOrEmpty(text))
-                return;
-
             using (var dbCommand = context.CreateCommand())
             {
-                dbCommand.CommandText = text;
+                if (!SetupCommand(dbCommand))
+                {
+                    context.MarkAborted();
+                    return;
+                }
+
                 try
                 {
-                    dbCommand.CommandType = (_command is ISqlStoredProc) ? CommandType.StoredProcedure : CommandType.Text;
-                    if (_command is ISqlParameterized parameterized)
-                        parameterized.SetupParameters(dbCommand.Parameters);
-
                     context.StartAction(index, "Execute");
                     dbCommand.ExecuteNonQuery();
                 }
@@ -42,6 +39,18 @@ namespace CastIron.Sql.Execution
                     throw e.WrapAsSqlProblemException(dbCommand, index);
                 }
             }
+        }
+
+        public bool SetupCommand(IDbCommand command)
+        {
+            var text = _command.GetSql();
+            if (string.IsNullOrEmpty(text))
+                return false;
+            command.CommandText = text;
+            command.CommandType = (_command is ISqlStoredProc) ? CommandType.StoredProcedure : CommandType.Text;
+            if (_command is ISqlParameterized parameterized)
+                parameterized.SetupParameters(command.Parameters);
+            return true;
         }
     }
 

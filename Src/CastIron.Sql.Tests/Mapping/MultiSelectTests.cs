@@ -25,11 +25,9 @@ namespace CastIron.Sql.Tests.Mapping
             public TestObject Read(SqlResultSet result)
             {
                 var mapper = result.AsResultMapper();
-                var obj1 = mapper.AsEnumerable<TestObject>().First();
 
-                // TODO: This part should get better, we should be able to map onto an existing object by key
-                mapper.NextResultSet();
-                var obj2 = mapper.AsEnumerable<TestObject>().First();
+                var obj1 = mapper.GetNextEnumerable<TestObject>().First();
+                var obj2 = mapper.GetNextEnumerable<TestObject>().First();
                 obj1.TestString = obj2.TestString;
                 return obj1;
             }

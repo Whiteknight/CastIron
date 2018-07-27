@@ -43,8 +43,14 @@ namespace CastIron.Sql.Tests.Mapping
             public ResultRecord Read(SqlResultSet result)
             {
                 var reader = result.AsResultMapper();
-                var records = reader.AsEnumerable<ResultRecord>().ToDictionary(r => r.Id);
-                reader.MapNextOntoRaw(records, r => r.GetInt32(0), (row, record) => record.Value = row.GetString(1));
+                var records = reader.GetNextEnumerable<ResultRecord>().ToDictionary(r => r.Id);
+                reader
+                    .GetNextEnumerable(r => new
+                    {
+                        Id = r.GetInt32(0),
+                        Value = r.GetString(1)
+                    })
+                    .MapOnto(x => records[x.Id], (x, r) => r.Value = x.Value);
                 return records.Values.Single();
             }
         }
@@ -71,8 +77,8 @@ namespace CastIron.Sql.Tests.Mapping
             public ResultRecord Read(SqlResultSet result)
             {
                 var reader = result.AsResultMapper();
-                var records = reader.AsEnumerable<ResultRecord>().ToDictionary(r => r.Id);
-                reader.MapNextOnto(records, r => new PartialRecordValue(r.GetInt32(0), r.GetString(1)), p => p.Id, (partial, record) => record.Value = partial.Value);
+                var records = reader.GetNextEnumerable<ResultRecord>().ToDictionary(r => r.Id);
+                reader.GetNextEnumerable<PartialRecordValue>().MapOnto(p => records[p.Id], (p, r) => r.Value = p.Value);
                 return records.Values.Single();
             }
         }

@@ -15,7 +15,10 @@ namespace CastIron.Sql
         public SqlRunner(string connectionString, IDbConnectionFactory connectionFactory = null)
         {
             _connectionFactory = connectionFactory ?? new SqlServerDbConnectionFactory(connectionString);
+            Stringifier = new QueryObjectStringifier();
         }
+
+        public QueryObjectStringifier Stringifier { get; }
 
         private ExecutionContext CreateExecutionContext(Action<IContextBuilder> build)
         {

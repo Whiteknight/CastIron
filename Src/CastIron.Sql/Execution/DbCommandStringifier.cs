@@ -65,6 +65,5 @@ namespace CastIron.Sql.Execution
                     break;
             }
         }
-
     }
 }

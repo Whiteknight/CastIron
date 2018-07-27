@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Data;
 
 namespace CastIron.Sql.Execution
 {
@@ -18,7 +19,7 @@ namespace CastIron.Sql.Execution
             {
                 try
                 {
-                    if (!_command.SetupCommand(dbCommand))
+                    if (!SetupCommand(dbCommand))
                     {
                         context.MarkAborted();
                         return;
@@ -40,6 +41,11 @@ namespace CastIron.Sql.Execution
                 }
             }
         }
+
+        public bool SetupCommand(IDbCommand command)
+        {
+            return _command.SetupCommand(command);
+        }
     }
 
     public class SqlCommandRawStrategy<T>
@@ -58,7 +64,7 @@ namespace CastIron.Sql.Execution
             {
                 try
                 {
-                    if (!_command.SetupCommand(dbCommand))
+                    if (!SetupCommand(dbCommand))
                     {
                         context.MarkAborted();
                         return default(T);
@@ -82,6 +88,11 @@ namespace CastIron.Sql.Execution
                     throw e.WrapAsSqlProblemException(dbCommand, index);
                 }
             }
+        }
+
+        public bool SetupCommand(IDbCommand command)
+        {
+            return _command.SetupCommand(command);
         }
     }
 }

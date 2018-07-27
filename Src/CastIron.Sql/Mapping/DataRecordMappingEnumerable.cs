@@ -11,6 +11,7 @@ namespace CastIron.Sql.Mapping
         private readonly Func<IDataRecord, T> _map;
         private bool _alreadyRead;
 
+        // TODO: Need some kind of communication back to the execution strategy, when the Reader/Connection is disposed we need to shut off access with a helpful message
         // TODO: Provide some standard maps: Map columnName->propertyName, or provide a map of columnNumber->propertyName to use
         public DataRecordMappingEnumerable(IDataReader reader, Func<IDataRecord, T> map = null)
         {

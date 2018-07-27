@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Data;
 
 namespace CastIron.Sql.Execution
 {
@@ -16,7 +17,7 @@ namespace CastIron.Sql.Execution
             context.StartAction(index, "Setup Command");
             using (var command = context.CreateCommand())
             {
-                if (!_query.SetupCommand(command))
+                if (!SetupCommand(command))
                 {
                     context.MarkAborted();
                     return default(T);
@@ -43,6 +44,11 @@ namespace CastIron.Sql.Execution
                     throw e.WrapAsSqlProblemException(command, index);
                 }
             }
+        }
+
+        public bool SetupCommand(IDbCommand command)
+        {
+            return _query.SetupCommand(command);
         }
     }
 }
