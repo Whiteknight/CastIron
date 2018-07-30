@@ -7,8 +7,10 @@ using CastIron.Sql.Mapping;
 
 namespace CastIron.Sql
 {
-    // Encapsulates both the IDataReader and the IDbCommand to give unified access to all results
-    // from the statements and access to features like result set mapping
+    /// <summary>
+    /// Encapsulates both the IDataReader and the IDbCommand to give unified access to all result
+    /// sets and output parameters from the command
+    /// </summary>
     public class SqlResultSet
     {
         private readonly IDbCommand _command;
@@ -74,6 +76,8 @@ namespace CastIron.Sql
                 throw new Exception($"Cannot get value '{name}'. Expected type {typeof(T).FullName} but found {value.GetType().FullName}");
             return (T) value;
         }
+
+        // TODO: Method to map output parameters to an object instance by property name/constructor params
 
         private void MarkConsumed()
         {

@@ -4,6 +4,8 @@ using System.Text;
 
 namespace CastIron.Sql.Execution
 {
+    // TODO: Unit testing and more use-cases
+    // Internal class to ToString an IDbCommand
     public class DbCommandStringifier
     {
         public string Stringify(IDbCommand command)

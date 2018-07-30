@@ -3,6 +3,7 @@ using System.Data;
 
 namespace CastIron.Sql.Debugging
 {
+    // TODO: (maybe elsewhere) a method to get a value by column name
     public class DataReaderWithBetterErrorMessages : IDataReader
     {
         private readonly IDataReader _inner;
@@ -45,20 +46,6 @@ namespace CastIron.Sql.Debugging
         public int GetOrdinal(string name)
         {
             return _inner.GetOrdinal(name);
-        }
-
-        private void ThrowIfNullInsteadOfExpected<TExpected>(int i)
-        {
-            if (_inner.IsDBNull(i))
-                throw new SqlProblemException($"Value at column {i} is DBNull but expected value of type {typeof(TExpected).Namespace}.{typeof(TExpected).Name}");
-        }
-
-        private T ExpectType<T>(int i)
-        {
-            var obj = GetValue(i);
-            if (!(obj is T))
-                throw new InvalidCastException($"Could not cast value in column {i} from type {i.GetType().Namespace}.{i.GetType().Name} to {typeof(T).Namespace}.{typeof(T).Name}");
-            return (T) obj;
         }
 
         public bool GetBoolean(int i)
@@ -182,5 +169,19 @@ namespace CastIron.Sql.Debugging
         public int Depth => _inner.Depth;
         public bool IsClosed => _inner.IsClosed;
         public int RecordsAffected => _inner.RecordsAffected;
+
+        private void ThrowIfNullInsteadOfExpected<TExpected>(int i)
+        {
+            if (_inner.IsDBNull(i))
+                throw new SqlProblemException($"Value at column {i} is DBNull but expected value of type {typeof(TExpected).Namespace}.{typeof(TExpected).Name}");
+        }
+
+        private T ExpectType<T>(int i)
+        {
+            var obj = GetValue(i);
+            if (!(obj is T))
+                throw new InvalidCastException($"Could not cast value in column {i} from type {i.GetType().Namespace}.{i.GetType().Name} to {typeof(T).Namespace}.{typeof(T).Name}");
+            return (T)obj;
+        }
     }
 }

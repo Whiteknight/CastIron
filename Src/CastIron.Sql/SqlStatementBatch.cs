@@ -6,7 +6,7 @@ using CastIron.Sql.Statements;
 namespace CastIron.Sql
 {
     // TODO: Cross-thread support. I should be able to dispatch executors to a separate thread and wait for the
-    // query to be batched and executed in a thread-safe manner.
+    // query to be batched and executed in a thread-safe manner. I should be able to .Add() from multiple threads
     /// <summary>
     /// Batch of statements to all be executed together on a single open connection.
     /// </summary>

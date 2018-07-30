@@ -5,6 +5,9 @@ using System.Text;
 
 namespace CastIron.Sql.Statements
 {
+    // TODO: Use real named parameters
+    // TODO: Method to .ToString the command and get the SQL syntax
+    // TODO: We should probably have a query object to read column names from a table by name
     public class SqlInsertCommand : ISqlCommand
     {
         private readonly string _tableName;

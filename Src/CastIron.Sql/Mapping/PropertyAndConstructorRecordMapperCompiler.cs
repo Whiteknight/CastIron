@@ -60,7 +60,11 @@ namespace CastIron.Sql.Mapping
                 GetBindingExpressions<T>(context)
             );
 
-            return Expression.Lambda<Func<IDataRecord, T>>(initExpr, recordParam).Compile();
+            var lambdaExpression = Expression.Lambda<Func<IDataRecord, T>>(initExpr, recordParam);
+
+            //var code = lambdaExpression.ToString();
+
+            return lambdaExpression.Compile();
         }
 
         private static Func<IDataRecord, T> CompileForPrimitiveType<T>()
@@ -167,7 +171,7 @@ namespace CastIron.Sql.Mapping
             var columnValueExpression = Expression.Call(context.RecordParam, GetValueMethod, Expression.Constant(columnIdx));
 
             // TODO: This can be optimized because we are calling GetValue more than once
-            // value == DbNull ? Convert(value, targetType) : default(targetType)
+            // value != DbNull ? Convert(value, targetType) : default(targetType)
             return Expression.Condition(
                 Expression.NotEqual(_dbNullExp, columnValueExpression),
                 Expression.Convert(

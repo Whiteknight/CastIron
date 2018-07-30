@@ -3,6 +3,10 @@ using System.Data;
 
 namespace CastIron.Sql.Execution
 {
+    /// <summary>
+    /// Context for the database connection. Controls the lifetime of the connection and the options
+    /// on it.
+    /// </summary>
     public interface IExecutionContext : IDisposable
     {
         IDbConnection Connection { get; }
