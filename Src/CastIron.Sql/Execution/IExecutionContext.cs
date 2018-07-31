@@ -19,5 +19,6 @@ namespace CastIron.Sql.Execution
         void StartAction(int statementIndex, string actionName);
         void MarkComplete();
         void MarkAborted();
+        bool IsCompleted { get; }
     }
 }

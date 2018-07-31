@@ -74,7 +74,7 @@ namespace CastIron.Sql.Execution
                     dbCommand.ExecuteNonQuery();
 
                     context.StartAction(index, "Map Results");
-                    var resultSet = new SqlResultSet(dbCommand, null);
+                    var resultSet = new SqlResultSet(dbCommand, context, null);
                     return _command.ReadOutputs(resultSet);
                 }
                 catch (SqlProblemException)

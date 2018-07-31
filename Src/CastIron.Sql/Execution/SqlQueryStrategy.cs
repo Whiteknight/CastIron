@@ -29,7 +29,7 @@ namespace CastIron.Sql.Execution
                     using (var reader = dbCommand.ExecuteReader())
                     {
                         context.StartAction(index, "Map Results");
-                        var rawResultSet = new SqlResultSet(dbCommand, reader);
+                        var rawResultSet = new SqlResultSet(dbCommand, context, reader);
                         return _query.Read(rawResultSet);
                     }
                 }

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Threading;
 
 namespace CastIron.Sql.Execution
 {
@@ -8,15 +9,18 @@ namespace CastIron.Sql.Execution
     {
         private IsolationLevel? _isolationLevel;
         private bool _aborted;
+        private int _completed;
 
         public ExecutionContext(IDbConnection connection)
         {
+            _completed = 0;
             Connection = connection;
         }
 
         public IDbConnection Connection { get; }
         public IDbTransaction Transaction { get; private set; }
         public PerformanceMonitor Monitor { get; private set; }
+        public bool IsCompleted => Interlocked.CompareExchange(ref _completed, 0, 0) != 0;
         
         public void OpenConnection()
         {
@@ -63,6 +67,10 @@ namespace CastIron.Sql.Execution
 
         public void MarkComplete()
         {
+            var isAlreadyComplete = Interlocked.CompareExchange(ref _completed, 1, 0) == 1;
+            if (isAlreadyComplete)
+                return;
+
             Monitor?.Stop();
             Monitor?.PublishReport();
             if (Transaction != null)

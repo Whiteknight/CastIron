@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
 using CastIron.Sql.Debugging;
+using CastIron.Sql.Execution;
 using CastIron.Sql.Mapping;
 
 namespace CastIron.Sql
@@ -14,12 +15,14 @@ namespace CastIron.Sql
     public class SqlResultSet
     {
         private readonly IDbCommand _command;
+        private readonly IExecutionContext _context;
         private readonly IDataReader _reader;
         private bool _isConsumed;
 
-        public SqlResultSet(IDbCommand command, IDataReader reader)
+        public SqlResultSet(IDbCommand command, IExecutionContext context, IDataReader reader)
         {
             _command = command;
+            _context = context;
             _reader = reader;
         }
 
@@ -41,7 +44,7 @@ namespace CastIron.Sql
         {
             AssertHasReader();
             MarkConsumed();
-            return new MultiResultMapper(_reader);
+            return new MultiResultMapper(_reader, _context);
         }
 
         public IEnumerable<T> AsEnumerable<T>(Func<IDataRecord, T> map = null)
@@ -49,7 +52,7 @@ namespace CastIron.Sql
             if (_reader == null)
                 throw new InvalidOperationException("Cannot map results to enumerable because the reader is null. Are you executing an ISqlCommand variant?");
             MarkConsumed();
-            return new DataRecordMappingEnumerable<T>(_reader, map ?? DefaultMappings.Create<T>(_reader));
+            return new DataRecordMappingEnumerable<T>(_reader, _context, map ?? DefaultMappings.Create<T>(_reader));
         }
 
         public object GetOutputParameter(string name)

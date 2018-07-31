@@ -2,20 +2,22 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Data;
+using CastIron.Sql.Execution;
 
 namespace CastIron.Sql.Mapping
 {
     public class DataRecordMappingEnumerable<T> : IEnumerable<T>
     {
         private readonly IDataReader _reader;
+        private readonly IExecutionContext _context;
         private readonly Func<IDataRecord, T> _map;
         private bool _alreadyRead;
 
-        // TODO: Need some kind of communication back to the execution strategy, when the Reader/Connection is disposed we need to shut off access with a helpful message
         // TODO: Provide some standard maps: Map columnName->propertyName, or provide a map of columnNumber->propertyName to use
-        public DataRecordMappingEnumerable(IDataReader reader, Func<IDataRecord, T> map = null)
+        public DataRecordMappingEnumerable(IDataReader reader, IExecutionContext context, Func<IDataRecord, T> map = null)
         {
             _reader = reader;
+            _context = context;
             _map = map;
             _alreadyRead = false;
         }
@@ -29,18 +31,22 @@ namespace CastIron.Sql.Mapping
         {
             if (_alreadyRead)
                 throw new Exception("Cannot read the same result set more than once. Please cache your results and read from the cache");
+            if (_context.IsCompleted)
+                throw new Exception("The connection is closed and the result set cannot be read");
             _alreadyRead = true;
-            return new ResultSetEnumerator(_reader, _map);
+            return new ResultSetEnumerator(_reader, _context, _map);
         }
 
         private class ResultSetEnumerator : IEnumerator<T>
         {
             private readonly IDataReader _reader;
+            private readonly IExecutionContext _context;
             private readonly Func<IDataRecord, T> _read;
 
-            public ResultSetEnumerator(IDataReader reader, Func<IDataRecord, T> read)
+            public ResultSetEnumerator(IDataReader reader, IExecutionContext context, Func<IDataRecord, T> read)
             {
                 _reader = reader;
+                _context = context;
                 _read = read;
             }
 
@@ -50,9 +56,14 @@ namespace CastIron.Sql.Mapping
 
             public bool MoveNext()
             {
+                if (_context.IsCompleted)
+                {
+                    Current = default(T);
+                    return false;
+                }
+
                 bool ok = _reader.Read();
-                if (ok)
-                    Current = _read(_reader);
+                Current = ok ? _read(_reader) : default(T);
                 return ok;
             }
 

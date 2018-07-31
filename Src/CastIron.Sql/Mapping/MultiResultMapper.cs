@@ -1,17 +1,20 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
+using CastIron.Sql.Execution;
 
 namespace CastIron.Sql.Mapping
 {
     public class MultiResultMapper
     {
         private readonly IDataReader _reader;
+        private readonly IExecutionContext _context;
         private int _currentSet;
 
-        public MultiResultMapper(IDataReader reader)
+        public MultiResultMapper(IDataReader reader, IExecutionContext context)
         {
             _reader = reader;
+            _context = context;
             _currentSet = 0;
         }
 
@@ -35,7 +38,7 @@ namespace CastIron.Sql.Mapping
             {
                 _currentSet = num;
                 map = map ?? DefaultMappings.Create<T>(_reader);
-                return new DataRecordMappingEnumerable<T>(_reader, map);
+                return new DataRecordMappingEnumerable<T>(_reader, _context, map);
             }
 
             while (_currentSet < num)
@@ -49,7 +52,7 @@ namespace CastIron.Sql.Mapping
                 throw new Exception("Could not find result Set=" + num);
 
             map = map ?? DefaultMappings.Create<T>(_reader);
-            return new DataRecordMappingEnumerable<T>(_reader, map);
+            return new DataRecordMappingEnumerable<T>(_reader, _context, map);
         }
     }
 }
