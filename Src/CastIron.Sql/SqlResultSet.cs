@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
+using System.Linq;
+using System.Reflection;
 using CastIron.Sql.Debugging;
 using CastIron.Sql.Execution;
 using CastIron.Sql.Mapping;
@@ -80,7 +82,24 @@ namespace CastIron.Sql
             return (T) value;
         }
 
-        // TODO: Method to map output parameters to an object instance by property name/constructor params
+        public T GetOutputParameters<T>()
+            where T : class, new()
+        {
+            // TODO: Can we introspect and get constructor parameters by name?
+            var t = new T();
+            var propertyMap = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                .Where(p => p.CanWrite)
+                .ToDictionary(p => p.Name.ToLowerInvariant());
+            foreach (var param in _command.Parameters.OfType<IDbDataParameter>())
+            {
+                var normalizedName = param.ParameterName.StartsWith("@") ? param.ParameterName.Substring(1) : param.ParameterName;
+                normalizedName = normalizedName.ToLowerInvariant();
+                if (propertyMap.ContainsKey(normalizedName))
+                    propertyMap[normalizedName].SetValue(t, param.Value);
+            }
+
+            return t;
+        }
 
         private void MarkConsumed()
         {
