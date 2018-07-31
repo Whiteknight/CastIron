@@ -1,29 +1,40 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Threading;
 using CastIron.Sql.Execution;
 using CastIron.Sql.Statements;
 
 namespace CastIron.Sql
 {
-    // TODO: Cross-thread support. I should be able to dispatch executors to a separate thread and wait for the
-    // query to be batched and executed in a thread-safe manner. I should be able to .Add() from multiple threads
     /// <summary>
     /// Batch of statements to all be executed together on a single open connection.
     /// </summary>
-    public class SqlStatementBatch
+    public class SqlBatch
     {
-        private readonly List<Action<IExecutionContext, int>> _executors;
+        private readonly ConcurrentQueue<Action<IExecutionContext, int>> _executors;
+        private int _beingRead;
 
-        public SqlStatementBatch()
+        public SqlBatch()
         {
-            _executors = new List<Action<IExecutionContext, int>>();
+            _beingRead = 0;
+            _executors = new ConcurrentQueue<Action<IExecutionContext, int>>();
+        }
+
+        public IReadOnlyList<Action<IExecutionContext, int>> GetExecutors()
+        {
+            var beingRead = Interlocked.CompareExchange(ref _beingRead, 1, 0) == 0;
+            if (beingRead)
+                return _executors.ToArray();
+            return new Action<IExecutionContext, int>[0];
         }
 
         private void AddExecutor(Action<IExecutionContext, int> executor)
         {
-            // TODO: Make this thread safe.
-            // TODO: When we start to read the list of executors, it cannot be modified anymore.
-            _executors.Add(executor);
+            var canAdd = Interlocked.CompareExchange(ref _beingRead, 0, 0) == 0;
+            if (!canAdd)
+                return;
+            _executors.Enqueue(executor);
         }
 
         public ISqlResultPromise<T> Add<T>(ISqlQuery<T> query)
@@ -74,11 +85,6 @@ namespace CastIron.Sql
             var result = new SqlResultPromise<T>();
             AddExecutor((c, i) => result.SetValue(new SqlCommandRawStrategy<T>(command).Execute(c, i)));
             return result;
-        }
-
-        public IReadOnlyList<Action<IExecutionContext, int>> GetExecutors()
-        {
-            return _executors;
         }
 
         public ISqlResultPromise Add(string sql)

@@ -63,7 +63,7 @@ namespace CastIron.Sql
             }
         }
 
-        public void Execute(SqlStatementBatch batch, Action<IContextBuilder> build = null)
+        public void Execute(SqlBatch batch, Action<IContextBuilder> build = null)
         {
             Execute(batch.GetExecutors(), build);
         }

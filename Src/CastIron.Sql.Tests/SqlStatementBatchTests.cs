@@ -40,7 +40,7 @@ INSERT INTO #castiron_test ([Value]) VALUES (1),(3),(5),(7);
         public void CommandAndQueryBatch_Test()
         {
             var runner = RunnerFactory.Create();
-            var batch = new SqlStatementBatch();
+            var batch = new SqlBatch();
             batch.Add(new CreateTempTableCommand());
             var result = batch.Add(new QueryTempTableQuery());
             runner.Execute(batch);
@@ -55,7 +55,7 @@ INSERT INTO #castiron_test ([Value]) VALUES (1),(3),(5),(7);
         public void CommandAndQueryBatch_Transaction()
         {
             var runner = RunnerFactory.Create();
-            var batch = new SqlStatementBatch();
+            var batch = new SqlBatch();
             batch.Add(new CreateTempTableCommand());
             var result = batch.Add(new QueryTempTableQuery());
             runner.Execute(batch, b => b.UseTransaction(IsolationLevel.Serializable));
@@ -70,7 +70,7 @@ INSERT INTO #castiron_test ([Value]) VALUES (1),(3),(5),(7);
         public void CommandAndQueryBatch_SimpleSql()
         {
             var runner = RunnerFactory.Create();
-            var batch = new SqlStatementBatch();
+            var batch = new SqlBatch();
             batch.Add(@"
                 CREATE TABLE #castiron_test (
                     [Value] INT NOT NULL
@@ -102,7 +102,7 @@ INSERT INTO #castiron_test ([Value]) VALUES (1),(3),(5),(7);
         public void CommandAndQueryBatch_AsTask()
         {
             var runner = RunnerFactory.Create();
-            var batch = new SqlStatementBatch();
+            var batch = new SqlBatch();
             var promise = batch.Add(new QuerySimpleQuery());
             var task = promise.AsTask(TimeSpan.FromSeconds(10));
             runner.Execute(batch);
@@ -115,7 +115,7 @@ INSERT INTO #castiron_test ([Value]) VALUES (1),(3),(5),(7);
         public void Batch_SimpleSql()
         {
             var runner = RunnerFactory.Create();
-            var batch = new SqlStatementBatch();
+            var batch = new SqlBatch();
             var result = batch.Add<string>("SELECT 'TEST';");
             runner.Execute(batch);
 
@@ -153,7 +153,7 @@ INSERT INTO #castiron_test ([Value]) VALUES (1),(3),(5),(7);
         public void CreateAndQueryStoredProc_Test()
         {
             var runner = RunnerFactory.Create();
-            var batch = new SqlStatementBatch();
+            var batch = new SqlBatch();
             batch.Add(new CreateTempStoredProcCommand());
             var result = batch.Add(new ExecuteStoredProcQuery());
             runner.Execute(batch);
