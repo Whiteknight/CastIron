@@ -3,7 +3,6 @@ using System.Data;
 
 namespace CastIron.Sql.Debugging
 {
-    // TODO: (maybe elsewhere) a method to get a value by column name
     public class DataReaderWithBetterErrorMessages : IDataReader
     {
         private readonly IDataReader _inner;
