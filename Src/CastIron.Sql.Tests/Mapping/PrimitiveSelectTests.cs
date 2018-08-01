@@ -77,5 +77,15 @@ namespace CastIron.Sql.Tests.Mapping
             result = target.Query(new TestQuery<int?>("SELECT NULL AS TestInt;"));
             result.Should().BeNull();
         }
+
+        [Test]
+        public void Primitive_binary_ByteArray()
+        {
+            var target = RunnerFactory.Create();
+            var result = target.Query(new TestQuery<byte[]>("SELECT CAST(0x0102030405 AS Binary(5)) AS TestBinary"));
+            result.Should().NotBeNull();
+            result.Length.Should().Be(5);
+            result.Should().BeEquivalentTo(new byte[] { 1, 2, 3, 4, 5 });
+        }
     }
 }

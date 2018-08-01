@@ -14,6 +14,9 @@ namespace CastIron.Sql.Mapping
         private static readonly HashSet<Type> _mappableTypes = new HashSet<Type>
         {
             // TODO: Expand this list of all primitive types we can map from the DB
+            typeof(byte),
+            typeof(byte?),
+            typeof(byte[]),
             typeof(short),
             typeof(short?),
             typeof(int),
