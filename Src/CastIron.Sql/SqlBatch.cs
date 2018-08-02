@@ -96,5 +96,68 @@ namespace CastIron.Sql
         {
             return Add(new SqlQuery<T>(sql));
         }
+
+        public ParameterizedInstance<T, TParameters> Add<T, TParameters>(ISqlQueryParameterized<T, TParameters> query)
+        {
+            var instances = new ParameterizedInstance<T, TParameters>();
+            AddExecutor((c, i) => new SqlQueryParameterizedStrategy<T, TParameters>(query, instances).Execute(c, i));
+            return instances;
+        }
+    }
+
+    public class ParameterizedInstance<T, TParameters>
+    {
+        private readonly List<Tuple<TParameters, SqlResultPromise<T>>> _instances;
+
+        public ParameterizedInstance()
+        {
+            _instances = new List<Tuple<TParameters, SqlResultPromise<T>>>();
+        }
+
+        public ISqlResultPromise<T> Use(TParameters parameters)
+        {
+            var promise = new SqlResultPromise<T>();
+            _instances.Add(new Tuple<TParameters, SqlResultPromise<T>>(parameters, promise));
+            return promise;
+        }
+
+        public IReadOnlyList<Tuple<TParameters, SqlResultPromise<T>>> GetInstances()
+        {
+            return _instances;
+        }
+    }
+
+    public class SqlQueryParameterizedStrategy<T, TParameters>
+    {
+        private readonly ISqlQueryParameterized<T, TParameters> _query;
+        private readonly ParameterizedInstance<T, TParameters> _instances;
+
+        public SqlQueryParameterizedStrategy(ISqlQueryParameterized<T, TParameters> query, ParameterizedInstance<T, TParameters> instances)
+        {
+            _query = query;
+            _instances = instances;
+        }
+
+        public void Execute(IExecutionContext context, int index)
+        {
+            using (var command = context.CreateCommand())
+            {
+                _query.SetupCommand(command);
+                // TODO: We only need to .Prepare if there is more than one parameterset
+                command.Prepare();
+
+                foreach (var param in _instances.GetInstances())
+                {
+                    // TODO: Some validation that we are only setting values on existing parameters, not creating new ones
+                    _query.SetValues(command, param.Item1);
+                    using (var reader = command.ExecuteReader())
+                    {
+                        var resultSet = new SqlResultSet(command, context, reader);
+                        var result = _query.Read(resultSet);
+                        param.Item2.SetValue(result);
+                    }
+                }
+            }
+        }
     }
 }
