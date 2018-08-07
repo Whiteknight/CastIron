@@ -9,5 +9,11 @@ namespace CastIron.Sql
             if (value == null)
                 throw new ArgumentNullException(name);
         }
+
+        public static void ArgumentNotNullOrEmpty(string value, string name)
+        {
+            if (string.IsNullOrEmpty(value))
+                throw new ArgumentNullException(name, "Value must not be null or empty");
+        }
     }
 }

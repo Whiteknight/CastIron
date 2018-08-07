@@ -37,5 +37,40 @@ namespace CastIron.Sql.Tests
             result.Should().Be("TEST");
             report.Should().NotBeNull();
         }
+
+        [Test]
+        public void SqlQuery_UseReadOnlyConnection()
+        {
+            var runner = RunnerFactory.Create();
+            // The ApplicationIntent=ReadOnly flag is only for routing, and our test server isn't clustered. 
+            // We can't test that this connection actually enforces RO access, only that the UseReadOnlyConnection()
+            // method doesn't cause a failure
+            var result = runner.Query(new Query1(), b => b.UseReadOnlyConnection());
+            result.Should().Be("TEST");
+        }
+
+        public class QueryReadOnly : ISqlQuery<string>, ISqlReadOnly
+        {
+            public string GetSql()
+            {
+                return "SELECT 'TEST';";
+            }
+
+            public string Read(SqlResultSet result)
+            {
+                return result.AsEnumerable<string>().FirstOrDefault();
+            }
+        }
+
+        [Test]
+        public void SqlQuery_SqlReadOnly()
+        {
+            var runner = RunnerFactory.Create();
+            // The ApplicationIntent=ReadOnly flag is only for routing, and our test server isn't clustered. 
+            // We can't test that this connection actually enforces RO access, only that the ISqlReadOnly
+            // tag doesn't cause a failure
+            var result = runner.Query(new QueryReadOnly());
+            result.Should().Be("TEST");
+        }
     }
 }

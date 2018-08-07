@@ -19,7 +19,10 @@ namespace CastIron.Sql
         {
             _beingRead = 0;
             _executors = new ConcurrentQueue<Action<IExecutionContext, int>>();
+            PreferReadOnly = true;
         }
+
+        public bool PreferReadOnly { get; private set; }
 
         public IReadOnlyList<Action<IExecutionContext, int>> GetExecutors()
         {
@@ -29,32 +32,33 @@ namespace CastIron.Sql
             return new Action<IExecutionContext, int>[0];
         }
 
-        private void AddExecutor(Action<IExecutionContext, int> executor)
+        private void AddExecutor(Action<IExecutionContext, int> executor, bool preferRo)
         {
             var canAdd = Interlocked.CompareExchange(ref _beingRead, 0, 0) == 0;
             if (!canAdd)
                 return;
             _executors.Enqueue(executor);
+            PreferReadOnly &= preferRo;
         }
 
         public ISqlResultPromise<T> Add<T>(ISqlQuery<T> query)
         {
             var result = new SqlResultPromise<T>();
-            AddExecutor((c, i) => result.SetValue(new SqlQueryStrategy<T>(query).Execute(c, i)));
+            AddExecutor((c, i) => result.SetValue(new SqlQueryStrategy<T>(query).Execute(c, i)), query is ISqlReadOnly);
             return result;
         }
 
         public ISqlResultPromise<T> Add<T>(ISqlQueryRawCommand<T> query)
         {
             var result = new SqlResultPromise<T>();
-            AddExecutor((c, i) => result.SetValue(new SqlQueryRawCommandStrategy<T>(query).Execute(c, i)));
+            AddExecutor((c, i) => result.SetValue(new SqlQueryRawCommandStrategy<T>(query).Execute(c, i)), query is ISqlReadOnly);
             return result;
         }
 
         public ISqlResultPromise<T> Add<T>(ISqlQueryRawConnection<T> query)
         {
             var result = new SqlResultPromise<T>();
-            AddExecutor((c, i) => result.SetValue(new SqlQueryRawConnectionStrategy<T>(query).Execute(c, i)));
+            AddExecutor((c, i) => result.SetValue(new SqlQueryRawConnectionStrategy<T>(query).Execute(c, i)), query is ISqlReadOnly);
             return result;
         }
 
@@ -65,7 +69,7 @@ namespace CastIron.Sql
             {
                 new SqlCommandStrategy(command).Execute(c, i);
                 result.IsComplete = true;
-            });
+            }, command is ISqlReadOnly);
             return result;
         }
 
@@ -76,14 +80,14 @@ namespace CastIron.Sql
             {
                 new SqlCommandRawStrategy(command).Execute(c, i);
                 result.IsComplete = true;
-            });
+            }, command is ISqlReadOnly);
             return result;
         }
 
         public ISqlResultPromise<T> Add<T>(ISqlCommandRawCommand<T> command)
         {
             var result = new SqlResultPromise<T>();
-            AddExecutor((c, i) => result.SetValue(new SqlCommandRawStrategy<T>(command).Execute(c, i)));
+            AddExecutor((c, i) => result.SetValue(new SqlCommandRawStrategy<T>(command).Execute(c, i)), command is ISqlReadOnly);
             return result;
         }
 

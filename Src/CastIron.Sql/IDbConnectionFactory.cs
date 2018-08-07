@@ -9,6 +9,6 @@ namespace CastIron.Sql
     /// </summary>
     public interface IDbConnectionFactory
     {
-        IDbConnection Create();
+        IDbConnection Create(string connectionString);
     }
 }

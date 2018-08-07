@@ -24,7 +24,7 @@ namespace CastIron.Sql.Tests
 
         public static SqlRunner Create()
         {
-            return new SqlRunner(_connectionString);
+            return new SqlRunner(new ConnectionStrings(_connectionString, _connectionString + ";ApplicationIntent=ReadOnly"));
         }
     }
 }

@@ -13,5 +13,7 @@ namespace CastIron.Sql
         IContextBuilder UseTransaction(IsolationLevel il);
         IContextBuilder MonitorPerformance(Action<string> onReport);
         IContextBuilder MonitorPerformance(Action<IReadOnlyList<IPerformanceEntry>> onReport);
+        IContextBuilder UseConnection(string name);
+        IContextBuilder UseReadOnlyConnection();
     }
 }

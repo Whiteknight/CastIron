@@ -11,17 +11,23 @@ namespace CastIron.Sql.Execution
         private bool _aborted;
         private int _completed;
 
-        public ExecutionContext(IDbConnection connection)
+        public ExecutionContext()
         {
             _completed = 0;
-            Connection = connection;
         }
 
-        public IDbConnection Connection { get; }
+        public IDbConnection Connection { get; private set; }
         public IDbTransaction Transaction { get; private set; }
         public PerformanceMonitor Monitor { get; private set; }
         public bool IsCompleted => Interlocked.CompareExchange(ref _completed, 0, 0) != 0;
+        public string ConnectionStringName { get; private set; }
         
+        public void SetConnection(IDbConnection connection)
+        {
+            Assert.ArgumentNotNull(connection, nameof(connection));
+            Connection = connection;
+        }
+
         public void OpenConnection()
         {
             Connection.Open();
@@ -52,6 +58,18 @@ namespace CastIron.Sql.Execution
         public IContextBuilder MonitorPerformance(Action<IReadOnlyList<IPerformanceEntry>> onReport)
         {
             Monitor = new PerformanceMonitor(onReport);
+            return this;
+        }
+
+        public IContextBuilder UseConnection(string name)
+        {
+            ConnectionStringName = name;
+            return this;
+        }
+
+        public IContextBuilder UseReadOnlyConnection()
+        {
+            ConnectionStringName = ConnectionStrings.ReadOnly;
             return this;
         }
 
