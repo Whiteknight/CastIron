@@ -8,7 +8,7 @@ namespace CastIron.Sql
     /// <summary>
     /// Runner for Query and Command objects. 
     /// </summary>
-    public class SqlRunner
+    public class SqlRunner : ISqlRunner
     {
         private readonly IDbConnectionFactory _connectionFactory;
 

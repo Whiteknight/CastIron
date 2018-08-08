@@ -1,14 +1,14 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.0;net45</TargetFrameworks>
-    <AssemblyName>CastIron.Sql</AssemblyName>
-    <RootNamespace>CastIron.Sql</RootNamespace>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <AssemblyName>CastIron.Sqlite</AssemblyName>
+    <RootNamespace>CastIron.Sqlite</RootNamespace>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Version>0.1.3</Version>
     <Authors>Andrew F. Whitworth</Authors>
     <Company />
-    <Description>Bare-metal SQL QueryObject implementation</Description>
+    <Description>Bare-metal SQLite QueryObject implementation</Description>
     <Copyright>Copyright 2018</Copyright>
     <PackageLicenseUrl>https://github.com/Whiteknight/CastIron/blob/master/LICENSE</PackageLicenseUrl>
     <PackageProjectUrl>https://github.com/Whiteknight/CastIron</PackageProjectUrl>
@@ -17,12 +17,17 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <DefineConstants>CASTIRON_MSSQL</DefineConstants>
+    <DefineConstants>CASTIRON_SQLITE</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup Condition=" '$(TargetFramework)' == 'netstandard2.0' ">
     <PackageReference Include="System.Data.Common" Version="4.3.0" />
     <PackageReference Include="System.Data.SqlClient" Version="4.4.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CastIron.Sql" Version="0.1.3"></PackageReference>
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="2.1.0" />
   </ItemGroup>
 
 </Project>
