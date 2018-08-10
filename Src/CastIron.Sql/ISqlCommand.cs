@@ -1,17 +1,18 @@
-﻿namespace CastIron.Sql
+﻿using System.Data;
+
+namespace CastIron.Sql
 {
     /// <summary>
-    /// Used with .ExecuteNonQuery(), represents a command to modify the database without returning a result set
+    /// Used with .ExecuteNonQuery(), represents a command to update the database without returning any result sets.
     /// </summary>
     public interface ISqlCommand
     {
-        string GetSql();
+        bool SetupCommand(IDbCommand command);
     }
 
     /// <summary>
-    /// Used with .ExecuteNonQuery(), represents a command to modify the database without returning a result set.
-    /// This variant is expected to return some kind of result value, such as output parameters through the use
-    /// of ISqlParameterized
+    /// Used with .ExecuteNonQuery(), represents a command to update the database without returning any
+    /// result sets. Is expected to return some kind of result, such as from output parameters
     /// </summary>
     /// <typeparam name="T"></typeparam>
     public interface ISqlCommand<out T> : ISqlCommand

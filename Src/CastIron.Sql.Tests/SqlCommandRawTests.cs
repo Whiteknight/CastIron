@@ -8,7 +8,7 @@ namespace CastIron.Sql.Tests
     [TestFixture]
     public class SqlCommandRawTests
     {
-        public class CommandWithUntypedOutputParameter : ISqlCommandRawCommand<string>
+        public class CommandWithUntypedOutputParameter : ISqlCommand<string>
         {
             public string ReadOutputs(SqlResultSet result)
             {
@@ -35,7 +35,7 @@ namespace CastIron.Sql.Tests
             result.Should().Be("TEST");
         }
 
-        public class CommandWithTypedOutputParameter : ISqlCommandRawCommand<string>
+        public class CommandWithTypedOutputParameter : ISqlCommand<string>
         {
             public string ReadOutputs(SqlResultSet result)
             {
@@ -62,7 +62,7 @@ namespace CastIron.Sql.Tests
             result.Should().Be("TEST");
         }
 
-        public class CommandNotExecuted : ISqlCommandRawCommand<string>
+        public class CommandNotExecuted : ISqlCommand<string>
         {
             public string ReadOutputs(SqlResultSet result)
             {

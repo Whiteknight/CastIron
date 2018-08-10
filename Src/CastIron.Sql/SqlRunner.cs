@@ -73,17 +73,17 @@ namespace CastIron.Sql
             Execute(new SqlCommand(sql), build);
         }
 
-        public T Query<T>(ISqlQuery<T> query, Action<IContextBuilder> build = null)
+        public T Query<T>(ISqlQuerySimple<T> query, Action<IContextBuilder> build = null)
         {
             return Execute(c => new SqlQueryStrategy<T>(query).Execute(c, 0), build);
         }
 
-        public T Query<T>(ISqlQueryRawCommand<T> query, Action<IContextBuilder> build = null)
+        public T Query<T>(ISqlQuery<T> query, Action<IContextBuilder> build = null)
         {
             return Execute(c => new SqlQueryRawCommandStrategy<T>(query).Execute(c, 0), build);
         }
 
-        public T Query<T>(ISqlQueryRawConnection<T> query, Action<IContextBuilder> build = null)
+        public T Query<T>(ISqlConnectionAccessor<T> query, Action<IContextBuilder> build = null)
         {
             return Execute(c => new SqlQueryRawConnectionStrategy<T>(query).Execute(c, 0), build);
         }
@@ -93,22 +93,22 @@ namespace CastIron.Sql
             return Query(new SqlQuery<T>(sql), build);
         }
 
-        public void Execute(ISqlCommand commandObject, Action<IContextBuilder> build = null)
+        public void Execute(ISqlCommandSimple commandObject, Action<IContextBuilder> build = null)
         {
             Execute(c => new SqlCommandStrategy(commandObject).Execute(c, 0), build);
         }
 
-        public T Execute<T>(ISqlCommand<T> commandObject, Action<IContextBuilder> build = null)
+        public T Execute<T>(ISqlCommandSimple<T> commandObject, Action<IContextBuilder> build = null)
         {
             return Execute(c => new SqlCommandStrategy<T>(commandObject).Execute(c, 0), build);
         }
 
-        public void Execute(ISqlCommandRawCommand commandObject, Action<IContextBuilder> build = null)
+        public void Execute(ISqlCommand commandObject, Action<IContextBuilder> build = null)
         {
             Execute(c => new SqlCommandRawStrategy(commandObject).Execute(c, 0), build);
         }
 
-        public T Execute<T>(ISqlCommandRawCommand<T> commandObject, Action<IContextBuilder> build = null)
+        public T Execute<T>(ISqlCommand<T> commandObject, Action<IContextBuilder> build = null)
         {
             return Execute(c => new SqlCommandRawStrategy<T>(commandObject).Execute(c, 0), build);
         }

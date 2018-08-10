@@ -13,7 +13,7 @@ namespace CastIron.Sql.Tests.Mapping
             public string TestString { get; set; }
         }
 
-        public class TestQuery1 : ISqlQuery<TestObject>
+        public class TestQuery1 : ISqlQuerySimple<TestObject>
         {
             public string GetSql()
             {

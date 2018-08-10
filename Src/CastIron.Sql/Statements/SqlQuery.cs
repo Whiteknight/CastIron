@@ -3,7 +3,7 @@ using System.Linq;
 
 namespace CastIron.Sql.Statements
 {
-    public class SqlQuery<TRow> : ISqlQuery<IReadOnlyList<TRow>>
+    public class SqlQuery<TRow> : ISqlQuerySimple<IReadOnlyList<TRow>>
     {
         private readonly string _sql;
 

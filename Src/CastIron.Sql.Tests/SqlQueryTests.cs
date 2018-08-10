@@ -7,7 +7,7 @@ namespace CastIron.Sql.Tests
     [TestFixture]
     public class SqlQueryTests
     {
-        public class Query1 : ISqlQuery<string>
+        public class Query1 : ISqlQuerySimple<string>
         {
             public string GetSql()
             {

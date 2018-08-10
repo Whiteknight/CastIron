@@ -5,9 +5,9 @@ namespace CastIron.Sql.Execution
 {
     public class SqlCommandRawStrategy
     {
-        private readonly ISqlCommandRawCommand _command;
+        private readonly ISqlCommand _command;
 
-        public SqlCommandRawStrategy(ISqlCommandRawCommand command)
+        public SqlCommandRawStrategy(ISqlCommand command)
         {
             _command = command;
         }
@@ -50,9 +50,9 @@ namespace CastIron.Sql.Execution
 
     public class SqlCommandRawStrategy<T>
     {
-        private readonly ISqlCommandRawCommand<T> _command;
+        private readonly ISqlCommand<T> _command;
 
-        public SqlCommandRawStrategy(ISqlCommandRawCommand<T> command)
+        public SqlCommandRawStrategy(ISqlCommand<T> command)
         {
             _command = command;
         }

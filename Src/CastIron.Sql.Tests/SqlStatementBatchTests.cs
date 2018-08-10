@@ -10,7 +10,7 @@ namespace CastIron.Sql.Tests
     [TestFixture]
     public class SqlStatementBatchTests
     {
-        public class CreateTempTableCommand : ISqlCommand
+        public class CreateTempTableCommand : ISqlCommandSimple
         {
             public string GetSql()
             {
@@ -23,7 +23,7 @@ INSERT INTO #castiron_test ([Value]) VALUES (1),(3),(5),(7);
             }
         }
 
-        public class QueryTempTableQuery : ISqlQuery<List<int>>
+        public class QueryTempTableQuery : ISqlQuerySimple<List<int>>
         {
             public string GetSql()
             {
@@ -85,7 +85,7 @@ INSERT INTO #castiron_test ([Value]) VALUES (1),(3),(5),(7);
             list.Should().BeEquivalentTo(1, 3, 5, 7);
         }
 
-        public class QuerySimpleQuery : ISqlQuery<string>
+        public class QuerySimpleQuery : ISqlQuerySimple<string>
         {
             public string GetSql()
             {
@@ -124,7 +124,7 @@ INSERT INTO #castiron_test ([Value]) VALUES (1),(3),(5),(7);
             list[0].Should().Be("TEST");
         }
 
-        public class CreateTempStoredProcCommand : ISqlCommand
+        public class CreateTempStoredProcCommand : ISqlCommandSimple
         {
             public string GetSql()
             {
@@ -136,7 +136,7 @@ INSERT INTO #castiron_test ([Value]) VALUES (1),(3),(5),(7);
             }
         }
 
-        public class ExecuteStoredProcQuery : ISqlQuery<string>, ISqlStoredProc
+        public class ExecuteStoredProcQuery : ISqlQuerySimple<string>, ISqlStoredProc
         {
             public string GetSql()
             {

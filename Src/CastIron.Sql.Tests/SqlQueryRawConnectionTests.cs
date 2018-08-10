@@ -8,7 +8,7 @@ namespace CastIron.Sql.Tests
     [TestFixture]
     public class SqlQueryRawConnectionTests
     {
-        public class Query1 : ISqlQueryRawConnection<string>
+        public class Query1 : ISqlConnectionAccessor<string>
         {
             
             public string Read(SqlResultSet result)

@@ -5,9 +5,9 @@ namespace CastIron.Sql.Execution
 {
     public class SqlQueryStrategy<T>
     {
-        private readonly ISqlQuery<T> _query;
+        private readonly ISqlQuerySimple<T> _query;
 
-        public SqlQueryStrategy(ISqlQuery<T> query)
+        public SqlQueryStrategy(ISqlQuerySimple<T> query)
         {
             _query = query;
         }

@@ -10,7 +10,7 @@ namespace CastIron.Sql.Tests.Examples
     [TestFixture]
     public class JaccardQueryTests
     {
-        class CreateJaccardTableCommand : ISqlCommand
+        class CreateJaccardTableCommand : ISqlCommandSimple
         {
             public string GetSql()
             {
@@ -25,7 +25,7 @@ CREATE UNIQUE NONCLUSTERED INDEX RelationsDocumentTerm
             }
         }
 
-        class PopulateRelationsTable : ISqlCommand
+        class PopulateRelationsTable : ISqlCommandSimple
         {
             private readonly Dictionary<int, List<int>> _terms;
 
@@ -54,7 +54,7 @@ CREATE UNIQUE NONCLUSTERED INDEX RelationsDocumentTerm
             public double Score { get; set; }
         }
 
-        class JaccardQuery : ISqlQueryRawCommand<IReadOnlyList<JaccardMatch>>
+        class JaccardQuery : ISqlQuery<IReadOnlyList<JaccardMatch>>
         {
             private readonly int _documentId;
             private readonly int _start;

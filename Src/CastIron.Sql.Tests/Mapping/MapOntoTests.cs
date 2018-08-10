@@ -31,7 +31,7 @@ namespace CastIron.Sql.Tests.Mapping
             public string Value { get; }
         }
 
-        class MapOntoQuery_RawRecord : ISqlQuery<ResultRecord>
+        class MapOntoQuery_RawRecord : ISqlQuerySimple<ResultRecord>
         {
             public string GetSql()
             {
@@ -65,7 +65,7 @@ namespace CastIron.Sql.Tests.Mapping
             result.Value.Should().Be("VALUE");
         }
 
-        class MapOntoQuery_MappedRecord : ISqlQuery<ResultRecord>
+        class MapOntoQuery_MappedRecord : ISqlQuerySimple<ResultRecord>
         {
             public string GetSql()
             {

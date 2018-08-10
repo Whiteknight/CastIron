@@ -20,7 +20,7 @@ namespace CastIron.Console
         public bool TestBool { get; set; }
     }
 
-    public class TestQuery : ISqlQuery<TestObject>
+    public class TestQuery : ISqlQuerySimple<TestObject>
     {
         public string GetSql()
         {

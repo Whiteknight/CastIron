@@ -37,28 +37,28 @@ namespace CastIron.Sql
             _executors.Enqueue(executor);
         }
 
-        public ISqlResultPromise<T> Add<T>(ISqlQuery<T> query)
+        public ISqlResultPromise<T> Add<T>(ISqlQuerySimple<T> query)
         {
             var result = new SqlResultPromise<T>();
             AddExecutor((c, i) => result.SetValue(new SqlQueryStrategy<T>(query).Execute(c, i)));
             return result;
         }
 
-        public ISqlResultPromise<T> Add<T>(ISqlQueryRawCommand<T> query)
+        public ISqlResultPromise<T> Add<T>(ISqlQuery<T> query)
         {
             var result = new SqlResultPromise<T>();
             AddExecutor((c, i) => result.SetValue(new SqlQueryRawCommandStrategy<T>(query).Execute(c, i)));
             return result;
         }
 
-        public ISqlResultPromise<T> Add<T>(ISqlQueryRawConnection<T> query)
+        public ISqlResultPromise<T> Add<T>(ISqlConnectionAccessor<T> query)
         {
             var result = new SqlResultPromise<T>();
             AddExecutor((c, i) => result.SetValue(new SqlQueryRawConnectionStrategy<T>(query).Execute(c, i)));
             return result;
         }
 
-        public ISqlResultPromise Add(ISqlCommand command)
+        public ISqlResultPromise Add(ISqlCommandSimple command)
         {
             var result = new SqlResultPromise();
             AddExecutor((c, i) =>
@@ -69,7 +69,7 @@ namespace CastIron.Sql
             return result;
         }
 
-        public ISqlResultPromise Add(ISqlCommandRawCommand command)
+        public ISqlResultPromise Add(ISqlCommand command)
         {
             var result = new SqlResultPromise();
             AddExecutor((c, i) =>
@@ -80,7 +80,7 @@ namespace CastIron.Sql
             return result;
         }
 
-        public ISqlResultPromise<T> Add<T>(ISqlCommandRawCommand<T> command)
+        public ISqlResultPromise<T> Add<T>(ISqlCommand<T> command)
         {
             var result = new SqlResultPromise<T>();
             AddExecutor((c, i) => result.SetValue(new SqlCommandRawStrategy<T>(command).Execute(c, i)));

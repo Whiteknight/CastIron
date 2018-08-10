@@ -8,7 +8,7 @@ namespace CastIron.Sql.Tests
     [TestFixture]
     public class SqlQueryRawCommandTests
     {
-        public class CommandExecuted : ISqlQueryRawCommand<string>
+        public class CommandExecuted : ISqlQuery<string>
         {
             public bool SetupCommand(IDbCommand command)
             {
@@ -30,7 +30,7 @@ namespace CastIron.Sql.Tests
             result.Should().Be("TEST");
         }
 
-        public class CommandNotExecuted : ISqlQueryRawCommand<string>
+        public class CommandNotExecuted : ISqlQuery<string>
         {
             public bool SetupCommand(IDbCommand command)
             {
@@ -57,7 +57,7 @@ namespace CastIron.Sql.Tests
             public string Value { get; set; }
         }
 
-        public class CommandWithParameter : ISqlQueryRawCommand<ParameterResult>
+        public class CommandWithParameter : ISqlQuery<ParameterResult>
         {
             public bool SetupCommand(IDbCommand command)
             {

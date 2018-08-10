@@ -4,9 +4,9 @@ namespace CastIron.Sql.Execution
 {
     public class SqlQueryRawConnectionStrategy<T> 
     {
-        private readonly ISqlQueryRawConnection<T> _query;
+        private readonly ISqlConnectionAccessor<T> _query;
 
-        public SqlQueryRawConnectionStrategy(ISqlQueryRawConnection<T> query)
+        public SqlQueryRawConnectionStrategy(ISqlConnectionAccessor<T> query)
         {
             _query = query;
         }

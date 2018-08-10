@@ -1,6 +1,6 @@
 ﻿namespace CastIron.Sql.Statements
 {
-    public class SqlCommand : ISqlCommand
+    public class SqlCommand : ISqlCommandSimple
     {
         private readonly string _sql;
 

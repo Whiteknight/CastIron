@@ -14,7 +14,7 @@ namespace CastIron.Sql.Tests.Mapping
             public bool TestBool { get; set; }
         }
 
-        public class TestQuery1 : ISqlQuery<TestObject1>
+        public class TestQuery1 : ISqlQuerySimple<TestObject1>
         {
             public string GetSql()
             {
@@ -47,7 +47,7 @@ namespace CastIron.Sql.Tests.Mapping
             result.TestBool.Should().Be(true);
         }
 
-        public class TestQuery_ObjectArray : ISqlQuery<object[]>
+        public class TestQuery_ObjectArray : ISqlQuerySimple<object[]>
         {
             public string GetSql()
             {
@@ -71,7 +71,7 @@ namespace CastIron.Sql.Tests.Mapping
             result[2].Should().Be(true);
         }
 
-        public class TestQuery_Object : ISqlQuery<object>
+        public class TestQuery_Object : ISqlQuerySimple<object>
         {
             public string GetSql()
             {

@@ -7,7 +7,7 @@ namespace CastIron.Sql.Tests.Mapping
     [TestFixture]
     public class PrimitiveSelectTests
     {
-        public class TestQuery<T> : ISqlQuery<T>
+        public class TestQuery<T> : ISqlQuerySimple<T>
         {
             private readonly string _sql;
 
