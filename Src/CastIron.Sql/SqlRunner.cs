@@ -83,9 +83,14 @@ namespace CastIron.Sql
             return Execute(c => new SqlQueryRawCommandStrategy<T>(query).Execute(c, 0), build);
         }
 
-        public T Query<T>(ISqlConnectionAccessor<T> query, Action<IContextBuilder> build = null)
+        public T Query<T>(ISqlConnectionAccessor<T> accessor, Action<IContextBuilder> build = null)
         {
-            return Execute(c => new SqlQueryRawConnectionStrategy<T>(query).Execute(c, 0), build);
+            return Execute(c => new SqlConnectionAccessorStrategy<T>(accessor).Execute(c, 0), build);
+        }
+
+        public void Execute(ISqlConnectionAccessor accessor, Action<IContextBuilder> build = null)
+        {
+            Execute(c => new SqlConnectionAccessorStrategy(accessor).Execute(c, 0), build);
         }
 
         public IReadOnlyList<T> Query<T>(string sql, Action<IContextBuilder> build = null)

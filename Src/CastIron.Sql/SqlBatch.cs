@@ -54,7 +54,7 @@ namespace CastIron.Sql
         public ISqlResultPromise<T> Add<T>(ISqlConnectionAccessor<T> query)
         {
             var result = new SqlResultPromise<T>();
-            AddExecutor((c, i) => result.SetValue(new SqlQueryRawConnectionStrategy<T>(query).Execute(c, i)));
+            AddExecutor((c, i) => result.SetValue(new SqlConnectionAccessorStrategy<T>(query).Execute(c, i)));
             return result;
         }
 
