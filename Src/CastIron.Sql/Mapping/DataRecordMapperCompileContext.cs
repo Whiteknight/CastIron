@@ -11,6 +11,8 @@ namespace CastIron.Sql.Mapping
             RecordParam = recordParam;
             BindingExpressions = new List<MemberAssignment>();
             MappedColumns = new HashSet<string>();
+            Variables = new List<ParameterExpression>();
+            Statements = new List<Expression>();
         }
 
         public IReadOnlyDictionary<string, int> ColumnNames { get;  }
@@ -19,5 +21,8 @@ namespace CastIron.Sql.Mapping
         public List<MemberAssignment> BindingExpressions { get; }
 
         public HashSet<string> MappedColumns { get; }
+
+        public List<ParameterExpression> Variables { get; }
+        public List<Expression> Statements { get; }
     }
 }

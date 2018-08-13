@@ -7,10 +7,27 @@ using System.Reflection;
 
 namespace CastIron.Sql.Mapping
 {
-    public static class PropertyAndConstructorRecordMapperCompiler
+    public class PropertyAndConstructorRecordMapperCompiler : IRecordMapperCompiler
     {
         private static readonly MethodInfo GetValueMethod = typeof(IDataRecord).GetMethod("GetValue");
         private static readonly Expression _dbNullExp = Expression.Field(null, typeof(DBNull), "Value");
+
+        private static readonly HashSet<Type> _numericTypes = new HashSet<Type>
+        {
+            typeof(byte),
+            typeof(byte?),
+            typeof(short),
+            typeof(short?),
+            typeof(int),
+            typeof(int?),
+            typeof(long),
+            typeof(long?),
+            typeof(float),
+            typeof(float?),
+            typeof(double),
+            typeof(double?),
+        };
+
         private static readonly HashSet<Type> _mappableTypes = new HashSet<Type>
         {
             // TODO: Expand this list of all primitive types we can map from the DB
@@ -34,51 +51,176 @@ namespace CastIron.Sql.Mapping
             typeof(DateTime?)
         };
 
-        public static Func<IDataRecord, T> CompileExpression<T>(IReadOnlyList<string> columnNames)
+        private static IReadOnlyDictionary<string, int> GetColumnNameMap(IDataReader reader)
         {
-            var dict = new Dictionary<string, int>();
-            for (int i = 0; i < columnNames.Count; i++)
+            var columnNames = new Dictionary<string, int>();
+            for (int i = 0; i < reader.FieldCount; i++)
             {
-                if (string.IsNullOrEmpty(columnNames[i]))
+                var name = reader.GetName(i).ToLowerInvariant();
+                if (string.IsNullOrEmpty(name))
                     continue;
-                dict.Add(columnNames[i].ToLowerInvariant(), i);
+                if (columnNames.ContainsKey(name))
+                    continue;
+                columnNames.Add(name, i);
             }
 
-            return CompileExpression<T>(dict);
+            return columnNames;
         }
 
-        public static Func<IDataRecord, T> CompileExpression<T>(IReadOnlyDictionary<string, int> columnNames)
+        private static Func<IDataRecord, object[]> CreateObjectArrayMap(IDataReader reader)
         {
+            var columns = reader.FieldCount;
+            return r =>
+            {
+                var buffer = new object[columns];
+                r.GetValues(buffer);
+                return buffer;
+            };
+        }
+
+        public Func<IDataRecord, T> CompileExpression<T>(IDataReader reader)
+        {
+            if (reader == null)
+                return r => default(T);
+
             var type = typeof(T);
-            if (IsPrimitiveType(type))
-                return CompileForPrimitiveType<T>();
+            if (type == typeof(object[]))
+                return CreateObjectArrayMap(reader) as Func<IDataRecord, T>;
+            if (type == typeof(object))
+                return CreateObjectArrayMap(reader) as Func<IDataRecord, T>;
 
             var recordParam = Expression.Parameter(typeof(IDataRecord), "reader");
-            var context = new DataRecordMapperCompileContext(columnNames, recordParam);
+            var columnNameMap = GetColumnNameMap(reader);
+            var context = new DataRecordMapperCompileContext(columnNameMap, recordParam);
 
-            var newExpr = GetConstructorExpression<T>(context);
+            if (IsPrimitiveType(type))
+                return CompileForPrimitiveType<T>(context, recordParam, reader);
 
-            var initExpr = Expression.MemberInit(
+            var best = typeof(T).GetConstructors()
+                .Select(c => new ConstructorDetails(c, context))
+                .Where(x => x.Score >= 0)
+                .OrderByDescending(x => x.Score)
+                .FirstOrDefault();
+            if (best == null)
+                throw new Exception($"Cannot find a suitable constructor for type {typeof(T).FullName}");
+
+            NewExpression newExpr = null;
+            if (best.Parameters.Length != 0)
+            {
+
+                // var rawVar = r.GetValue(columnId);
+                // var convertedVar = rawVar == DbNull.Value ? default(targetType) : Convert(rawVar -> targetType);
+
+                var args = new Expression[best.Parameters.Length];
+                for (int i = 0; i < best.Parameters.Length; i++)
+                {
+                    var parameter = best.Parameters[i];
+                    var name = parameter.Name.ToLowerInvariant();
+                    context.MappedColumns.Add(name);
+                    var columnIdx = context.ColumnNames[name];
+
+                    args[i] = GetConversionExpression(columnIdx, context, reader.GetFieldType(columnIdx), parameter.ParameterType);
+                }
+
+                newExpr = Expression.New(best.Constructor, args);
+            }
+            else
+                newExpr = Expression.New(best.Constructor);
+
+            var bindingExpressions = new List<MemberAssignment>();
+            var properties = GetMappableProperties<T>(context);
+            foreach (var property in properties)
+            {
+                var name = property.Name.ToLowerInvariant();
+                if (!context.ColumnNames.ContainsKey(name))
+                    continue;
+                var columnIdx = context.ColumnNames[name];
+
+                bindingExpressions.Add(Expression.Bind(
+                    property,
+                    GetConversionExpression(columnIdx, context, reader.GetFieldType(columnIdx), property.PropertyType)
+                ));
+            }
+
+            context.Statements.Add(Expression.MemberInit(
                 newExpr,
-                GetBindingExpressions<T>(context)
-            );
+                bindingExpressions
+            ));
 
-            var lambdaExpression = Expression.Lambda<Func<IDataRecord, T>>(initExpr, recordParam);
+            var lambdaExpression = Expression.Lambda<Func<IDataRecord, T>>(Expression.Block(typeof(T), context.Variables, context.Statements), recordParam);
 
-            //var code = lambdaExpression.ToString();
+            //var code = ToCode(lambdaExpression);
 
             return lambdaExpression.Compile();
         }
 
-        private static Func<IDataRecord, T> CompileForPrimitiveType<T>()
+        private static Expression GetConversionExpression(int columnIdx, DataRecordMapperCompileContext context, Type columnType, Type targetType)
         {
-            return r =>
+            var rawVar = Expression.Variable(typeof(object), "raw_" + columnIdx);
+            context.Variables.Add(rawVar);
+            var getRawStmt = Expression.Assign(rawVar, Expression.Call(context.RecordParam, GetValueMethod, Expression.Constant(columnIdx)));
+            context.Statements.Add(getRawStmt);
+
+            // The target is string
+            if (targetType == typeof(string))
             {
-                var value = r.GetValue(0);
-                if (value == DBNull.Value)
-                    return default(T);
-                return (T) value;
-            };
+                return Expression.Condition(
+                    Expression.NotEqual(_dbNullExp, rawVar),
+                    Expression.Call(rawVar, "ToString", Type.EmptyTypes),
+                    Expression.Convert(Expression.Constant(null), typeof(string)));
+            }
+
+            // They are the same type 
+            if (columnType == targetType || (!columnType.IsClass && typeof(Nullable<>).MakeGenericType(columnType) == targetType))
+            {
+                return Expression.Condition(
+                    Expression.NotEqual(_dbNullExp, rawVar),
+                    Expression.Convert(
+                        rawVar,
+                        targetType
+                    ),
+                    Expression.Constant(GetDefaultValue(targetType)));
+            }
+            
+            // They are both numeric but not the same type
+            if (_numericTypes.Contains(columnType) && _numericTypes.Contains(targetType))
+            {
+                return Expression.Condition(
+                    Expression.NotEqual(_dbNullExp, rawVar),
+                    Expression.Convert(
+                        Expression.Unbox(rawVar, columnType),
+                        targetType
+                    ),
+                    Expression.Constant(GetDefaultValue(targetType)));
+            }
+
+            // Target is bool, but we know source type is numeric. Try to coerce
+            if ((targetType == typeof(bool) || targetType == typeof(bool?)) && _numericTypes.Contains(columnType))
+            {
+                // var result = rawVar is DBNull ? (rawVar != 0) : false
+                return Expression.Condition(
+                    Expression.NotEqual(_dbNullExp, rawVar),
+                    Expression.NotEqual(Expression.Convert(Expression.Constant(0), columnType), Expression.Unbox(rawVar, columnType)), 
+                    Expression.Constant(false));
+            }
+
+            // We fall back to a basic conversion and hope all goes well
+            return Expression.Condition(
+                Expression.NotEqual(_dbNullExp, rawVar),
+                Expression.Convert(
+                    rawVar,
+                    targetType
+                ),
+                Expression.Constant(GetDefaultValue(targetType)));
+        }
+
+        private static Func<IDataRecord, T> CompileForPrimitiveType<T>(DataRecordMapperCompileContext context, ParameterExpression recordParam, IDataReader reader)
+        {
+            var expr = GetConversionExpression(0, context, reader.GetFieldType(0), typeof(T));
+            context.Statements.Add(expr);
+            var lambdaExpression = Expression.Lambda<Func<IDataRecord, T>>(Expression.Block(typeof(T), context.Variables, context.Statements), recordParam);
+            //var code = ToCode(lambdaExpression);
+            return lambdaExpression.Compile();
         }
 
         private static bool IsPrimitiveType(Type type)
@@ -122,72 +264,6 @@ namespace CastIron.Sql.Mapping
             }
         }
 
-        private static NewExpression GetConstructorExpression<T>(DataRecordMapperCompileContext context)
-        {
-            var best = typeof(T).GetConstructors()
-                .Select(c => new ConstructorDetails(c, context))
-                .Where(x => x.Score >= 0)
-                .OrderByDescending(x => x.Score)
-                .FirstOrDefault();
-            if (best == null)
-                throw new Exception($"Cannot find a suitable constructor for type {typeof(T).FullName}");
-            if (best.Parameters.Length == 0)
-                return Expression.New(best.Constructor);
-
-            var args = new Expression[best.Parameters.Length];
-            for (int i = 0; i < best.Parameters.Length; i++)
-            {
-                var parameter = best.Parameters[i];
-                var name = parameter.Name.ToLowerInvariant();
-                context.MappedColumns.Add(name);
-                var columnIdx = context.ColumnNames[name];
-
-                args[i] = CreateValueFetchExpression(context, columnIdx, parameter.ParameterType);
-            }
-            
-            return Expression.New(best.Constructor, args);
-        }
-
-        private static IEnumerable<MemberAssignment> GetBindingExpressions<T>(DataRecordMapperCompileContext context)
-        {
-            var bindingExpressions = new List<MemberAssignment>();
-            var properties = GetMappableProperties<T>(context);
-            foreach (var property in properties)
-            {
-                var name = property.Name.ToLowerInvariant();
-                if (!context.ColumnNames.ContainsKey(name))
-                    continue;
-                var columnIdx = context.ColumnNames[name];
-
-                bindingExpressions.Add(Expression.Bind(
-                    property,
-                    CreateValueFetchExpression(context, columnIdx, property.PropertyType)
-                ));
-            }
-
-            return bindingExpressions;
-        }
-
-        private static ConditionalExpression CreateValueFetchExpression(DataRecordMapperCompileContext context, int columnIdx, Type targetType)
-        {
-            // var value = record.GetValue(columnIdx)
-            var columnValueExpression = Expression.Call(context.RecordParam, GetValueMethod, Expression.Constant(columnIdx));
-
-            // TODO: This can be optimized because we are calling GetValue more than once
-            // value != DbNull ? Convert(value, targetType) : default(targetType)
-            return Expression.Condition(
-                Expression.NotEqual(_dbNullExp, columnValueExpression),
-                Expression.Convert(
-                    columnValueExpression,
-                    targetType
-                ),
-                Expression.Convert(
-                    Expression.Constant(GetDefaultValue(targetType)),
-                    targetType
-                )
-            );
-        }
-
         private static PropertyInfo[] GetMappableProperties<T>(DataRecordMapperCompileContext context)
         {
             return typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance)
@@ -204,6 +280,13 @@ namespace CastIron.Sql.Mapping
             if (t.IsValueType)
                 defaultValue = Activator.CreateInstance(t);
             return defaultValue;
+        }
+
+        // Helper method to get a reasonably complete code listing, to help with debugging
+        private static string ToCode(Expression expr)
+        {
+            var debugViewProp = typeof(Expression).GetProperty("DebugView", BindingFlags.Instance | BindingFlags.NonPublic);
+            return (string)debugViewProp.GetGetMethod(true).Invoke(expr, null);
         }
     }
 }

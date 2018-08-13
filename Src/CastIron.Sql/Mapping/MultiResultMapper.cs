@@ -26,10 +26,17 @@ namespace CastIron.Sql.Mapping
 
         public IEnumerable<T> GetNextEnumerable<T>(Func<IDataRecord, T> map = null)
         {
-            return GetResultSetAsEnumerable(_currentSet + 1, map);
+            AdvanceToResultSet(_currentSet + 1);
+            return new DataRecordMappingEnumerable<T>(_reader, _context, map);
         }
 
-        private IEnumerable<T> GetResultSetAsEnumerable<T>(int num, Func<IDataRecord, T> map = null)
+        public IEnumerable<T> GetNextEnumerable<T>(IRecordMapperCompiler compiler)
+        {
+            AdvanceToResultSet(_currentSet + 1);
+            return new DataRecordMappingEnumerable<T>(_reader, _context, compiler);
+        }
+
+        private void AdvanceToResultSet(int num)
         {
             // TODO: Review all this logic to make sure it is sane and necessary
             if (_currentSet > num)
@@ -37,8 +44,7 @@ namespace CastIron.Sql.Mapping
             if (_currentSet == 0 && num == 1)
             {
                 _currentSet = num;
-                map = map ?? DefaultMappings.Create<T>(_reader);
-                return new DataRecordMappingEnumerable<T>(_reader, _context, map);
+                return;
             }
 
             while (_currentSet < num)
@@ -50,9 +56,6 @@ namespace CastIron.Sql.Mapping
 
             if (_currentSet != num)
                 throw new Exception("Could not find result Set=" + num);
-
-            map = map ?? DefaultMappings.Create<T>(_reader);
-            return new DataRecordMappingEnumerable<T>(_reader, _context, map);
         }
     }
 }

@@ -18,7 +18,15 @@ namespace CastIron.Sql.Mapping
         {
             _reader = reader;
             _context = context;
-            _map = map;
+            _map = map ?? new PropertyAndConstructorRecordMapperCompiler().CompileExpression<T>(reader);
+            _alreadyRead = false;
+        }
+
+        public DataRecordMappingEnumerable(IDataReader reader, IExecutionContext context, IRecordMapperCompiler compiler)
+        {
+            _reader = reader;
+            _context = context;
+            _map = (compiler ?? new PropertyAndConstructorRecordMapperCompiler()).CompileExpression<T>(reader);
             _alreadyRead = false;
         }
 
@@ -75,6 +83,6 @@ namespace CastIron.Sql.Mapping
             public T Current { get; private set; }
 
             object IEnumerator.Current => Current;
-        }
+        }        
     }
 }

@@ -97,5 +97,28 @@ namespace CastIron.Sql.Tests.Mapping
             array[1].Should().Be("TEST");
             array[2].Should().Be(true);
         }
+
+        public class TestQuery_Unbox : ISqlQuerySimple<TestObject1>
+        {
+            public string GetSql()
+            {
+                return "SELECT CAST(5 AS BIGINT) AS TestInt, 6 AS TestString, 1 AS TestBool;";
+            }
+
+            public TestObject1 Read(SqlResultSet result)
+            {
+                return result.AsEnumerable<TestObject1>().FirstOrDefault();
+            }
+        }
+
+        [Test]
+        public void TestQuery_UnboxProperties()
+        {
+            var target = RunnerFactory.Create();
+            var result = target.Query(new TestQuery_Unbox());
+            result.TestInt.Should().Be(5);
+            result.TestString.Should().Be("6");
+            result.TestBool.Should().Be(true);
+        }
     }
 }

@@ -52,6 +52,22 @@ namespace CastIron.Sql.Tests.Mapping
         }
 
         [Test]
+        public void Primitive_intToLong()
+        {
+            var target = RunnerFactory.Create();
+            var result = target.Query(new TestQuery<long>("SELECT 5 AS TestInt;"));
+            result.Should().Be(5L);
+        }
+
+        [Test]
+        public void Primitive_longToint()
+        {
+            var target = RunnerFactory.Create();
+            var result = target.Query(new TestQuery<int>("SELECT CAST(5 AS BIGINT) AS TestInt;"));
+            result.Should().Be(5);
+        }
+
+        [Test]
         public void Primitive_int_NoColumnName()
         {
             var target = RunnerFactory.Create();
