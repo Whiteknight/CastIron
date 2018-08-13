@@ -179,7 +179,7 @@ namespace CastIron.Sql.Mapping
                         rawVar,
                         targetType
                     ),
-                    Expression.Constant(GetDefaultValue(targetType)));
+                    Expression.Convert(Expression.Constant(GetDefaultValue(targetType)), targetType));
             }
             
             // They are both numeric but not the same type
