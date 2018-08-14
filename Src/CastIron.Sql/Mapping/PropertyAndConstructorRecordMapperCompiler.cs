@@ -9,8 +9,8 @@ namespace CastIron.Sql.Mapping
 {
     public class PropertyAndConstructorRecordMapperCompiler : IRecordMapperCompiler
     {
-        private static readonly MethodInfo GetValueMethod = typeof(IDataRecord).GetMethod("GetValue");
-        private static readonly Expression _dbNullExp = Expression.Field(null, typeof(DBNull), "Value");
+        private static readonly MethodInfo GetValueMethod = typeof(IDataRecord).GetMethod(nameof(IDataRecord.GetValue));
+        private static readonly Expression _dbNullExp = Expression.Field(null, typeof(DBNull), nameof(DBNull.Value));
 
         private static readonly HashSet<Type> _numericTypes = new HashSet<Type>
         {
@@ -51,33 +51,6 @@ namespace CastIron.Sql.Mapping
             typeof(DateTime?)
         };
 
-        private static IReadOnlyDictionary<string, int> GetColumnNameMap(IDataReader reader)
-        {
-            var columnNames = new Dictionary<string, int>();
-            for (int i = 0; i < reader.FieldCount; i++)
-            {
-                var name = reader.GetName(i).ToLowerInvariant();
-                if (string.IsNullOrEmpty(name))
-                    continue;
-                if (columnNames.ContainsKey(name))
-                    continue;
-                columnNames.Add(name, i);
-            }
-
-            return columnNames;
-        }
-
-        private static Func<IDataRecord, object[]> CreateObjectArrayMap(IDataReader reader)
-        {
-            var columns = reader.FieldCount;
-            return r =>
-            {
-                var buffer = new object[columns];
-                r.GetValues(buffer);
-                return buffer;
-            };
-        }
-
         public Func<IDataRecord, T> CompileExpression<T>(IDataReader reader)
         {
             if (reader == null)
@@ -88,45 +61,43 @@ namespace CastIron.Sql.Mapping
                 return CreateObjectArrayMap(reader) as Func<IDataRecord, T>;
             if (type == typeof(object))
                 return CreateObjectArrayMap(reader) as Func<IDataRecord, T>;
+            if (IsPrimitiveType(type))
+                return CompileForPrimitiveType<T>(reader);
 
-            var recordParam = Expression.Parameter(typeof(IDataRecord), "reader");
-            var columnNameMap = GetColumnNameMap(reader);
+            return CreateConstructorAndPropertyMap<T>(reader);
+        }
+
+        private static Func<IDataRecord, T> CreateConstructorAndPropertyMap<T>(IDataReader reader)
+        {
+            var recordParam = Expression.Parameter(typeof(IDataRecord), "record");
+            var columnNameMap = GetColumnNameLookup(reader);
             var context = new DataRecordMapperCompileContext(columnNameMap, recordParam);
 
-            if (IsPrimitiveType(type))
-                return CompileForPrimitiveType<T>(context, recordParam, reader);
+            var constructor = GetBestConstructor<T>(context);
 
-            var best = typeof(T).GetConstructors()
-                .Select(c => new ConstructorDetails(c, context))
-                .Where(x => x.Score >= 0)
-                .OrderByDescending(x => x.Score)
-                .FirstOrDefault();
-            if (best == null)
-                throw new Exception($"Cannot find a suitable constructor for type {typeof(T).FullName}");
+            return CreateNewObjectLambda<T>(reader, constructor, context, recordParam);
+        }
 
-            NewExpression newExpr = null;
-            if (best.Parameters.Length != 0)
-            {
+        private static Func<IDataRecord, T> CreateNewObjectLambda<T>(IDataReader reader, ConstructorDetails constructor, DataRecordMapperCompileContext context, ParameterExpression recordParam)
+        {
+            var newExpr = CreateConstructorCallExpression<T>(reader, constructor, context);
 
-                // var rawVar = r.GetValue(columnId);
-                // var convertedVar = rawVar == DbNull.Value ? default(targetType) : Convert(rawVar -> targetType);
+            var bindingExpressions = GetPropertyBindingExpressions<T>(reader, context);
 
-                var args = new Expression[best.Parameters.Length];
-                for (int i = 0; i < best.Parameters.Length; i++)
-                {
-                    var parameter = best.Parameters[i];
-                    var name = parameter.Name.ToLowerInvariant();
-                    context.MappedColumns.Add(name);
-                    var columnIdx = context.ColumnNames[name];
+            context.Statements.Add(Expression.MemberInit(
+                newExpr,
+                bindingExpressions
+            ));
 
-                    args[i] = GetConversionExpression(columnIdx, context, reader.GetFieldType(columnIdx), parameter.ParameterType);
-                }
+            var lambdaExpression = Expression.Lambda<Func<IDataRecord, T>>(Expression.Block(typeof(T), context.Variables, context.Statements), recordParam);
 
-                newExpr = Expression.New(best.Constructor, args);
-            }
-            else
-                newExpr = Expression.New(best.Constructor);
+            //var code = ToCode(lambdaExpression);
 
+            return lambdaExpression.Compile();
+        }
+
+        private static List<MemberAssignment> GetPropertyBindingExpressions<T>(IDataReader reader, DataRecordMapperCompileContext context)
+        {
             var bindingExpressions = new List<MemberAssignment>();
             var properties = GetMappableProperties<T>(context);
             foreach (var property in properties)
@@ -142,16 +113,38 @@ namespace CastIron.Sql.Mapping
                 ));
             }
 
-            context.Statements.Add(Expression.MemberInit(
-                newExpr,
-                bindingExpressions
-            ));
+            return bindingExpressions;
+        }
 
-            var lambdaExpression = Expression.Lambda<Func<IDataRecord, T>>(Expression.Block(typeof(T), context.Variables, context.Statements), recordParam);
+        private static NewExpression CreateConstructorCallExpression<T>(IDataReader reader, ConstructorDetails constructor, DataRecordMapperCompileContext context)
+        {
+            if (constructor.Parameters.Length == 0)
+                return Expression.New(constructor.Constructor);
 
-            //var code = ToCode(lambdaExpression);
+            var args = new Expression[constructor.Parameters.Length];
+            for (int i = 0; i < constructor.Parameters.Length; i++)
+            {
+                var parameter = constructor.Parameters[i];
+                var name = parameter.Name.ToLowerInvariant();
+                context.MappedColumns.Add(name);
+                var columnIdx = context.ColumnNames[name];
 
-            return lambdaExpression.Compile();
+                args[i] = GetConversionExpression(columnIdx, context, reader.GetFieldType(columnIdx), parameter.ParameterType);
+            }
+
+            return Expression.New(constructor.Constructor, args);
+        }
+
+        private static ConstructorDetails GetBestConstructor<T>(DataRecordMapperCompileContext context)
+        {
+            var best = typeof(T).GetConstructors()
+                .Select(c => new ConstructorDetails(c, context))
+                .Where(x => x.Score >= 0)
+                .OrderByDescending(x => x.Score)
+                .FirstOrDefault();
+            if (best == null)
+                throw new Exception($"Cannot find a suitable constructor for type {typeof(T).FullName}");
+            return best;
         }
 
         private static Expression GetConversionExpression(int columnIdx, DataRecordMapperCompileContext context, Type columnType, Type targetType)
@@ -166,7 +159,7 @@ namespace CastIron.Sql.Mapping
             {
                 return Expression.Condition(
                     Expression.NotEqual(_dbNullExp, rawVar),
-                    Expression.Call(rawVar, "ToString", Type.EmptyTypes),
+                    Expression.Call(rawVar, nameof(object.ToString), Type.EmptyTypes),
                     Expression.Convert(Expression.Constant(null), typeof(string)));
             }
 
@@ -214,8 +207,11 @@ namespace CastIron.Sql.Mapping
                 Expression.Constant(GetDefaultValue(targetType)));
         }
 
-        private static Func<IDataRecord, T> CompileForPrimitiveType<T>(DataRecordMapperCompileContext context, ParameterExpression recordParam, IDataReader reader)
+        private static Func<IDataRecord, T> CompileForPrimitiveType<T>(IDataReader reader)
         {
+            var recordParam = Expression.Parameter(typeof(IDataRecord), "record");
+            var context = new DataRecordMapperCompileContext(null, recordParam);
+
             var expr = GetConversionExpression(0, context, reader.GetFieldType(0), typeof(T));
             context.Statements.Add(expr);
             var lambdaExpression = Expression.Lambda<Func<IDataRecord, T>>(Expression.Block(typeof(T), context.Variables, context.Statements), recordParam);
@@ -230,7 +226,6 @@ namespace CastIron.Sql.Mapping
 
         private class ConstructorDetails
         {
-            
             public ConstructorInfo Constructor { get; }
 
             public ConstructorDetails(ConstructorInfo constructor, DataRecordMapperCompileContext context)
@@ -280,6 +275,33 @@ namespace CastIron.Sql.Mapping
             if (t.IsValueType)
                 defaultValue = Activator.CreateInstance(t);
             return defaultValue;
+        }
+
+        private static IReadOnlyDictionary<string, int> GetColumnNameLookup(IDataReader reader)
+        {
+            var columnNames = new Dictionary<string, int>();
+            for (int i = 0; i < reader.FieldCount; i++)
+            {
+                var name = reader.GetName(i).ToLowerInvariant();
+                if (string.IsNullOrEmpty(name))
+                    continue;
+                if (columnNames.ContainsKey(name))
+                    continue;
+                columnNames.Add(name, i);
+            }
+
+            return columnNames;
+        }
+
+        private static Func<IDataRecord, object[]> CreateObjectArrayMap(IDataReader reader)
+        {
+            var columns = reader.FieldCount;
+            return r =>
+            {
+                var buffer = new object[columns];
+                r.GetValues(buffer);
+                return buffer;
+            };
         }
 
         // Helper method to get a reasonably complete code listing, to help with debugging
