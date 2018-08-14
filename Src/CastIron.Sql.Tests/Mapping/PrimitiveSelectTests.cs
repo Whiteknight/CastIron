@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using FluentAssertions;
 using NUnit.Framework;
@@ -84,7 +85,7 @@ namespace CastIron.Sql.Tests.Mapping
         }
 
         [Test]
-        public void Primitive_intNullable()
+        public void Primitive_int_Nullable()
         {
             var target = RunnerFactory.Create();
             var result = target.Query(new TestQuery<int?>("SELECT 5 AS TestInt;"));
@@ -102,6 +103,25 @@ namespace CastIron.Sql.Tests.Mapping
             result.Should().NotBeNull();
             result.Length.Should().Be(5);
             result.Should().BeEquivalentTo(new byte[] { 1, 2, 3, 4, 5 });
+        }
+
+        [Test]
+        public void Primitive_Guid_Null()
+        {
+            var target = RunnerFactory.Create();
+            var result = target.Query(new TestQuery<Guid>("SELECT NEWID() AS TestId;"));
+            result.Should().NotBe(Guid.Empty);
+        }
+
+        [Test]
+        public void Primitive_Guid_Nullable()
+        {
+            var target = RunnerFactory.Create();
+            var result = target.Query(new TestQuery<Guid?>("SELECT NEWID() AS TestId;"));
+            result.Should().NotBe(Guid.Empty);
+
+            result = target.Query(new TestQuery<Guid?>("SELECT NULL AS TestId;"));
+            result.Should().BeNull();
         }
     }
 }

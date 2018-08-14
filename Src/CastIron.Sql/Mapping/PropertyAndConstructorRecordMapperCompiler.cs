@@ -48,7 +48,9 @@ namespace CastIron.Sql.Mapping
             typeof(bool?),
             typeof(string),
             typeof(DateTime),
-            typeof(DateTime?)
+            typeof(DateTime?),
+            typeof(Guid),
+            typeof(Guid?)
         };
 
         public Func<IDataRecord, T> CompileExpression<T>(IDataReader reader)
@@ -204,7 +206,7 @@ namespace CastIron.Sql.Mapping
                     rawVar,
                     targetType
                 ),
-                Expression.Constant(GetDefaultValue(targetType)));
+                Expression.Convert(Expression.Constant(GetDefaultValue(targetType)), targetType));
         }
 
         private static Func<IDataRecord, T> CompileForPrimitiveType<T>(IDataReader reader)
