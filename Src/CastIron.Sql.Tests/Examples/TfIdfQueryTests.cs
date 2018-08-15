@@ -89,7 +89,7 @@ CREATE TABLE #DocumentTerms (
 DECLARE @numberOfDocuments INT;
 SELECT @numberOfDocuments = COUNT(DISTINCT DocumentId) FROM #DocumentTerms;
 
-WITH 
+WITH
 DocumentTotalOccurances AS (
     SELECT
         DocumentId,
@@ -122,9 +122,9 @@ InverseDocumentFrequency AS (
         LOG10(CAST(@numberOfDocuments AS FLOAT) / CAST(COUNT(0) AS FLOAT)) AS Value
         FROM
             #DocumentTerms
-        WHERE 
+        WHERE
             Term = @term
-        GROUP BY 
+        GROUP BY
             Term
 ),
 TfIdfScores AS (
@@ -156,6 +156,8 @@ SELECT
             }
         }
 
+        // TODO SQLite doesn't use the same syntax for temp tables.
+#if (CASTIRON_SQLITE == false)
         [Test]
         public void TfIdf_Test()
         {
@@ -180,5 +182,6 @@ SELECT
             result[0].DocumentId.Should().Be(2);
             result[0].TfIdfScore.Should().BeInRange(0.128f, 0.132f);
         }
+#endif
     }
 }

@@ -165,7 +165,7 @@ namespace CastIron.Sql.Mapping
                     Expression.Convert(Expression.Constant(null), typeof(string)));
             }
 
-            // They are the same type 
+            // They are the same type
             if (columnType == targetType || (!columnType.IsClass && typeof(Nullable<>).MakeGenericType(columnType) == targetType))
             {
                 return Expression.Condition(
@@ -176,7 +176,7 @@ namespace CastIron.Sql.Mapping
                     ),
                     Expression.Convert(Expression.Constant(GetDefaultValue(targetType)), targetType));
             }
-            
+
             // They are both numeric but not the same type
             if (_numericTypes.Contains(columnType) && _numericTypes.Contains(targetType))
             {
@@ -186,7 +186,7 @@ namespace CastIron.Sql.Mapping
                         Expression.Unbox(rawVar, columnType),
                         targetType
                     ),
-                    Expression.Constant(GetDefaultValue(targetType)));
+                    Expression.Convert(Expression.Constant(GetDefaultValue(targetType)), targetType));
             }
 
             // Target is bool, but we know source type is numeric. Try to coerce
@@ -195,7 +195,7 @@ namespace CastIron.Sql.Mapping
                 // var result = rawVar is DBNull ? (rawVar != 0) : false
                 return Expression.Condition(
                     Expression.NotEqual(_dbNullExp, rawVar),
-                    Expression.NotEqual(Expression.Convert(Expression.Constant(0), columnType), Expression.Unbox(rawVar, columnType)), 
+                    Expression.NotEqual(Expression.Convert(Expression.Constant(0), columnType), Expression.Unbox(rawVar, columnType)),
                     Expression.Constant(false));
             }
 
@@ -252,7 +252,7 @@ namespace CastIron.Sql.Mapping
                     if (!_mappableTypes.Contains(param.ParameterType))
                         return -1;
 
-                    // TODO: We should be able to get the DataType from the SqlDataReader for the column, and 
+                    // TODO: We should be able to get the DataType from the SqlDataReader for the column, and
                     // add Score+=X if the type is the same and Score+=Y (where Y < X) if they are different but compatible
                     score++;
                 }

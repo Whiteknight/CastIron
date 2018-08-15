@@ -95,6 +95,8 @@ namespace CastIron.Sql.Tests.Mapping
             result.Should().BeNull();
         }
 
+        // TODO SQLite doesn't handle hex literals for binary(n), we need a new way to test it
+#if (CASTIRON_SQLITE == false)
         [Test]
         public void Primitive_binary_ByteArray()
         {
@@ -104,7 +106,10 @@ namespace CastIron.Sql.Tests.Mapping
             result.Length.Should().Be(5);
             result.Should().BeEquivalentTo(new byte[] { 1, 2, 3, 4, 5 });
         }
+#endif
 
+        // SQLite doesn't support UUID natively
+#if (CASTIRON_SQLITE == false)
         [Test]
         public void Primitive_Guid_Null()
         {
@@ -123,5 +128,6 @@ namespace CastIron.Sql.Tests.Mapping
             result = target.Query(new TestQuery<Guid?>("SELECT NULL AS TestId;"));
             result.Should().BeNull();
         }
+#endif
     }
 }
