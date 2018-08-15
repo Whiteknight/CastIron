@@ -36,6 +36,7 @@ INSERT INTO #castiron_test ([Value]) VALUES (1),(3),(5),(7);
             }
         }
 
+#if (CASTIRON_SQLITE == false)
         [Test]
         public void CommandAndQueryBatch_Test()
         {
@@ -50,7 +51,9 @@ INSERT INTO #castiron_test ([Value]) VALUES (1),(3),(5),(7);
             list.Should().NotBeNull();
             list.Should().BeEquivalentTo(1, 3, 5, 7);
         }
+#endif
 
+#if (CASTIRON_SQLITE == false)
         [Test]
         public void CommandAndQueryBatch_Transaction()
         {
@@ -65,7 +68,9 @@ INSERT INTO #castiron_test ([Value]) VALUES (1),(3),(5),(7);
             list.Should().NotBeNull();
             list.Should().BeEquivalentTo(1, 3, 5, 7);
         }
+#endif
 
+#if (CASTIRON_SQLITE == false)
         [Test]
         public void CommandAndQueryBatch_SimpleSql()
         {
@@ -84,6 +89,7 @@ INSERT INTO #castiron_test ([Value]) VALUES (1),(3),(5),(7);
             list.Should().NotBeNull();
             list.Should().BeEquivalentTo(1, 3, 5, 7);
         }
+#endif
 
         public class QuerySimpleQuery : ISqlQuerySimple<string>
         {
@@ -149,6 +155,7 @@ INSERT INTO #castiron_test ([Value]) VALUES (1),(3),(5),(7);
             }
         }
 
+#if (CASTIRON_SQLITE == false)
         [Test]
         public void CreateAndQueryStoredProc_Test()
         {
@@ -161,5 +168,6 @@ INSERT INTO #castiron_test ([Value]) VALUES (1),(3),(5),(7);
             result.IsComplete.Should().BeTrue();
             result.GetValue().Should().Be("TEST");
         }
+#endif
     }
 }

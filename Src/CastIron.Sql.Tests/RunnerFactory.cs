@@ -6,7 +6,7 @@ namespace CastIron.Sql.Tests
 {
     public static class RunnerFactory
     {
-        private static readonly string _connectionString;
+        private static readonly IConfigurationRoot _configuration;
 
         static RunnerFactory()
         {
@@ -18,13 +18,18 @@ namespace CastIron.Sql.Tests
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 builder = builder.AddJsonFile("appsettings.windows.json");
 
-            var configuration = builder.Build();
-            _connectionString = configuration["ConnectionString"];
+            _configuration = builder.Build();
         }
 
         public static SqlRunner Create()
         {
-            return new SqlRunner(_connectionString);
+#if CASTIRON_SQLITE
+            var connectionString = _configuration["SQLITE"];
+            return new SqlRunner(connectionString, new CastIron.Sqlite.SqliteDbConnectionFactory(connectionString));
+#else
+            var connectionString = _configuration["MSSQL"];
+            return new SqlRunner(connectionString);
+#endif
         }
     }
 }

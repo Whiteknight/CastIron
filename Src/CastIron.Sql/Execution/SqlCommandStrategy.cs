@@ -49,7 +49,7 @@ namespace CastIron.Sql.Execution
             command.CommandText = text;
             command.CommandType = (_command is ISqlStoredProc) ? CommandType.StoredProcedure : CommandType.Text;
             if (_command is ISqlParameterized parameterized)
-                parameterized.SetupParameters(command.Parameters);
+                parameterized.SetupParameters(command, command.Parameters);
             return true;
         }
     }
@@ -77,7 +77,7 @@ namespace CastIron.Sql.Execution
                 {
                     dbCommand.CommandType = (_command is ISqlStoredProc) ? CommandType.StoredProcedure : CommandType.Text;
                     if (_command is ISqlParameterized parameterized)
-                        parameterized.SetupParameters(dbCommand.Parameters);
+                        parameterized.SetupParameters(dbCommand, dbCommand.Parameters);
 
                     context.StartAction(index, "Execute");
                     dbCommand.ExecuteNonQuery();

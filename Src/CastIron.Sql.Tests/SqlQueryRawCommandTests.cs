@@ -77,6 +77,7 @@ namespace CastIron.Sql.Tests
             }
         }
 
+#if (CASTIRON_SQLITE == false)
         [Test]
         public void SqlQueryRawCommand_GetParameters()
         {
@@ -85,5 +86,6 @@ namespace CastIron.Sql.Tests
             result.Should().NotBeNull();
             result.Value.Should().Be("TEST");
         }
+#endif
     }
 }

@@ -9,6 +9,6 @@ namespace CastIron.Sql
     /// </summary>
     public interface ISqlParameterized
     {
-        void SetupParameters(IDataParameterCollection parameters);
+        void SetupParameters(IDbCommand command, IDataParameterCollection parameters);
     }
 }

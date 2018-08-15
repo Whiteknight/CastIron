@@ -122,12 +122,12 @@ IntersectionMagnitudes AS (
 ),
 B AS (
     -- Get the complete set of all terms B
-    SELECT 
+    SELECT
         b.DocumentId,
         CAST(COUNT(0) AS FLOAT) AS Magnitude
         FROM
             IntersectionMagnitudes im
-            INNER JOIN  
+            INNER JOIN
             #Relations b
                 ON im.DocumentId = b.DocumentId
         GROUP BY
@@ -157,6 +157,7 @@ SELECT
             }
         }
 
+#if (CASTIRON_SQLITE == false)
         [Test]
         public void Jaccard_Test()
         {
@@ -168,7 +169,7 @@ SELECT
                 { 2, new List<int> { 1, 2, 3, 4, 5, 6 } },
                 { 3, new List<int> { 10, 11, 12 } },
                 { 4, new List<int> { 1, 2, 3, 10, 11, 12, 13 } },
-                { 5, new List<int> { 1, 2, 3 } } 
+                { 5, new List<int> { 1, 2, 3 } }
             }));
             var resultPromise = batch.Add(new JaccardQuery(1));
             runner.Execute(batch);
@@ -179,5 +180,6 @@ SELECT
             result[5].Should().Be(0.5);
             result[4].Should().Be(0.3);
         }
+#endif
     }
 }

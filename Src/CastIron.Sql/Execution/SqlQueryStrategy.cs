@@ -54,7 +54,7 @@ namespace CastIron.Sql.Execution
             command.CommandText = text;
             command.CommandType = (_query is ISqlStoredProc) ? CommandType.StoredProcedure : CommandType.Text;
             if (_query is ISqlParameterized parameterized)
-                parameterized.SetupParameters(command.Parameters);
+                parameterized.SetupParameters(command, command.Parameters);
             return true;
         }
     }

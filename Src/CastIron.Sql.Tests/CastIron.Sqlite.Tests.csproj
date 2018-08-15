@@ -27,8 +27,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\CastIron.Sql\CastIron.Sql.csproj" />
+    <!--<ProjectReference Include="..\CastIron.Sql\CastIron.Sql.csproj" />-->
+    <ProjectReference Include="..\CastIron.Sqlite\CastIron.Sqlite.csproj" />
   </ItemGroup>
+
+  <PropertyGroup>
+    <DefineConstants>CASTIRON_SQLITE</DefineConstants>
+  </PropertyGroup>
 
   <ItemGroup>
     <None Update="appsettings.linux.json" CopyToOutputDirectory="PreserveNewest" />

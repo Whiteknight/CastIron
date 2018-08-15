@@ -8,23 +8,30 @@ namespace CastIron.Sql.Tests
     [TestFixture]
     public class SqlCommandTTests
     {
-        public class Command1 : ISqlCommandSimple<string>, ISqlParameterized
+        public class Command1 : ISqlCommand<string>
         {
             public string ReadOutputs(SqlResultSet result)
             {
                 return result.GetOutputParameter("@param").ToString();
             }
 
+            public bool SetupCommand(IDbCommand command)
+            {
+                command.CommandText = GetSql();
+
+                var p1 = command.CreateParameter();
+                p1.ParameterName = "@param";
+                p1.DbType = DbType.StringFixedLength;
+                p1.Size = 4;
+                p1.Direction = ParameterDirection.Output;
+                command.Parameters.Add(p1);
+
+                return true;
+            }
+
             public string GetSql()
             {
                 return "SELECT @param = 'TEST';";
-            }
-
-            public void SetupParameters(IDataParameterCollection parameters)
-            {
-                parameters.Add(new SqlParameter("@param", SqlDbType.Char, 4) {
-                    Direction = ParameterDirection.Output
-                });
             }
         }
 
