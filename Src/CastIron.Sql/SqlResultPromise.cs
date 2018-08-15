@@ -31,6 +31,11 @@ namespace CastIron.Sql
             completionSource.Task.ContinueWith((t, state) => registration.Unregister(null), registration, TaskScheduler.Default);
             return completionSource.Task;
         }
+
+        public void Dispose()
+        {
+            _waitHandle?.Dispose();
+        }
     }
 
     public class SqlResultPromise<T> : ISqlResultPromise<T>
@@ -38,7 +43,6 @@ namespace CastIron.Sql
         private readonly ManualResetEvent _waitHandle;
 
         private T _result;
-
 
         public SqlResultPromise()
         {
@@ -77,6 +81,11 @@ namespace CastIron.Sql
             }, completionSource, timeout, true);
             completionSource.Task.ContinueWith((t, state) => registration.Unregister(null), registration, TaskScheduler.Default);
             return completionSource.Task;
+        }
+
+        public void Dispose()
+        {
+            _waitHandle?.Dispose();
         }
     }
 }

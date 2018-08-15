@@ -9,7 +9,7 @@ namespace CastIron.Sql
     /// been executed
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    public interface ISqlResultPromise<T>
+    public interface ISqlResultPromise<T> : IDisposable
     {
         bool IsComplete { get; }
         T GetValue();
@@ -21,7 +21,7 @@ namespace CastIron.Sql
     /// A promise-like result from a single statement in a batch. Indicates when the statement has been 
     /// executed
     /// </summary>
-    public interface ISqlResultPromise
+    public interface ISqlResultPromise : IDisposable
     {
         bool IsComplete { get; }
         WaitHandle WaitHandle { get; }
