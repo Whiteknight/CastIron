@@ -12,13 +12,14 @@ namespace CastIron.Sql
     {
         private readonly IDbConnectionFactory _connectionFactory;
 
-        public SqlRunner(string connectionString, IDbConnectionFactory connectionFactory = null)
+        public SqlRunner(IDbConnectionFactory connectionFactory, ISqlStatementBuilder statementBuilder)
         {
-            _connectionFactory = connectionFactory ?? new SqlServerDbConnectionFactory(connectionString);
+            Assert.ArgumentNotNull(connectionFactory, nameof(connectionFactory));
+            Assert.ArgumentNotNull(statementBuilder, nameof(statementBuilder));
 
-            // TODO: Make both these things settable as parameters or otherwise. We want overloaded variants for other DB providers
+            _connectionFactory = connectionFactory;
             Stringifier = new QueryObjectStringifier();
-            Statements = new SqlStatementBuilder();
+            Statements = statementBuilder;
         }
 
         public QueryObjectStringifier Stringifier { get; }
