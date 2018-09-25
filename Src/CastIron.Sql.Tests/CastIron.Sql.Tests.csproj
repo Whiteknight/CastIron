@@ -4,7 +4,7 @@
     <BaseIntermediateOutputPath>obj\$(MSBuildProjectName)</BaseIntermediateOutputPath>
   </PropertyGroup>
 
-  <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk"/>
+  <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
 
   <PropertyGroup>
     <TargetFramework>netcoreapp2.0</TargetFramework>
@@ -13,7 +13,7 @@
     <OutputPath>bin\$(Configuration)\$(TargetFramework)\$(MSBuildProjectName)</OutputPath>
   </PropertyGroup>
 
-  <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk"/>
+  <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
 
   <ItemGroup>
     <PackageReference Include="FluentAssertions" Version="5.1.1" />
@@ -36,8 +36,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Remove="obj\\**\*"/>
-    <Compile Include="obj\$(MSBuildProjectName)\**\$(MSBuildProjectName).AssemblyInfo.cs"/>
+    <Compile Remove="obj\\**\*" />
+    <Compile Include="obj\$(MSBuildProjectName)\**\$(MSBuildProjectName).AssemblyInfo.cs" />
   </ItemGroup>
 
 </Project>

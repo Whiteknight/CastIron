@@ -6,6 +6,8 @@ namespace CastIron.Sql
     public interface ISqlRunner
     {
         QueryObjectStringifier Stringifier { get; }
+        ISqlStatementBuilder Statements { get; }
+
         void Execute(SqlBatch batch, Action<IContextBuilder> build = null);
         void Execute(string sql, Action<IContextBuilder> build = null);
         T Query<T>(ISqlQuerySimple<T> query, Action<IContextBuilder> build = null);

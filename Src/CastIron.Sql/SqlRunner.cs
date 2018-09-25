@@ -15,10 +15,14 @@ namespace CastIron.Sql
         public SqlRunner(string connectionString, IDbConnectionFactory connectionFactory = null)
         {
             _connectionFactory = connectionFactory ?? new SqlServerDbConnectionFactory(connectionString);
+
+            // TODO: Make both these things settable as parameters or otherwise. We want overloaded variants for other DB providers
             Stringifier = new QueryObjectStringifier();
+            Statements = new SqlStatementBuilder();
         }
 
         public QueryObjectStringifier Stringifier { get; }
+        public ISqlStatementBuilder Statements { get; }
 
         private ExecutionContext CreateExecutionContext(Action<IContextBuilder> build)
         {

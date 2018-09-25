@@ -12,7 +12,7 @@ namespace CastIron.Sql.Mapping
         private static readonly MethodInfo GetValueMethod = typeof(IDataRecord).GetMethod(nameof(IDataRecord.GetValue));
         private static readonly Expression _dbNullExp = Expression.Field(null, typeof(DBNull), nameof(DBNull.Value));
 
-        private static readonly HashSet<Type> _numericTypes = new HashSet<Type>
+        public static readonly HashSet<Type> NumericTypes = new HashSet<Type>
         {
             typeof(byte),
             typeof(byte?),
@@ -178,7 +178,7 @@ namespace CastIron.Sql.Mapping
             }
 
             // They are both numeric but not the same type
-            if (_numericTypes.Contains(columnType) && _numericTypes.Contains(targetType))
+            if (NumericTypes.Contains(columnType) && NumericTypes.Contains(targetType))
             {
                 return Expression.Condition(
                     Expression.NotEqual(_dbNullExp, rawVar),
@@ -190,7 +190,7 @@ namespace CastIron.Sql.Mapping
             }
 
             // Target is bool, but we know source type is numeric. Try to coerce
-            if ((targetType == typeof(bool) || targetType == typeof(bool?)) && _numericTypes.Contains(columnType))
+            if ((targetType == typeof(bool) || targetType == typeof(bool?)) && NumericTypes.Contains(columnType))
             {
                 // var result = rawVar is DBNull ? (rawVar != 0) : false
                 return Expression.Condition(
