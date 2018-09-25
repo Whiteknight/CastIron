@@ -25,10 +25,10 @@ CastIron currently has a few principles and goals:
 
 ## Examples
 
-Start by creating an `SqlRunner`:
+Start by creating an `ISqlRunner`:
 
 ```csharp
-var runner = new SqlRunner(connectionString);
+var runner = RunnerFactory.Create(connectionString);
 ```
 
 At this point you will need to create a class to hold your SQL queries or command. Implement one of the following interfaces:
@@ -55,6 +55,13 @@ public class MyTestQuery : ISqlQuery<MyObject>
 }
 ```
 
+And it's use:
+
+```csharp
+var runner = RunnerFactory.Create(connectionString);
+var result = runner.Query(new MyTestQuery());
+```
+
 The `SqlResultSet` object contains the raw IDataReader accessible through the `.AsRawReader()` method, but also contains some utilities for automatically mapping rows to objects using property name <-> column name mappings, including multiple result sets. This object also exposes the `Output` and `InputOutput` parameter values to read those in a safe manner. Experimenting with the possibilities of `SqlResultSet` is key to finding happiness and success with CastIron.
 
 Please see the existing unit tests for additional, in-depth examples of using CastIron.Sql.
@@ -67,7 +74,7 @@ CastIron mapping of result sets to objects is still in early stages of developme
 
 CastIron requires a lot of new unit test coverage and real-world testing.
 
-We need a (tested) MySql client library.
+Providers for other databases such as MySql, SQLite and PostgreSQL are all in development.
 
 ## Status
 
@@ -77,7 +84,13 @@ CastIron.Sql is currently very early in development and is adding features at a 
 
 **Should Queries and Commands be wrapped up into stored procedures for better performance?**
 
-Stored procs can be an optimization, but not necesarily a huge one. What you save with a stored proc is generally the cost of repeatedly parsing the SQL syntax and compiling it into an execution plan. Once you have a cached execution plan, the saving for a stored proc may be ober, but the headaches can begin. Anybody who has had to recompile a stored proc because of a bad or suboptimal execution plan will know the pain. Plus there are a few other problems with stored procs: Since they live in the DB, it can be very difficult to get them into version control and keep them synchronized with the application code. Many organizations also demand extensive boiler-plate templates for stored procs, which can wipe out any performance gains (sometimes there are good reasons for this, often times it's just cargo-cult mentality nonsense). Stored Procs can be an optimization, but for most work they are a premature optimization.
+Stored procs can be an optimization, but not necesarily a huge one. What you save with a stored proc is generally the cost of repeatedly parsing the SQL syntax and compiling it into an execution plan. There are a few problems with stored procs: 
+
+1. Since they live in the DB, it can be very difficult to get them into version control and keep them synchronized with the application code.
+1. Many organizations also demand extensive boiler-plate templates for stored procs, which can wipe out any performance gains (sometimes there are good reasons for this, often times it's just cargo-cult mentality nonsense). 
+1. Cached execution plans may be suboptimal and will require manual intervention to recompile
+
+Stored Procs can be an optimization, but for most work they are a premature optimization.
 
 CastIron easily supports calling stored procs from your query and command classes, so it should be an easy transition to prototype the raw SQL in a query and then move that to a stored proc call later as required. It's probably worthwhile to do some benchmarking to make sure that the change of query to stored proc actually does lead to performance benefits, and not just maintainability headaches.
 
