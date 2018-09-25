@@ -21,14 +21,14 @@ namespace CastIron.Sql.Tests
             _configuration = builder.Build();
         }
 
-        public static SqlRunner Create()
+        public static ISqlRunner Create()
         {
 #if CASTIRON_SQLITE
             var connectionString = _configuration["SQLITE"];
-            return new SqlRunner(connectionString, new CastIron.Sqlite.SqliteDbConnectionFactory(connectionString));
+            return CastIron.Sqlite.RunnerFactory.Create(connectionString);
 #else
             var connectionString = _configuration["MSSQL"];
-            return new SqlRunner(connectionString);
+            return CastIron.Sql.RunnerFactory.Create(connectionString);
 #endif
         }
     }
