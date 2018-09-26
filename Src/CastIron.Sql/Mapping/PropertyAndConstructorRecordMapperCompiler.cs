@@ -55,6 +55,14 @@ namespace CastIron.Sql.Mapping
 
         public Func<IDataRecord, T> CompileExpression<T>(IDataReader reader)
         {
+            return CompileExpression<T>(typeof(T), reader);
+        }
+
+        public Func<IDataRecord, T> CompileExpression<T>(Type specific, IDataReader reader)
+        {
+            if (!typeof(T).IsAssignableFrom(specific))
+                throw new Exception($"Type {specific.Name} must be assignable to {typeof(T)}.Name");
+
             if (reader == null)
                 return r => default(T);
 
@@ -66,25 +74,25 @@ namespace CastIron.Sql.Mapping
             if (IsPrimitiveType(type))
                 return CompileForPrimitiveType<T>(reader);
 
-            return CreateConstructorAndPropertyMap<T>(reader);
+            return CreateConstructorAndPropertyMap<T>(specific, reader);
         }
 
-        private static Func<IDataRecord, T> CreateConstructorAndPropertyMap<T>(IDataReader reader)
+        private static Func<IDataRecord, T> CreateConstructorAndPropertyMap<T>(Type specific, IDataReader reader)
         {
             var recordParam = Expression.Parameter(typeof(IDataRecord), "record");
             var columnNameMap = GetColumnNameLookup(reader);
             var context = new DataRecordMapperCompileContext(columnNameMap, recordParam);
 
-            var constructor = GetBestConstructor<T>(context);
+            var constructor = GetBestConstructor(specific, context);
 
-            return CreateNewObjectLambda<T>(reader, constructor, context, recordParam);
+            return CreateNewObjectLambda<T>(specific, reader, constructor, context, recordParam);
         }
 
-        private static Func<IDataRecord, T> CreateNewObjectLambda<T>(IDataReader reader, ConstructorDetails constructor, DataRecordMapperCompileContext context, ParameterExpression recordParam)
+        private static Func<IDataRecord, T> CreateNewObjectLambda<T>(Type specific, IDataReader reader, ConstructorDetails constructor, DataRecordMapperCompileContext context, ParameterExpression recordParam)
         {
-            var newExpr = CreateConstructorCallExpression<T>(reader, constructor, context);
+            var newExpr = CreateConstructorCallExpression(reader, constructor, context);
 
-            var bindingExpressions = GetPropertyBindingExpressions<T>(reader, context);
+            var bindingExpressions = GetPropertyBindingExpressions(specific, reader, context);
 
             context.Statements.Add(Expression.MemberInit(
                 newExpr,
@@ -98,12 +106,13 @@ namespace CastIron.Sql.Mapping
             return lambdaExpression.Compile();
         }
 
-        private static List<MemberAssignment> GetPropertyBindingExpressions<T>(IDataReader reader, DataRecordMapperCompileContext context)
+        private static List<MemberAssignment> GetPropertyBindingExpressions(Type specific, IDataReader reader, DataRecordMapperCompileContext context)
         {
             var bindingExpressions = new List<MemberAssignment>();
-            var properties = GetMappableProperties<T>(context);
+            var properties = GetMappableProperties(specific, context);
             foreach (var property in properties)
             {
+                // TODO: Support ColumnAttribute.Name here, for alternate possible names
                 var name = property.Name.ToLowerInvariant();
                 if (!context.ColumnNames.ContainsKey(name))
                     continue;
@@ -118,7 +127,7 @@ namespace CastIron.Sql.Mapping
             return bindingExpressions;
         }
 
-        private static NewExpression CreateConstructorCallExpression<T>(IDataReader reader, ConstructorDetails constructor, DataRecordMapperCompileContext context)
+        private static NewExpression CreateConstructorCallExpression(IDataReader reader, ConstructorDetails constructor, DataRecordMapperCompileContext context)
         {
             if (constructor.Parameters.Length == 0)
                 return Expression.New(constructor.Constructor);
@@ -137,15 +146,15 @@ namespace CastIron.Sql.Mapping
             return Expression.New(constructor.Constructor, args);
         }
 
-        private static ConstructorDetails GetBestConstructor<T>(DataRecordMapperCompileContext context)
+        private static ConstructorDetails GetBestConstructor(Type specific, DataRecordMapperCompileContext context)
         {
-            var best = typeof(T).GetConstructors()
+            var best = specific.GetConstructors()
                 .Select(c => new ConstructorDetails(c, context))
                 .Where(x => x.Score >= 0)
                 .OrderByDescending(x => x.Score)
                 .FirstOrDefault();
             if (best == null)
-                throw new Exception($"Cannot find a suitable constructor for type {typeof(T).FullName}");
+                throw new Exception($"Cannot find a suitable constructor for type {specific.FullName}");
             return best;
         }
 
@@ -261,9 +270,9 @@ namespace CastIron.Sql.Mapping
             }
         }
 
-        private static PropertyInfo[] GetMappableProperties<T>(DataRecordMapperCompileContext context)
+        private static PropertyInfo[] GetMappableProperties(Type specific, DataRecordMapperCompileContext context)
         {
-            return typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance)
+            return specific.GetProperties(BindingFlags.Public | BindingFlags.Instance)
                 .Where(p => p.SetMethod != null && p.GetMethod != null)
                 .Where(p => p.CanRead && p.CanWrite)
                 .Where(p => !p.GetMethod.IsPrivate && !p.SetMethod.IsPrivate)

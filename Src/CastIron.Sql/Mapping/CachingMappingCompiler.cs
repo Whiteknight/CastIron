@@ -18,7 +18,7 @@ namespace CastIron.Sql.Mapping
 
         public Func<IDataRecord, T> CompileExpression<T>(IDataReader reader)
         {
-            var key = CreateKey<T>(reader);
+            var key = CreateKey<T>(typeof(T), reader);
             if (_cache.TryGetValue(key, out object cached) && cached is Func<IDataRecord, T> func)
                 return func;
 
@@ -27,10 +27,22 @@ namespace CastIron.Sql.Mapping
             return compiled;
         }
 
-        private static string CreateKey<T>(IDataReader reader)
+        public Func<IDataRecord, T> CompileExpression<T>(Type specific, IDataReader reader)
+        {
+            var key = CreateKey<T>(specific, reader);
+            if (_cache.TryGetValue(key, out object cached) && cached is Func<IDataRecord, T> func)
+                return func;
+
+            var compiled = _inner.CompileExpression<T>(specific, reader);
+            _cache.TryAdd(key, compiled);
+            return compiled;
+        }
+
+        private static string CreateKey<T>(Type specific, IDataReader reader)
         {
             var sb = new StringBuilder();
-            sb.AppendLine(typeof(T).FullName);
+            sb.AppendLine("P:" + typeof(T).FullName);
+            sb.AppendLine("S:" + specific.FullName);
             for (int i = 0; i < reader.FieldCount; i++)
             {
                 sb.Append(i);
