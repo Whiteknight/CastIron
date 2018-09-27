@@ -5,7 +5,6 @@ using NUnit.Framework;
 
 namespace CastIron.Sql.Tests.Mapping
 {
-    [TestFixture]
     public class SubclassMappingTests
     {
         public class TestNumber

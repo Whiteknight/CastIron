@@ -34,9 +34,9 @@ namespace CastIron.Sql.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery1_Test()
+        public void TestQuery1_Test([Values("MSSQL", "SQLITE")] string provider)
         {
-            var target = RunnerFactory.Create();
+            var target = RunnerFactory.Create(provider);
             var result = target.Query(new TestQuery1());
             result.TestInt.Should().Be(5);
             result.TestString.Should().Be("TEST");

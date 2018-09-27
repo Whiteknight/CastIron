@@ -23,9 +23,9 @@ namespace CastIron.Sql.Tests
         }
 
         [Test]
-        public void SqlQueryRawCommand_Executed()
+        public void SqlQueryRawCommand_Executed([Values("MSSQL", "SQLITE")] string provider)
         {
-            var runner = RunnerFactory.Create();
+            var runner = RunnerFactory.Create(provider);
             var result = runner.Query(new CommandExecuted());
             result.Should().Be("TEST");
         }
@@ -45,9 +45,9 @@ namespace CastIron.Sql.Tests
         }
 
         [Test]
-        public void SqlQueryRawCommand_NotExecuted()
+        public void SqlQueryRawCommand_NotExecuted([Values("MSSQL", "SQLITE")] string provider)
         {
-            var runner = RunnerFactory.Create();
+            var runner = RunnerFactory.Create(provider);
             var result = runner.Query(new CommandNotExecuted());
             result.Should().BeNullOrEmpty();
         }
@@ -77,7 +77,6 @@ namespace CastIron.Sql.Tests
             }
         }
 
-#if (CASTIRON_SQLITE == false)
         [Test]
         public void SqlQueryRawCommand_GetParameters()
         {
@@ -86,6 +85,5 @@ namespace CastIron.Sql.Tests
             result.Should().NotBeNull();
             result.Value.Should().Be("TEST");
         }
-#endif
     }
 }

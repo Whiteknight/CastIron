@@ -21,18 +21,18 @@ namespace CastIron.Sql.Tests
         }
 
         [Test]
-        public void SqlQuery_Tests()
+        public void SqlQuery_Tests([Values("MSSQL", "SQLITE")] string provider)
         {
-            var runner = RunnerFactory.Create();
+            var runner = RunnerFactory.Create(provider);
             var result = runner.Query(new Query1());
             result.Should().Be("TEST");
         }
 
         [Test]
-        public void SqlQuery_PerformanceReport()
+        public void SqlQuery_PerformanceReport([Values("MSSQL", "SQLITE")] string provider)
         {
             string report = null;
-            var runner = RunnerFactory.Create();
+            var runner = RunnerFactory.Create(provider);
             var result = runner.Query(new Query1(), b => b.MonitorPerformance(s => report = s));
             result.Should().Be("TEST");
             report.Should().NotBeNull();

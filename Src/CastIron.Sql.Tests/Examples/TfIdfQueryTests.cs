@@ -157,10 +157,10 @@ SELECT
         }
 
         // TODO SQLite doesn't use the same syntax for temp tables.
-#if (CASTIRON_SQLITE == false)
         [Test]
-        public void TfIdf_Test()
+        public void TfIdf_Test([Values("MSSQL", "SQLITE")] string provider)
         {
+            TestUtilities.NeedsFixesFor("SQLITE", provider);
             var batch = new SqlBatch();
             batch.Add(new CreateTfIdfTableCommand());
             batch.Add(new PopulateTermsTableCommand(new[]
@@ -171,7 +171,7 @@ SELECT
             }));
             var promise1 = batch.Add(new TfIdfCalculationQuery("this"));
             var promise2 = batch.Add(new TfIdfCalculationQuery("example"));
-            var runner = RunnerFactory.Create();
+            var runner = RunnerFactory.Create(provider);
             runner.Execute(batch);
 
             // "this" is common and has score of 0 for all documents
@@ -182,6 +182,5 @@ SELECT
             result[0].DocumentId.Should().Be(2);
             result[0].TfIdfScore.Should().BeInRange(0.128f, 0.132f);
         }
-#endif
     }
 }

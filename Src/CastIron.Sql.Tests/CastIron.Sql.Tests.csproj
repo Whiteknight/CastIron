@@ -27,6 +27,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\CastIron.Sqlite\CastIron.Sqlite.csproj" />
     <ProjectReference Include="..\CastIron.Sql\CastIron.Sql.csproj" />
   </ItemGroup>
 

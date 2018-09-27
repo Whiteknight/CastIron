@@ -35,7 +35,6 @@ namespace CastIron.Sql.Tests
             }
         }
 
-#if (CASTIRON_SQLITE == false)
         [Test]
         public void SqlCommandT_Test()
         {
@@ -43,7 +42,6 @@ namespace CastIron.Sql.Tests
             var result = runner.Execute(new Command1());
             result.Should().Be("TEST");
         }
-#endif
 
         public class Command2 : ISqlCommand<string>
         {
@@ -64,7 +62,6 @@ namespace CastIron.Sql.Tests
             }
         }
 
-#if (CASTIRON_SQLITE == false)
         [Test]
         public void SqlCommandT_NotExecuted()
         {
@@ -72,6 +69,5 @@ namespace CastIron.Sql.Tests
             var result = runner.Execute(new Command2());
             result.Should().BeNullOrEmpty();
         }
-#endif
     }
 }

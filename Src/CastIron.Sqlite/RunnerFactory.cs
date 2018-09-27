@@ -1,4 +1,5 @@
 ﻿using CastIron.Sql;
+using CastIron.Sql.Statements;
 
 namespace CastIron.Sqlite
 {
@@ -6,7 +7,7 @@ namespace CastIron.Sqlite
     {
         public static ISqlRunner Create(string connectionString)
         {
-            return new SqlRunner(connectionString, new SqliteDbConnectionFactory(connectionString));
+            return new SqlRunner(new SqliteDbConnectionFactory(connectionString), new SqlStatementBuilder());
         }
     }
 }

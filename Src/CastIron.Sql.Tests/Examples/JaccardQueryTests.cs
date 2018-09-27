@@ -157,11 +157,11 @@ SELECT
             }
         }
 
-#if (CASTIRON_SQLITE == false)
         [Test]
-        public void Jaccard_Test()
+        public void Jaccard_Test([Values("MSSQL", "SQLITE")] string provider)
         {
-            var runner = RunnerFactory.Create();
+            TestUtilities.NeedsFixesFor("SQLITE", provider);
+            var runner = RunnerFactory.Create(provider);
             var batch = new SqlBatch();
             batch.Add(new CreateJaccardTableCommand());
             batch.Add(new PopulateRelationsTable(new Dictionary<int, List<int>> {
@@ -180,6 +180,5 @@ SELECT
             result[5].Should().Be(0.5);
             result[4].Should().Be(0.3);
         }
-#endif
     }
 }

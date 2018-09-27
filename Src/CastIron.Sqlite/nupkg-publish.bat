@@ -1,0 +1,1 @@
+dotnet nuget push Src\CastIron.Sqlite\bin\Release\CastIron.Sqlite.%1.nupkg --source https://www.nuget.org/api/v2/package

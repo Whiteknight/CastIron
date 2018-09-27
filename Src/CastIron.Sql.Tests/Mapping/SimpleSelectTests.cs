@@ -28,9 +28,9 @@ namespace CastIron.Sql.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery1_Properties()
+        public void TestQuery1_Properties([Values("MSSQL", "SQLITE")] string provider)
         {
-            var target = RunnerFactory.Create();
+            var target = RunnerFactory.Create(provider);
             var result = target.Query(new TestQuery1());
             result.TestInt.Should().Be(5);
             result.TestString.Should().Be("TEST");
@@ -38,9 +38,9 @@ namespace CastIron.Sql.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery1_ConstructorParams_Test()
+        public void TestQuery1_ConstructorParams_Test([Values("MSSQL", "SQLITE")] string provider)
         {
-            var target = RunnerFactory.Create();
+            var target = RunnerFactory.Create(provider);
             var result = target.Query(new TestQuery1());
             result.TestInt.Should().Be(5);
             result.TestString.Should().Be("TEST");
@@ -61,9 +61,9 @@ namespace CastIron.Sql.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery_MapToObjectArray()
+        public void TestQuery_MapToObjectArray([Values("MSSQL", "SQLITE")] string provider)
         {
-            var target = RunnerFactory.Create();
+            var target = RunnerFactory.Create(provider);
             var result = target.Query(new TestQuery_ObjectArray());
             result.Length.Should().Be(3);
             result[0].Should().Be(5);
@@ -85,9 +85,9 @@ namespace CastIron.Sql.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery_MapToObject()
+        public void TestQuery_MapToObject([Values("MSSQL", "SQLITE")] string provider)
         {
-            var target = RunnerFactory.Create();
+            var target = RunnerFactory.Create(provider);
             var result = target.Query(new TestQuery_Object());
             result.Should().BeOfType<object[]>();
 
@@ -112,9 +112,9 @@ namespace CastIron.Sql.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery_UnboxProperties()
+        public void TestQuery_UnboxProperties([Values("MSSQL", "SQLITE")] string provider)
         {
-            var target = RunnerFactory.Create();
+            var target = RunnerFactory.Create(provider);
             var result = target.Query(new TestQuery_Unbox());
             result.TestInt.Should().Be(5);
             result.TestString.Should().Be("6");
