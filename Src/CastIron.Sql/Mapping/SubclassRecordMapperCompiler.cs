@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
-using System.Linq.Expressions;
 
 namespace CastIron.Sql.Mapping
 {
@@ -58,7 +57,7 @@ namespace CastIron.Sql.Mapping
             if (fallback.IsAbstract || fallback.IsInterface)
                 throw new Exception("Fallback class must be instantiable");
             
-            // 1. Compile a mapper for every subclass
+            // 1. Compile a mapper for every possible subclass
             var mappers = _subclasses
                 .Select(sc => sc.Type)
                 .Concat(new [] {  _otherwise?.Type })
@@ -70,7 +69,7 @@ namespace CastIron.Sql.Mapping
             // 2. Create a thunk which checks each predicate and calls the correct mapper
             return (r =>
             {
-                foreach (var subclass in _subclasses.Concat(new[] { _otherwise }))
+                foreach (var subclass in _subclasses)
                 {
                     if (!subclass.Predicate(r))
                         continue;
@@ -84,7 +83,11 @@ namespace CastIron.Sql.Mapping
                     return (T)((object)result);
                 }
 
-                return default(T);
+                var otherwiseMap = mappers[_otherwise.Type];
+                if (otherwiseMap == null)
+                    return default(T);
+                var otherwiseResult = otherwiseMap(r);
+                return (T) ((object) otherwiseResult);
             });
             //var readerParam = Expression.Parameter(typeof(IDataRecord), "record");
             //var returnTarget = Expression.Label("return");
