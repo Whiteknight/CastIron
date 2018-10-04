@@ -36,6 +36,14 @@ namespace CastIron.Sql.Mapping
             return new DataRecordMappingEnumerable<T>(_reader, _context, compiler);
         }
 
+        public IEnumerable<T> GetNextEnumerable<T>(Func<ISubclassMapping<T>, ISubclassMapping<T>> setup, IRecordMapperCompiler compiler = null)
+        {
+            AdvanceToResultSet(_currentSet + 1);
+            var mapping = new SubclassMapping<T>(compiler);
+            setup(mapping);
+            return new DataRecordMappingEnumerable<T>(_reader, _context, mapping.BuildThunk(_reader));
+        }
+
         private void AdvanceToResultSet(int num)
         {
             // TODO: Review all this logic to make sure it is sane and necessary
