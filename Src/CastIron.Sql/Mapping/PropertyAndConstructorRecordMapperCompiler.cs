@@ -16,41 +16,45 @@ namespace CastIron.Sql.Mapping
         {
             typeof(byte),
             typeof(byte?),
-            typeof(short),
-            typeof(short?),
+            typeof(decimal),
+            typeof(decimal?),
+            typeof(double),
+            typeof(double?),
+            typeof(float),
+            typeof(float?),
             typeof(int),
             typeof(int?),
             typeof(long),
             typeof(long?),
-            typeof(float),
-            typeof(float?),
-            typeof(double),
-            typeof(double?),
+            typeof(short),
+            typeof(short?)
         };
 
         private static readonly HashSet<Type> _mappableTypes = new HashSet<Type>
         {
-            // TODO: Expand this list of all primitive types we can map from the DB
+            // TODO: Are there any other types we can map from the DB?
+            typeof(bool),
+            typeof(bool?),
             typeof(byte),
             typeof(byte?),
             typeof(byte[]),
-            typeof(short),
-            typeof(short?),
+            typeof(DateTime),
+            typeof(DateTime?),
+            typeof(decimal),
+            typeof(decimal?),
+            typeof(double),
+            typeof(double?),
+            typeof(float),
+            typeof(float?),
+            typeof(Guid),
+            typeof(Guid?),
             typeof(int),
             typeof(int?),
             typeof(long),
             typeof(long?),
-            typeof(float),
-            typeof(float?),
-            typeof(double),
-            typeof(double?),
-            typeof(bool),
-            typeof(bool?),
-            typeof(string),
-            typeof(DateTime),
-            typeof(DateTime?),
-            typeof(Guid),
-            typeof(Guid?)
+            typeof(short),
+            typeof(short?),
+            typeof(string)
         };
 
         public Func<IDataRecord, T> CompileExpression<T>(IDataReader reader)

@@ -1,6 +1,7 @@
 ﻿using System.IO;
 using System.Runtime.InteropServices;
 using Microsoft.Extensions.Configuration;
+using NUnit.Framework;
 
 namespace CastIron.Sql.Tests
 {
@@ -28,8 +29,12 @@ namespace CastIron.Sql.Tests
                 case "SQLITE":
                     return CastIron.Sqlite.RunnerFactory.Create(_configuration["SQLITE"]);
 
-                default:            
+                case "MSSQL":
                     return CastIron.Sql.RunnerFactory.Create(_configuration["MSSQL"]);
+
+                default:
+                    Assert.Inconclusive("Unknown or unsupported provider " + provider);
+                    return null;
             }
         }
     }

@@ -95,6 +95,22 @@ namespace CastIron.Sql.Tests.Mapping
             result.Should().BeNull();
         }
 
+        [Test]
+        public void Primitive_double([Values("MSSQL", "SQLITE")] string provider)
+        {
+            var target = RunnerFactory.Create(provider);
+            var result = target.Query(new TestQuery<double>("SELECT 5.67 AS Test;"));
+            result.Should().Be(5.67);
+        }
+
+        [Test]
+        public void Primitive_decimal([Values("MSSQL", "SQLITE")] string provider)
+        {
+            var target = RunnerFactory.Create(provider);
+            var result = target.Query(new TestQuery<decimal>("SELECT 5.67 AS TestDecimal;"));
+            result.Should().Be(5.67M);
+        }
+
         // TODO SQLite doesn't handle hex literals for binary(n), we need a new way to test it
         [Test]
         public void Primitive_binary_ByteArray([Values("MSSQL")] string provider)
