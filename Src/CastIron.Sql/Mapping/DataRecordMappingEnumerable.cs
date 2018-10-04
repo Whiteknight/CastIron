@@ -18,7 +18,7 @@ namespace CastIron.Sql.Mapping
         {
             _reader = reader;
             _context = context;
-            _map = map ?? new PropertyAndConstructorRecordMapperCompiler().CompileExpression<T>(reader);
+            _map = map ?? CachingMappingCompiler.GetDefaultInstance().CompileExpression<T>(reader);
             _alreadyRead = false;
         }
 
@@ -26,7 +26,7 @@ namespace CastIron.Sql.Mapping
         {
             _reader = reader;
             _context = context;
-            _map = (compiler ?? new PropertyAndConstructorRecordMapperCompiler()).CompileExpression<T>(reader);
+            _map = (compiler ?? CachingMappingCompiler.GetDefaultInstance()).CompileExpression<T>(reader);
             _alreadyRead = false;
         }
 
