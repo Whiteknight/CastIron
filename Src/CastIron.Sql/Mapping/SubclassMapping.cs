@@ -5,16 +5,16 @@ using System.Linq;
 
 namespace CastIron.Sql.Mapping
 {
-    public class SubclassRecordMapperCompiler<TParent> : IRecordMapperCompiler
+    public class SubclassMapping<TParent> : ISubclassMapping<TParent>
     {
         private readonly IRecordMapperCompiler _inner;
         private readonly List<SubclassPredicate> _subclasses;
         private readonly SubclassPredicate _otherwise;
         private bool _calledOtherwise;
 
-        public SubclassRecordMapperCompiler(IRecordMapperCompiler inner = null)
+        public SubclassMapping(IRecordMapperCompiler inner = null)
         {
-            _inner = inner ?? new CachingMappingCompiler(new PropertyAndConstructorRecordMapperCompiler());
+            _inner = inner ?? CachingMappingCompiler.GetDefaultInstance();
             _subclasses = new List<SubclassPredicate>();
             _otherwise = new SubclassPredicate
             {
@@ -29,7 +29,7 @@ namespace CastIron.Sql.Mapping
             public Func<IDataRecord, bool> Predicate { get; set; }
         }
 
-        public SubclassRecordMapperCompiler<TParent> HandleSubclass<T>(Func<IDataRecord, bool> determine)
+        public ISubclassMapping<TParent> UseSubclass<T>(Func<IDataRecord, bool> determine)
             where T : TParent
         {
             if (typeof(T).IsAbstract)
@@ -42,7 +42,8 @@ namespace CastIron.Sql.Mapping
             return this;
         }
 
-        public SubclassRecordMapperCompiler<TParent> Otherwise<T>()
+        public ISubclassMapping<TParent> Otherwise<T>()
+            where T : TParent
         {
             if (_calledOtherwise)
                 throw new Exception($".{nameof(Otherwise)}() method can be called at most once.");
@@ -51,7 +52,7 @@ namespace CastIron.Sql.Mapping
             return this;
         }
 
-        public Func<IDataRecord, T> CompileExpression<T>(IDataReader reader)
+        public Func<IDataRecord, TParent> BuildThunk(IDataReader reader)
         {
             var fallback = _otherwise?.Type ?? typeof(TParent);
             if (fallback.IsAbstract || fallback.IsInterface)
@@ -62,9 +63,9 @@ namespace CastIron.Sql.Mapping
                 .Select(sc => sc.Type)
                 .Concat(new [] {  _otherwise?.Type })
                 .Where(t => t != null)
-                .Where(t => typeof(T).IsAssignableFrom(t))
+                .Where(t => typeof(TParent).IsAssignableFrom(t))
                 .Distinct()
-                .ToDictionary(t => t, t => _inner.CompileExpression<TParent>(t, reader));
+                .ToDictionary(t => t, t => _inner.CompileExpression<TParent>(t, reader, null));
 
             // 2. Create a thunk which checks each predicate and calls the correct mapper
             return (r =>
@@ -80,14 +81,14 @@ namespace CastIron.Sql.Mapping
                         continue;
                     var result = map(r);
                     
-                    return (T)((object)result);
+                    return (TParent)((object)result);
                 }
 
                 var otherwiseMap = mappers[_otherwise.Type];
                 if (otherwiseMap == null)
-                    return default(T);
+                    return default(TParent);
                 var otherwiseResult = otherwiseMap(r);
-                return (T) ((object) otherwiseResult);
+                return (TParent) ((object) otherwiseResult);
             });
             //var readerParam = Expression.Parameter(typeof(IDataRecord), "record");
             //var returnTarget = Expression.Label("return");
@@ -128,11 +129,6 @@ namespace CastIron.Sql.Mapping
             //        Expression.Block(typeof(T), new[] { readerParam }, expressions));
             //var s = lambda.ToString();
             //return lambda.Compile();
-        }
-
-        public Func<IDataRecord, T> CompileExpression<T>(Type specific, IDataReader reader)
-        {
-            throw new NotImplementedException();
         }
     }
 }

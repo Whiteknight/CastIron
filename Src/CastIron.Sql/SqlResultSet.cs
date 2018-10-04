@@ -63,18 +63,12 @@ namespace CastIron.Sql
             return new DataRecordMappingEnumerable<T>(_reader, _context, compiler);
         }
 
-        private void ValidateDataReader()
-        {
-            if (_reader == null)
-                throw new InvalidOperationException("Cannot map results to enumerable because the reader is null. Are you executing an ISqlCommand variant?");
-        }
-
-        public IEnumerable<T> AsEnumerable<T>(Func<SubclassRecordMapperCompiler<T>, SubclassRecordMapperCompiler<T>> setupCompiler)
+        public IEnumerable<T> AsEnumerable<T>(Func<ISubclassMapping<T>, ISubclassMapping<T>> setup, IRecordMapperCompiler compiler = null)
         {
             ValidateDataReader();
-            var compiler = new SubclassRecordMapperCompiler<T>();
-            setupCompiler(compiler);
-            return AsEnumerable<T>(compiler);
+            var mapping = new SubclassMapping<T>(compiler);
+            setup(mapping);
+            return AsEnumerable(mapping.BuildThunk(_reader));
         }
 
         public object GetOutputParameter(string name)
@@ -132,6 +126,12 @@ namespace CastIron.Sql
         {
             if (_reader == null)
                 throw new Exception("This result does not contain a data reader");
+        }
+
+        private void ValidateDataReader()
+        {
+            if (_reader == null)
+                throw new InvalidOperationException("Cannot map results to enumerable because the reader is null. Are you executing an ISqlCommand variant?");
         }
     }
 }
