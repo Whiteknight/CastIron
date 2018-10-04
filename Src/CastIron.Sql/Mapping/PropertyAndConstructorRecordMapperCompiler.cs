@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Data;
 using System.Diagnostics;
 using System.Linq;
@@ -60,49 +61,60 @@ namespace CastIron.Sql.Mapping
 
         public Func<IDataRecord, T> CompileExpression<T>(IDataReader reader)
         {
-            return CompileExpression<T>(typeof(T), reader);
+            return CompileExpression<T>(typeof(T), reader, null);
         }
 
-        public Func<IDataRecord, T> CompileExpression<T>(Type specific, IDataReader reader)
+        public Func<IDataRecord, T> CompileExpression<T>(Type specific, IDataReader reader, Func<T> factory)
         {
-            if (!typeof(T).IsAssignableFrom(specific))
-                throw new Exception($"Type {specific.Name} must be assignable to {typeof(T)}.Name");
+            var parentType = typeof(T);
 
+            // If we don't have a reader, return a default value and don't do any other work.
             if (reader == null)
                 return r => default(T);
 
-            var type = typeof(T);
-            if (type == typeof(object[]))
-                return CreateObjectArrayMap(reader) as Func<IDataRecord, T>;
-            if (type == typeof(object))
-                return CreateObjectArrayMap(reader) as Func<IDataRecord, T>;
-            if (IsPrimitiveType(type))
+            // If parentType is primitive, specific doesn't matter, so we can map a primitive
+            if (IsPrimitiveType(parentType))
                 return CompileForPrimitiveType<T>(reader);
 
-            return CreateConstructorAndPropertyMap<T>(specific, reader);
+            // If asked for an object array, or just an object, return those as object arrays and don't do any fancy mapping
+            if (parentType == typeof(object[]) && specific == typeof(object[]))
+                return CreateObjectArrayMap(reader) as Func<IDataRecord, T>;
+            if (parentType == typeof(object) && specific == typeof(object))
+                return CreateObjectArrayMap(reader) as Func<IDataRecord, T>;
+
+            // Check that specific is an assignable subclass of parentType. At this point we're creating an object
+            if (!parentType.IsAssignableFrom(specific))
+                throw new Exception($"Type {specific.Name} must be assignable to {typeof(T)}.Name");
+
+            return CompileForObjectInstance(specific, reader, factory);
         }
 
-        private static Func<IDataRecord, T> CreateConstructorAndPropertyMap<T>(Type specific, IDataReader reader)
+        private static Func<IDataRecord, T> CompileForObjectInstance<T>(Type specific, IDataReader reader, Func<T> factory)
         {
             var recordParam = Expression.Parameter(typeof(IDataRecord), "record");
-            var columnNameMap = GetColumnNameLookup(reader);
-            var context = new DataRecordMapperCompileContext(columnNameMap, recordParam);
+            var instance = Expression.Variable(specific, "instance");
+            var context = new DataRecordMapperCompileContext(recordParam, instance);
+            context.PopulateColumnLookups(reader);
 
-            var constructor = GetBestConstructor(specific, context);
+            if (factory != null)
+            {
+                context.Statements.Add(Expression.Assign(instance, Expression.Call(Expression.Constant(factory.Target), factory.Method)));
+            }
+            else
+            {
+                var constructor = GetBestConstructor(specific, context);
+                var constructorCall = CreateConstructorCallExpression(reader, constructor, context);
+                context.Statements.Add(Expression.Assign(instance, constructorCall));
+            }
 
-            return CreateNewObjectLambda<T>(specific, reader, constructor, context, recordParam);
-        }
+            GetPropertyAssignmentExpressions(specific, reader, instance, context);
 
-        private static Func<IDataRecord, T> CreateNewObjectLambda<T>(Type specific, IDataReader reader, ConstructorDetails constructor, DataRecordMapperCompileContext context, ParameterExpression recordParam)
-        {
-            var newExpr = CreateConstructorCallExpression(reader, constructor, context);
+            context.Statements.Add(Expression.Convert(instance, typeof(T)));
 
-            var bindingExpressions = GetPropertyBindingExpressions(specific, reader, context);
-
-            context.Statements.Add(Expression.MemberInit(
-                newExpr,
-                bindingExpressions
-            ));
+            foreach (var v in context.Variables)
+                DumpCodeToDebugConsole(v);
+            foreach (var s in context.Statements)
+                DumpCodeToDebugConsole(s);
 
             var lambdaExpression = Expression.Lambda<Func<IDataRecord, T>>(Expression.Block(typeof(T), context.Variables, context.Statements), recordParam);
             DumpCodeToDebugConsole(lambdaExpression);
@@ -110,25 +122,24 @@ namespace CastIron.Sql.Mapping
             return lambdaExpression.Compile();
         }
 
-        private static List<MemberAssignment> GetPropertyBindingExpressions(Type specific, IDataReader reader, DataRecordMapperCompileContext context)
+        private static void GetPropertyAssignmentExpressions(Type specific, IDataReader reader, ParameterExpression instance, DataRecordMapperCompileContext context)
         {
-            var bindingExpressions = new List<MemberAssignment>();
             var properties = GetMappableProperties(specific, context);
             foreach (var property in properties)
             {
-                // TODO: Support ColumnAttribute.Name here, for alternate possible names
-                var name = property.Name.ToLowerInvariant();
-                if (!context.ColumnNames.ContainsKey(name))
+                // TODO: Should we support columnAttribute.Order?
+                var columnName = property.GetCustomAttributes(typeof(ColumnAttribute), true).Cast<ColumnAttribute>().Select(c => c.Name).FirstOrDefault();
+                if (string.IsNullOrEmpty(columnName))
+                    columnName = property.Name;
+                columnName = columnName.ToLowerInvariant();
+                if (!context.ColumnNames.ContainsKey(columnName))
                     continue;
-                var columnIdx = context.ColumnNames[name];
+                var columnIdx = context.ColumnNames[columnName];
 
-                bindingExpressions.Add(Expression.Bind(
-                    property,
-                    GetConversionExpression(columnIdx, context, reader.GetFieldType(columnIdx), property.PropertyType)
-                ));
+                var assignment = Expression.Call(instance, property.GetSetMethod(), GetConversionExpression(columnIdx, context, reader.GetFieldType(columnIdx), property.PropertyType));
+
+                context.Statements.Add(assignment);
             }
-
-            return bindingExpressions;
         }
 
         private static NewExpression CreateConstructorCallExpression(IDataReader reader, ConstructorDetails constructor, DataRecordMapperCompileContext context)
@@ -153,7 +164,7 @@ namespace CastIron.Sql.Mapping
         private static ConstructorDetails GetBestConstructor(Type specific, DataRecordMapperCompileContext context)
         {
             var best = specific.GetConstructors()
-                .Select(c => new ConstructorDetails(c, context))
+                .Select(c => new ConstructorDetails(c, context.ColumnNames))
                 .Where(x => x.Score >= 0)
                 .OrderByDescending(x => x.Score)
                 .FirstOrDefault();
@@ -225,7 +236,7 @@ namespace CastIron.Sql.Mapping
         private static Func<IDataRecord, T> CompileForPrimitiveType<T>(IDataReader reader)
         {
             var recordParam = Expression.Parameter(typeof(IDataRecord), "record");
-            var context = new DataRecordMapperCompileContext(null, recordParam);
+            var context = new DataRecordMapperCompileContext(recordParam, null);
 
             var expr = GetConversionExpression(0, context, reader.GetFieldType(0), typeof(T));
             context.Statements.Add(expr);
@@ -243,24 +254,24 @@ namespace CastIron.Sql.Mapping
         {
             public ConstructorInfo Constructor { get; }
 
-            public ConstructorDetails(ConstructorInfo constructor, DataRecordMapperCompileContext context)
+            public ConstructorDetails(ConstructorInfo constructor, IReadOnlyDictionary<string, int> columnNames)
             {
                 Constructor = constructor;
                 Parameters = constructor.GetParameters();
-                Score = ScoreConstructor(context, Parameters);
+                Score = ScoreConstructor(columnNames, Parameters);
             }
 
             public ParameterInfo[] Parameters { get; }
 
             public int Score { get; }
 
-            private static int ScoreConstructor(DataRecordMapperCompileContext context, ParameterInfo[] parameters)
+            private static int ScoreConstructor(IReadOnlyDictionary<string, int> columnNames, ParameterInfo[] parameters)
             {
                 int score = 0;
                 foreach (var param in parameters)
                 {
                     var name = param.Name.ToLowerInvariant();
-                    if (!context.ColumnNames.ContainsKey(name))
+                    if (!columnNames.ContainsKey(name))
                         return -1;
                     if (!_mappableTypes.Contains(param.ParameterType))
                         return -1;
@@ -286,26 +297,7 @@ namespace CastIron.Sql.Mapping
 
         private static object GetDefaultValue(Type t)
         {
-            object defaultValue = null;
-            if (t.IsValueType)
-                defaultValue = Activator.CreateInstance(t);
-            return defaultValue;
-        }
-
-        private static IReadOnlyDictionary<string, int> GetColumnNameLookup(IDataReader reader)
-        {
-            var columnNames = new Dictionary<string, int>();
-            for (int i = 0; i < reader.FieldCount; i++)
-            {
-                var name = reader.GetName(i).ToLowerInvariant();
-                if (string.IsNullOrEmpty(name))
-                    continue;
-                if (columnNames.ContainsKey(name))
-                    continue;
-                columnNames.Add(name, i);
-            }
-
-            return columnNames;
+            return t.IsValueType ? Activator.CreateInstance(t) : null;
         }
 
         private static Func<IDataRecord, object[]> CreateObjectArrayMap(IDataReader reader)
