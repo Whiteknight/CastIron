@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -104,8 +105,7 @@ namespace CastIron.Sql.Mapping
             ));
 
             var lambdaExpression = Expression.Lambda<Func<IDataRecord, T>>(Expression.Block(typeof(T), context.Variables, context.Statements), recordParam);
-
-            //var code = ToCode(lambdaExpression);
+            DumpCodeToDebugConsole(lambdaExpression);
 
             return lambdaExpression.Compile();
         }
@@ -230,7 +230,7 @@ namespace CastIron.Sql.Mapping
             var expr = GetConversionExpression(0, context, reader.GetFieldType(0), typeof(T));
             context.Statements.Add(expr);
             var lambdaExpression = Expression.Lambda<Func<IDataRecord, T>>(Expression.Block(typeof(T), context.Variables, context.Statements), recordParam);
-            //var code = ToCode(lambdaExpression);
+            DumpCodeToDebugConsole(lambdaExpression);
             return lambdaExpression.Compile();
         }
 
@@ -265,8 +265,8 @@ namespace CastIron.Sql.Mapping
                     if (!_mappableTypes.Contains(param.ParameterType))
                         return -1;
 
-                    // TODO: We should be able to get the DataType from the SqlDataReader for the column, and
-                    // add Score+=X if the type is the same and Score+=Y (where Y < X) if they are different but compatible
+                    // TODO: check that the types are compatible. Add a big delta where the match is easy, smaller delta where the match requires conversion
+                    // TODO: Return -1 where the types cannot be converted
                     score++;
                 }
 
@@ -320,10 +320,16 @@ namespace CastIron.Sql.Mapping
         }
 
         // Helper method to get a reasonably complete code listing, to help with debugging
-        private static string ToCode(Expression expr)
+        [Conditional("DEBUG")]
+        private static void DumpCodeToDebugConsole(Expression expr)
         {
+            // This property is marked private, so we can only get to it by reflection, which would be terrible if
+            // this wasn't a debug-only helper routine
             var debugViewProp = typeof(Expression).GetProperty("DebugView", BindingFlags.Instance | BindingFlags.NonPublic);
-            return (string)debugViewProp.GetGetMethod(true).Invoke(expr, null);
+            if (debugViewProp == null)
+                return;
+            var code = (string) debugViewProp.GetGetMethod(true).Invoke(expr, null);
+            Debug.WriteLine(code);
         }
     }
 }
