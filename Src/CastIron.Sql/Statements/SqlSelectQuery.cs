@@ -41,7 +41,6 @@ SELECT
             return result.AsEnumerable<T>().ToList();
         }
 
-
         private class WhereClauseBuilder : ISelectWhereClauseBuilder<T>
         {
             private string _criteria;

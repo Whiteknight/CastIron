@@ -49,7 +49,6 @@ namespace CastIron.Sql.Statements
             if (value is DateTime valueDt)
                 return "'" + valueDt.ToString("yyyy-MM-dd HH:mm:ss") + "'";
 
-            // TODO: Move this to a proper reusable helper class
             if (CompilerTypes.Numeric.Contains(value.GetType()))
                 return value.ToString();
 

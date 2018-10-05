@@ -5,7 +5,6 @@ using NUnit.Framework;
 
 namespace CastIron.Sql.Tests
 {
-    // TODO: Need to fix parameter usage throughout for sqlite
     [TestFixture]
     public class SqlCommandRawTests
     {
@@ -19,19 +18,21 @@ namespace CastIron.Sql.Tests
             public bool SetupCommand(IDbCommand command)
             {
                 command.CommandText = "SELECT @param = 'TEST';";
-                var p = new SqlParameter("@param", SqlDbType.Char, 4)
-                {
-                    Direction = ParameterDirection.Output
-                };
+                var p = command.CreateParameter();
+                p.ParameterName = "@param";
+                p.DbType = DbType.AnsiString;
+                p.Size = 4;
+                p.Direction = ParameterDirection.Output;
                 command.Parameters.Add(p);
                 return true;
             }
         }
 
+        // Sqlite doesn't support output parameters?
         [Test]
-        public void SqlCommandRawCommand_UntypedOutputParameter()
+        public void SqlCommandRawCommand_UntypedOutputParameter([Values("MSSQL")] string provider)
         {
-            var runner = RunnerFactory.Create();
+            var runner = RunnerFactory.Create(provider);
             var result = runner.Execute(new CommandWithUntypedOutputParameter());
             result.Should().Be("TEST");
         }
@@ -55,10 +56,11 @@ namespace CastIron.Sql.Tests
             }
         }
 
+        // Sqlite doesn't support output parameters?
         [Test]
-        public void SqlCommandRawCommand_TypedOutputParameter()
+        public void SqlCommandRawCommand_TypedOutputParameter([Values("MSSQL")] string provider)
         {
-            var runner = RunnerFactory.Create();
+            var runner = RunnerFactory.Create(provider);
             var result = runner.Execute(new CommandWithTypedOutputParameter());
             result.Should().Be("TEST");
         }
@@ -73,19 +75,20 @@ namespace CastIron.Sql.Tests
             public bool SetupCommand(IDbCommand command)
             {
                 command.CommandText = "SELECT @param = 'TEST';";
-                var p = new SqlParameter("@param", SqlDbType.Char, 4)
-                {
-                    Direction = ParameterDirection.Output
-                };
+                var p = command.CreateParameter();
+                p.ParameterName = "@param";
+                p.DbType = DbType.AnsiString;
+                p.Size = 4;
+                p.Direction = ParameterDirection.Output;
                 command.Parameters.Add(p);
                 return false;
             }
         }
 
         [Test]
-        public void SqlCommandRaw_NotExecuted()
+        public void SqlCommandRaw_NotExecuted([Values("MSSQL")] string provider)
         {
-            var runner = RunnerFactory.Create();
+            var runner = RunnerFactory.Create(provider);
             var result = runner.Execute(new CommandNotExecuted());
             result.Should().BeNullOrEmpty();
         }
