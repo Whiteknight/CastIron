@@ -7,12 +7,16 @@ namespace CastIron.Sql.Mapping
 {
     public class DataRecordMapperCompileContext
     {
-        public DataRecordMapperCompileContext(ParameterExpression recordParam, ParameterExpression instance)
+        public DataRecordMapperCompileContext(IDataReader reader, ParameterExpression recordParam, ParameterExpression instance, Type parent, Type specific)
         {
+            Assert.ArgumentNotNull(reader, nameof(reader));
             Assert.ArgumentNotNull(recordParam, nameof(recordParam));
 
+            Reader = reader;
             RecordParam = recordParam;
             Instance = instance;
+            Parent = parent;
+            Specific = specific ?? parent;
 
             MappedColumns = new HashSet<string>();
             Variables = new List<ParameterExpression>();
@@ -23,8 +27,11 @@ namespace CastIron.Sql.Mapping
 
         public IReadOnlyDictionary<string, int> ColumnNames { get; private set; }
         public IReadOnlyDictionary<string, Type> ColumnTypes { get; private set; }
+        public IDataReader Reader { get; }
         public ParameterExpression RecordParam { get; }
         public ParameterExpression Instance { get; }
+        public Type Parent { get; }
+        public Type Specific { get; }
 
         public HashSet<string> MappedColumns { get; }
 

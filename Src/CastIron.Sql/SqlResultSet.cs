@@ -56,11 +56,20 @@ namespace CastIron.Sql
             return new DataRecordMappingEnumerable<T>(_reader, _context, map);
         }
 
-        public IEnumerable<T> AsEnumerable<T>(IRecordMapperCompiler compiler)
+        public IEnumerable<T> AsEnumerable<T>(IRecordMapperCompiler compiler, Func<T> factory = null, ConstructorInfo preferredConstructor = null)
         {
             ValidateDataReader();
             MarkConsumed();
-            return new DataRecordMappingEnumerable<T>(_reader, _context, compiler);
+            var map = (compiler ?? CachingMappingCompiler.GetDefaultInstance()).CompileExpression(typeof(T), _reader, factory, preferredConstructor);
+            return new DataRecordMappingEnumerable<T>(_reader, _context, map);
+        }
+
+        public IEnumerable<T> AsEnumerable<T>(Func<T> factory)
+        {
+            ValidateDataReader();
+            MarkConsumed();
+            var map = CachingMappingCompiler.GetDefaultInstance().CompileExpression(typeof(T), _reader, factory, null);
+            return new DataRecordMappingEnumerable<T>(_reader, _context, map);
         }
 
         public IEnumerable<T> AsEnumerable<T>(Func<ISubclassMapping<T>, ISubclassMapping<T>> setup, IRecordMapperCompiler compiler = null)

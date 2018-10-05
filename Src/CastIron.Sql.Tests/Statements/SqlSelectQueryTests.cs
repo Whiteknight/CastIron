@@ -37,7 +37,7 @@ INSERT INTO #TestObject (TestInt, TestString, SecondInt) VALUES (5, 'OK', 6);";
         }
 
         [Test]
-        public void ToSql_Test()
+        public void ToSql_Test([Values("MSSQL")] string provider)
         {
             var target = new SqlSelectQuery<TestObject>()
                 .Where(b => b.Equal(c => c.TestInt, 5));
@@ -45,7 +45,7 @@ INSERT INTO #TestObject (TestInt, TestString, SecondInt) VALUES (5, 'OK', 6);";
             batch.Add(new CreateTestObjectTableCommand());
             var promise = batch.Add(target);
 
-            var runner = RunnerFactory.Create();
+            var runner = RunnerFactory.Create(provider);
             runner.Execute(batch);
 
             var result = promise.GetValue().ToList();

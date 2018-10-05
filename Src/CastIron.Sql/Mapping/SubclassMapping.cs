@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
-using System.Linq;
+using System.Reflection;
 
 namespace CastIron.Sql.Mapping
 {
@@ -27,29 +27,51 @@ namespace CastIron.Sql.Mapping
         {
             public Type Type { get; set; }
             public Func<IDataRecord, bool> Predicate { get; set; }
+            public Func<TParent> Factory { get; set; }
+            public ConstructorInfo Constructor { get; set; }
+            public Func<IDataRecord, TParent> Mapper { get; set; }
         }
 
-        public ISubclassMapping<TParent> UseSubclass<T>(Func<IDataRecord, bool> determine)
+        public ISubclassMapping<TParent> UseSubclass<T>(Func<IDataRecord, bool> determine, Func<IDataRecord, TParent> map = null, Func<TParent> factory = null, ConstructorInfo preferredConstructor = null)
             where T : TParent
         {
             if (typeof(T).IsAbstract)
                 throw new Exception("Type must be concrete");
+            AssertCorrectCreationArguments(map, factory, preferredConstructor);
             _subclasses.Add(new SubclassPredicate
             {
                 Type = typeof(T),
-                Predicate = determine ?? (r => true)
+                Predicate = determine ?? (r => true),
+                Factory = factory,
+                Constructor = preferredConstructor
             });
             return this;
         }
 
-        public ISubclassMapping<TParent> Otherwise<T>()
+        public ISubclassMapping<TParent> Otherwise<T>(Func<IDataRecord, TParent>  map = null, Func<TParent> factory = null, ConstructorInfo preferredConstructor = null)
             where T : TParent
         {
             if (_calledOtherwise)
                 throw new Exception($".{nameof(Otherwise)}() method can be called at most once.");
+            if (typeof(T).IsAbstract)
+                throw new Exception("Type must be concrete");
+            AssertCorrectCreationArguments(map, factory, preferredConstructor);
+
             _otherwise.Type = typeof(T);
+            _otherwise.Factory = factory;
+            _otherwise.Constructor = preferredConstructor;
             _calledOtherwise = true;
             return this;
+        }
+
+        private void AssertCorrectCreationArguments(Func<IDataRecord, TParent> map, Func<TParent> factory, ConstructorInfo preferredConstructor)
+        {
+            int notNulls = 0;
+            notNulls += map == null ? 0 : 1;
+            notNulls += factory == null ? 0 : 1;
+            notNulls += preferredConstructor == null ? 0 : 1;
+            if (notNulls > 1)
+                throw new Exception($"At most one of {nameof(map)}, {nameof(factory)} or {nameof(preferredConstructor)} may be specified. The others must be null");
         }
 
         public Func<IDataRecord, TParent> BuildThunk(IDataReader reader)
@@ -58,77 +80,45 @@ namespace CastIron.Sql.Mapping
             if (fallback.IsAbstract || fallback.IsInterface)
                 throw new Exception("Fallback class must be instantiable");
             
-            // 1. Compile a mapper for every possible subclass
-            var mappers = _subclasses
-                .Select(sc => sc.Type)
-                .Concat(new [] {  _otherwise?.Type })
-                .Where(t => t != null)
-                .Where(t => typeof(TParent).IsAssignableFrom(t))
-                .Distinct()
-                .ToDictionary(t => t, t => _inner.CompileExpression<TParent>(t, reader, null));
+            // 1. Compile a mapper for every possible subclass and creation options combo
+            // The cache will prevent recompilation of same maps so we won't worry about .Distinct() here.
+            var newSubclasses = new List<SubclassPredicate>();
+            foreach (var subclass in _subclasses)
+                VerifyAndSetupSubclassPredicate(reader, subclass, newSubclasses);
+            VerifyAndSetupSubclassPredicate(reader, _otherwise, newSubclasses);
 
             // 2. Create a thunk which checks each predicate and calls the correct mapper
-            return (r =>
+            return CreateThunkExpression(newSubclasses);
+        }
+
+        private static Func<IDataRecord, TParent> CreateThunkExpression(List<SubclassPredicate> subclasses)
+        {
+            return r =>
             {
-                foreach (var subclass in _subclasses)
+                foreach (var subclass in subclasses)
                 {
                     if (!subclass.Predicate(r))
                         continue;
-                    if (!mappers.ContainsKey(subclass.Type))
+                    if (subclass.Mapper == null)
                         continue;
-                    var map = mappers[subclass.Type];
-                    if (map == null)
-                        continue;
-                    var result = map(r);
-                    
-                    return (TParent)((object)result);
+                    var result = subclass.Mapper(r);
+
+                    return (TParent) ((object) result);
                 }
 
-                var otherwiseMap = mappers[_otherwise.Type];
-                if (otherwiseMap == null)
-                    return default(TParent);
-                var otherwiseResult = otherwiseMap(r);
-                return (TParent) ((object) otherwiseResult);
-            });
-            //var readerParam = Expression.Parameter(typeof(IDataRecord), "record");
-            //var returnTarget = Expression.Label("return");
-            //var expressions = new List<Expression>();
-            //foreach (var subclass in _subclasses)
-            //{
-            //    var mapped = mappers[subclass.Type];
-            //    Expression<Func<IDataRecord, TParent>> map = (r => mapped(r));
-            //    expressions.Add(
-            //        Expression.IfThen(
-            //            Expression.Invoke(
-            //                subclass.Predicate, 
-            //                readerParam),
-            //            Expression.Return(
-            //                returnTarget,
-            //                Expression.Convert(
-            //                    Expression.Invoke(map, readerParam), 
-            //                    typeof(T)))));
-            //}
+                return default(TParent);
+            };
+        }
 
-            //if (_otherwise?.Type == null || !mappers.ContainsKey(_otherwise.Type))
-            //    expressions.Add(Expression.Return(returnTarget, Expression.Convert(Expression.Constant(null), typeof(T))));
-            //else
-            //{
-            //    var mapped = mappers[_otherwise.Type];
-            //    Expression<Func<IDataRecord, TParent>> map = (r => mapped(r));
-            //    expressions.Add(
-            //        Expression.Return(
-            //            returnTarget, 
-            //            Expression.Convert(
-            //                Expression.Invoke(map, readerParam),
-            //                typeof(T))));
-            //}
-
-            //expressions.Add(Expression.Label(returnTarget));
-            //var s = string.Join("\n", expressions.Select(e => e.ToString()));
-            //var lambda =  Expression.Lambda<Func<IDataRecord, T>>(
-            //        Expression.Block(typeof(T), new[] { readerParam }, expressions));
-            //var s = lambda.ToString();
-            //return lambda.Compile();
+        private void VerifyAndSetupSubclassPredicate(IDataReader reader, SubclassPredicate subclass, List<SubclassPredicate> newSubclasses)
+        {
+            if (subclass.Type == null)
+                throw new Exception("Specified type may not be null");
+            if (!typeof(TParent).IsAssignableFrom(subclass.Type))
+                throw new Exception($"Type {subclass.Type.FullName} is not assignable to {typeof(TParent).FullName}");
+            if (subclass.Mapper == null)
+                subclass.Mapper = _inner.CompileExpression(subclass.Type, reader, subclass.Factory, subclass.Constructor);
+            newSubclasses.Add(subclass);
         }
     }
 }

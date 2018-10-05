@@ -50,7 +50,7 @@ namespace CastIron.Sql.Statements
                 return "'" + valueDt.ToString("yyyy-MM-dd HH:mm:ss") + "'";
 
             // TODO: Move this to a proper reusable helper class
-            if (PropertyAndConstructorRecordMapperCompiler.NumericTypes.Contains(value.GetType()))
+            if (CompilerTypes.Numeric.Contains(value.GetType()))
                 return value.ToString();
 
             if (value is byte[] valueBytes)

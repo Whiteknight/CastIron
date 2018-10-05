@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Reflection;
 using CastIron.Sql.Execution;
 
 namespace CastIron.Sql.Mapping
@@ -30,10 +31,11 @@ namespace CastIron.Sql.Mapping
             return new DataRecordMappingEnumerable<T>(_reader, _context, map);
         }
 
-        public IEnumerable<T> GetNextEnumerable<T>(IRecordMapperCompiler compiler)
+        public IEnumerable<T> GetNextEnumerable<T>(IRecordMapperCompiler compiler, Func<T> factory = null, ConstructorInfo preferredConstructor = null)
         {
             AdvanceToResultSet(_currentSet + 1);
-            return new DataRecordMappingEnumerable<T>(_reader, _context, compiler);
+            var map = (compiler ?? CachingMappingCompiler.GetDefaultInstance()).CompileExpression(typeof(T), _reader, factory, preferredConstructor);
+            return new DataRecordMappingEnumerable<T>(_reader, _context, map);
         }
 
         public IEnumerable<T> GetNextEnumerable<T>(Func<ISubclassMapping<T>, ISubclassMapping<T>> setup, IRecordMapperCompiler compiler = null)

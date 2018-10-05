@@ -14,66 +14,21 @@ namespace CastIron.Sql.Mapping
         private static readonly MethodInfo GetValueMethod = typeof(IDataRecord).GetMethod(nameof(IDataRecord.GetValue));
         private static readonly Expression _dbNullExp = Expression.Field(null, typeof(DBNull), nameof(DBNull.Value));
 
-        public static readonly HashSet<Type> NumericTypes = new HashSet<Type>
-        {
-            typeof(byte),
-            typeof(byte?),
-            typeof(decimal),
-            typeof(decimal?),
-            typeof(double),
-            typeof(double?),
-            typeof(float),
-            typeof(float?),
-            typeof(int),
-            typeof(int?),
-            typeof(long),
-            typeof(long?),
-            typeof(short),
-            typeof(short?)
-        };
-
-        private static readonly HashSet<Type> _mappableTypes = new HashSet<Type>
-        {
-            // TODO: Are there any other types we can map from the DB?
-            typeof(bool),
-            typeof(bool?),
-            typeof(byte),
-            typeof(byte?),
-            typeof(byte[]),
-            typeof(DateTime),
-            typeof(DateTime?),
-            typeof(decimal),
-            typeof(decimal?),
-            typeof(double),
-            typeof(double?),
-            typeof(float),
-            typeof(float?),
-            typeof(Guid),
-            typeof(Guid?),
-            typeof(int),
-            typeof(int?),
-            typeof(long),
-            typeof(long?),
-            typeof(short),
-            typeof(short?),
-            typeof(string)
-        };
-
         public Func<IDataRecord, T> CompileExpression<T>(IDataReader reader)
         {
-            return CompileExpression<T>(typeof(T), reader, null);
+            return CompileExpression<T>(typeof(T), reader, null, null);
         }
 
-        public Func<IDataRecord, T> CompileExpression<T>(Type specific, IDataReader reader, Func<T> factory)
+        // TODO: Ability to take the IDataRecord in the factory and consume some columns for constructor params so they aren't used later for properties?
+        public Func<IDataRecord, T> CompileExpression<T>(Type specific, IDataReader reader, Func<T> factory, ConstructorInfo preferredConstructor)
         {
+            Assert.ArgumentNotNull(reader, nameof(reader));
+            Assert.ArgumentNotNull(specific, nameof(specific));
+
             var parentType = typeof(T);
 
-            // If we don't have a reader, return a default value and don't do any other work.
-            if (reader == null)
-                return r => default(T);
-
             // If parentType is primitive, specific doesn't matter, so we can map a primitive
-            if (IsPrimitiveType(parentType))
+            if (CompilerTypes.Primitive.Contains(parentType))
                 return CompileForPrimitiveType<T>(reader);
 
             // If asked for an object array, or just an object, return those as object arrays and don't do any fancy mapping
@@ -86,101 +41,139 @@ namespace CastIron.Sql.Mapping
             if (!parentType.IsAssignableFrom(specific))
                 throw new Exception($"Type {specific.Name} must be assignable to {typeof(T)}.Name");
 
-            return CompileForObjectInstance(specific, reader, factory);
+            // At this point we're past the easy options and must compile the thunk
+            return CompileThunkForObjectInstance(specific, reader, factory, preferredConstructor);
         }
 
-        private static Func<IDataRecord, T> CompileForObjectInstance<T>(Type specific, IDataReader reader, Func<T> factory)
+        private static Func<IDataRecord, T> CompileThunkForObjectInstance<T>(Type specific, IDataReader reader, Func<T> factory, ConstructorInfo preferredConstructor)
         {
-            var recordParam = Expression.Parameter(typeof(IDataRecord), "record");
-            var instance = Expression.Variable(specific, "instance");
-            var context = new DataRecordMapperCompileContext(recordParam, instance);
-            context.PopulateColumnLookups(reader);
-
-            if (factory != null)
-            {
-                context.Statements.Add(Expression.Assign(instance, Expression.Call(Expression.Constant(factory.Target), factory.Method)));
-            }
-            else
-            {
-                var constructor = GetBestConstructor(specific, context);
-                var constructorCall = CreateConstructorCallExpression(reader, constructor, context);
-                context.Statements.Add(Expression.Assign(instance, constructorCall));
-            }
-
-            GetPropertyAssignmentExpressions(specific, reader, instance, context);
-
-            context.Statements.Add(Expression.Convert(instance, typeof(T)));
-
-            foreach (var v in context.Variables)
-                DumpCodeToDebugConsole(v);
-            foreach (var s in context.Statements)
-                DumpCodeToDebugConsole(s);
-
-            var lambdaExpression = Expression.Lambda<Func<IDataRecord, T>>(Expression.Block(typeof(T), context.Variables, context.Statements), recordParam);
+            var context = CreateCompileContextForObjectInstance<T>(specific, reader);
+            WriteInstantiationExpressionForObjectInstance(factory, preferredConstructor, context);
+            WritePropertyAssignmentExpressions(context);
+            // Add return statement to return the converted instance
+            context.Statements.Add(Expression.Convert(context.Instance, typeof(T)));
+            var lambdaExpression = Expression.Lambda<Func<IDataRecord, T>>(Expression.Block(context.Parent, context.Variables, context.Statements), context.RecordParam);
             DumpCodeToDebugConsole(lambdaExpression);
 
             return lambdaExpression.Compile();
         }
 
-        private static void GetPropertyAssignmentExpressions(Type specific, IDataReader reader, ParameterExpression instance, DataRecordMapperCompileContext context)
+        private static void WriteInstantiationExpressionForObjectInstance<T>(Func<T> factory, ConstructorInfo preferredConstructor, DataRecordMapperCompileContext context)
         {
-            var properties = GetMappableProperties(specific, context);
-            foreach (var property in properties)
+            if (factory != null)
             {
-                // TODO: Should we support columnAttribute.Order?
-                var columnName = property.GetCustomAttributes(typeof(ColumnAttribute), true).Cast<ColumnAttribute>().Select(c => c.Name).FirstOrDefault();
-                if (string.IsNullOrEmpty(columnName))
-                    columnName = property.Name;
-                columnName = columnName.ToLowerInvariant();
-                if (!context.ColumnNames.ContainsKey(columnName))
-                    continue;
-                var columnIdx = context.ColumnNames[columnName];
+                if (preferredConstructor != null)
+                    throw new Exception($"May specify at most one of {nameof(factory)} or {nameof(preferredConstructor)}");
 
-                var assignment = Expression.Call(instance, property.GetSetMethod(), GetConversionExpression(columnIdx, context, reader.GetFieldType(columnIdx), property.PropertyType));
-
-                context.Statements.Add(assignment);
-            }
-        }
-
-        private static NewExpression CreateConstructorCallExpression(IDataReader reader, ConstructorDetails constructor, DataRecordMapperCompileContext context)
-        {
-            if (constructor.Parameters.Length == 0)
-                return Expression.New(constructor.Constructor);
-
-            var args = new Expression[constructor.Parameters.Length];
-            for (int i = 0; i < constructor.Parameters.Length; i++)
-            {
-                var parameter = constructor.Parameters[i];
-                var name = parameter.Name.ToLowerInvariant();
-                context.MappedColumns.Add(name);
-                var columnIdx = context.ColumnNames[name];
-
-                args[i] = GetConversionExpression(columnIdx, context, reader.GetFieldType(columnIdx), parameter.ParameterType);
+                context.Statements.Add(Expression.Assign(context.Instance, Expression.Call(Expression.Constant(factory.Target), factory.Method)));
+                return;
             }
 
-            return Expression.New(constructor.Constructor, args);
+            var constructor = FindSuitableConstructor(preferredConstructor, context);
+            var constructorCall = CreateConstructorCallExpression(constructor, context);
+            context.Statements.Add(Expression.Assign(context.Instance, constructorCall));
         }
 
-        private static ConstructorDetails GetBestConstructor(Type specific, DataRecordMapperCompileContext context)
+        private static ConstructorDetails FindSuitableConstructor(ConstructorInfo preferredConstructor, DataRecordMapperCompileContext context)
         {
-            var best = specific.GetConstructors()
+            // If the user has specified a preferred constructor, use that.
+            if (preferredConstructor != null)
+            {
+                if (!preferredConstructor.IsPublic || preferredConstructor.IsStatic)
+                    throw new Exception("Specified constructor is static or non-public and cannot be used");
+                if (preferredConstructor.DeclaringType != context.Specific)
+                    throw new Exception($"Specified constructor is for type {preferredConstructor.DeclaringType?.FullName} instead of the expected {context.Specific.FullName}");
+
+                return new ConstructorDetails(preferredConstructor, context.ColumnNames);
+            }
+
+            // Otherwise score all constructors and find the best match
+            var best = context.Specific.GetConstructors()
                 .Select(c => new ConstructorDetails(c, context.ColumnNames))
                 .Where(x => x.Score >= 0)
                 .OrderByDescending(x => x.Score)
                 .FirstOrDefault();
             if (best == null)
-                throw new Exception($"Cannot find a suitable constructor for type {specific.FullName}");
+                throw new Exception($"Cannot find a suitable constructor for type {context.Specific.FullName}");
             return best;
+        }
+
+        private static DataRecordMapperCompileContext CreateCompileContextForObjectInstance<T>(Type specific, IDataReader reader)
+        {
+            var recordParam = Expression.Parameter(typeof(IDataRecord), "record");
+            var instance = Expression.Variable(specific, "instance");
+            var context = new DataRecordMapperCompileContext(reader, recordParam, instance, typeof(T), specific);
+            context.PopulateColumnLookups(reader);
+            return context;
+        }
+
+        private static void WritePropertyAssignmentExpressions(DataRecordMapperCompileContext context)
+        {
+            var properties = GetMappableProperties(context.Specific, context);
+            foreach (var property in properties)
+            {
+                var columnIdx = GetColumnIndexForProperty(context, property);
+                if (columnIdx < 0)
+                    continue;
+
+                var conversion = GetConversionExpression(columnIdx, context, context.Reader.GetFieldType(columnIdx), property.PropertyType);
+                context.Statements.Add(Expression.Call(context.Instance, property.GetSetMethod(), conversion));
+            }
+        }
+
+        private static int GetColumnIndexForProperty(DataRecordMapperCompileContext context, PropertyInfo property)
+        {
+            var columnName = property.Name.ToLowerInvariant();
+            if (context.ColumnNames.ContainsKey(columnName))
+                return context.ColumnNames[columnName];
+
+            columnName = property
+                .GetCustomAttributes(typeof(ColumnAttribute), true)
+                .Cast<ColumnAttribute>()
+                .Select(c => c.Name.ToLowerInvariant())
+                .FirstOrDefault();
+            if (!string.IsNullOrEmpty(columnName) && context.ColumnNames.ContainsKey(columnName))
+                return context.ColumnNames[columnName];
+
+            return -1;
+        }
+
+        private static NewExpression CreateConstructorCallExpression(ConstructorDetails constructor, DataRecordMapperCompileContext context)
+        {
+            // Default parameterless constructor, just call it
+            if (constructor.Parameters.Length == 0)
+                return Expression.New(constructor.Constructor);
+
+            // Map columns to constructor parameters by name, marking the columns consumed so they aren't used again later
+            var args = new Expression[constructor.Parameters.Length];
+            for (int i = 0; i < constructor.Parameters.Length; i++)
+            {
+                var parameter = constructor.Parameters[i];
+                var name = parameter.Name.ToLowerInvariant();
+                if (!context.ColumnNames.ContainsKey(name))
+                    throw new Exception($"Provided constructor has parameter '{parameter.Name}' which cannot be mapped to a column");
+
+                // Get the column index and mark the column as being mapped
+                context.MappedColumns.Add(name);
+                var columnIdx = context.ColumnNames[name];
+
+                args[i] = GetConversionExpression(columnIdx, context, context.Reader.GetFieldType(columnIdx), parameter.ParameterType);
+            }
+
+            return Expression.New(constructor.Constructor, args);
         }
 
         private static Expression GetConversionExpression(int columnIdx, DataRecordMapperCompileContext context, Type columnType, Type targetType)
         {
+            // Pull the value out of the reader into the rawVar
             var rawVar = Expression.Variable(typeof(object), "raw_" + columnIdx);
             context.Variables.Add(rawVar);
             var getRawStmt = Expression.Assign(rawVar, Expression.Call(context.RecordParam, GetValueMethod, Expression.Constant(columnIdx)));
             context.Statements.Add(getRawStmt);
 
-            // The target is string
+            // TODO: Should we store the converted values into variables instead of inlining them?
+
+            // The target is string, regardless of the data type we can .ToString() it
             if (targetType == typeof(string))
             {
                 return Expression.Condition(
@@ -189,7 +182,7 @@ namespace CastIron.Sql.Mapping
                     Expression.Convert(Expression.Constant(null), typeof(string)));
             }
 
-            // They are the same type
+            // They are the same type, so we can directly assign them
             if (columnType == targetType || (!columnType.IsClass && typeof(Nullable<>).MakeGenericType(columnType) == targetType))
             {
                 return Expression.Condition(
@@ -201,8 +194,8 @@ namespace CastIron.Sql.Mapping
                     Expression.Convert(Expression.Constant(GetDefaultValue(targetType)), targetType));
             }
 
-            // They are both numeric but not the same type
-            if (NumericTypes.Contains(columnType) && NumericTypes.Contains(targetType))
+            // They are both numeric but not the same type. Unbox and convert
+            if (CompilerTypes.Numeric.Contains(columnType) && CompilerTypes.Numeric.Contains(targetType))
             {
                 return Expression.Condition(
                     Expression.NotEqual(_dbNullExp, rawVar),
@@ -213,8 +206,8 @@ namespace CastIron.Sql.Mapping
                     Expression.Convert(Expression.Constant(GetDefaultValue(targetType)), targetType));
             }
 
-            // Target is bool, but we know source type is numeric. Try to coerce
-            if ((targetType == typeof(bool) || targetType == typeof(bool?)) && NumericTypes.Contains(columnType))
+            // Target is bool, source type is numeric. Try to coerce by comparing against 0
+            if ((targetType == typeof(bool) || targetType == typeof(bool?)) && CompilerTypes.Numeric.Contains(columnType))
             {
                 // var result = rawVar is DBNull ? (rawVar != 0) : false
                 return Expression.Condition(
@@ -236,18 +229,13 @@ namespace CastIron.Sql.Mapping
         private static Func<IDataRecord, T> CompileForPrimitiveType<T>(IDataReader reader)
         {
             var recordParam = Expression.Parameter(typeof(IDataRecord), "record");
-            var context = new DataRecordMapperCompileContext(recordParam, null);
+            var context = new DataRecordMapperCompileContext(reader, recordParam, null, typeof(T), typeof(T));
 
-            var expr = GetConversionExpression(0, context, reader.GetFieldType(0), typeof(T));
+            var expr = GetConversionExpression(0, context, reader.GetFieldType(0), context.Parent);
             context.Statements.Add(expr);
-            var lambdaExpression = Expression.Lambda<Func<IDataRecord, T>>(Expression.Block(typeof(T), context.Variables, context.Statements), recordParam);
+            var lambdaExpression = Expression.Lambda<Func<IDataRecord, T>>(Expression.Block(context.Parent, context.Variables, context.Statements), recordParam);
             DumpCodeToDebugConsole(lambdaExpression);
             return lambdaExpression.Compile();
-        }
-
-        private static bool IsPrimitiveType(Type type)
-        {
-            return _mappableTypes.Contains(type);
         }
 
         private class ConstructorDetails
@@ -273,7 +261,7 @@ namespace CastIron.Sql.Mapping
                     var name = param.Name.ToLowerInvariant();
                     if (!columnNames.ContainsKey(name))
                         return -1;
-                    if (!_mappableTypes.Contains(param.ParameterType))
+                    if (!CompilerTypes.Primitive.Contains(param.ParameterType))
                         return -1;
 
                     // TODO: check that the types are compatible. Add a big delta where the match is easy, smaller delta where the match requires conversion
@@ -285,14 +273,13 @@ namespace CastIron.Sql.Mapping
             }
         }
 
-        private static PropertyInfo[] GetMappableProperties(Type specific, DataRecordMapperCompileContext context)
+        private static IEnumerable<PropertyInfo> GetMappableProperties(Type specific, DataRecordMapperCompileContext context)
         {
             return specific.GetProperties(BindingFlags.Public | BindingFlags.Instance)
                 .Where(p => p.SetMethod != null && p.GetMethod != null)
                 .Where(p => p.CanRead && p.CanWrite)
                 .Where(p => !p.GetMethod.IsPrivate && !p.SetMethod.IsPrivate)
-                .Where(p => !context.MappedColumns.Contains(p.Name.ToLowerInvariant()))
-                .ToArray();
+                .Where(p => !context.MappedColumns.Contains(p.Name.ToLowerInvariant()));
         }
 
         private static object GetDefaultValue(Type t)

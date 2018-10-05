@@ -22,14 +22,6 @@ namespace CastIron.Sql.Mapping
             _alreadyRead = false;
         }
 
-        public DataRecordMappingEnumerable(IDataReader reader, IExecutionContext context, IRecordMapperCompiler compiler)
-        {
-            _reader = reader;
-            _context = context;
-            _map = (compiler ?? CachingMappingCompiler.GetDefaultInstance()).CompileExpression<T>(reader);
-            _alreadyRead = false;
-        }
-
         IEnumerator IEnumerable.GetEnumerator()
         {
             return GetEnumerator();
