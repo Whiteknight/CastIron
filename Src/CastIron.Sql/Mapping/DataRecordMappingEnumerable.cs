@@ -13,11 +13,15 @@ namespace CastIron.Sql.Mapping
         private readonly Func<IDataRecord, T> _map;
         private bool _alreadyRead;
 
-        public DataRecordMappingEnumerable(IDataReader reader, IExecutionContext context, Func<IDataRecord, T> map = null)
+        public DataRecordMappingEnumerable(IDataReader reader, IExecutionContext context, Func<IDataRecord, T> map)
         {
+            Assert.ArgumentNotNull(reader, nameof(reader));
+            Assert.ArgumentNotNull(context, nameof(context));
+            Assert.ArgumentNotNull(map, nameof(map));
+
             _reader = reader;
             _context = context;
-            _map = map ?? CachingMappingCompiler.GetDefaultInstance().CompileExpression<T>(reader);
+            _map = map;
             _alreadyRead = false;
         }
 

@@ -28,7 +28,18 @@ namespace CastIron.Sql.Mapping
         public IEnumerable<T> GetNextEnumerable<T>(Func<IDataRecord, T> map = null)
         {
             AdvanceToResultSet(_currentSet + 1);
+            map = map ?? CachingMappingCompiler.GetDefaultInstance().CompileExpression<T>(typeof(T), _reader, null, null);
             return new DataRecordMappingEnumerable<T>(_reader, _context, map);
+        }
+
+        public IEnumerable<T> GetNextEnumerable<T>(Func<T> factory)
+        {
+            return GetNextEnumerable<T>(null, factory, null);
+        }
+
+        public IEnumerable<T> GetNextEnumerable<T>(ConstructorInfo preferredConstructor)
+        {
+            return GetNextEnumerable<T>(null, null, preferredConstructor);
         }
 
         public IEnumerable<T> GetNextEnumerable<T>(IRecordMapperCompiler compiler, Func<T> factory = null, ConstructorInfo preferredConstructor = null)

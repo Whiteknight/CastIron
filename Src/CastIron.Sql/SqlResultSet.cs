@@ -53,7 +53,18 @@ namespace CastIron.Sql
         {
             ValidateDataReader();
             MarkConsumed();
+            map = map ?? CachingMappingCompiler.GetDefaultInstance().CompileExpression<T>(_reader);
             return new DataRecordMappingEnumerable<T>(_reader, _context, map);
+        }
+
+        public IEnumerable<T> AsEnumerable<T>(Func<T> factory)
+        {
+            return AsEnumerable<T>(null, factory, null);
+        }
+
+        public IEnumerable<T> AsEnumerable<T>(ConstructorInfo preferredConstructor)
+        {
+            return AsEnumerable<T>(null, null, preferredConstructor);
         }
 
         public IEnumerable<T> AsEnumerable<T>(IRecordMapperCompiler compiler, Func<T> factory = null, ConstructorInfo preferredConstructor = null)
@@ -61,14 +72,6 @@ namespace CastIron.Sql
             ValidateDataReader();
             MarkConsumed();
             var map = (compiler ?? CachingMappingCompiler.GetDefaultInstance()).CompileExpression(typeof(T), _reader, factory, preferredConstructor);
-            return new DataRecordMappingEnumerable<T>(_reader, _context, map);
-        }
-
-        public IEnumerable<T> AsEnumerable<T>(Func<T> factory)
-        {
-            ValidateDataReader();
-            MarkConsumed();
-            var map = CachingMappingCompiler.GetDefaultInstance().CompileExpression(typeof(T), _reader, factory, null);
             return new DataRecordMappingEnumerable<T>(_reader, _context, map);
         }
 
