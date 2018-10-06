@@ -151,7 +151,12 @@ namespace CastIron.Sql.Mapping
                 var parameter = constructor.Parameters[i];
                 var name = parameter.Name.ToLowerInvariant();
                 if (!context.ColumnNames.ContainsKey(name))
-                    throw new Exception($"Provided constructor has parameter '{parameter.Name}' which cannot be mapped to a column");
+                {
+                    // The user has specified a constructor where a parameter does not correspond to a column 
+                    // Fill in the default value and hope the user knows what they are doing.
+                    args[i] = Expression.Constant(GetDefaultValue(parameter.ParameterType));
+                    continue;
+                }
 
                 // Get the column index and mark the column as being mapped
                 context.MappedColumns.Add(name);
