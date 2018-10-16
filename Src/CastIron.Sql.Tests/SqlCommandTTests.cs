@@ -18,13 +18,7 @@ namespace CastIron.Sql.Tests
             public bool SetupCommand(IDataInteraction command)
             {
                 command.ExecuteText(GetSql());
-
-                var p1 = command.Command.CreateParameter();
-                p1.ParameterName = "@param";
-                p1.DbType = DbType.StringFixedLength;
-                p1.Size = 4;
-                p1.Direction = ParameterDirection.Output;
-                command.Command.Parameters.Add(p1);
+                command.AddOutputParameter("@param", DbType.StringFixedLength, 4);
 
                 return true;
             }
@@ -53,11 +47,7 @@ namespace CastIron.Sql.Tests
             public bool SetupCommand(IDataInteraction command)
             {
                 command.ExecuteText("SELECT @param = 'TEST';");
-                var p = new SqlParameter("@param", SqlDbType.Char, 4)
-                {
-                    Direction = ParameterDirection.Output
-                };
-                command.Command.Parameters.Add(p);
+                command.AddOutputParameter("@param", DbType.StringFixedLength, 4);
                 return false;
             }
         }

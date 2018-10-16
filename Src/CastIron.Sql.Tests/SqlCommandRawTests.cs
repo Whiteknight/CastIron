@@ -1,5 +1,4 @@
 ﻿using System.Data;
-using System.Data.SqlClient;
 using FluentAssertions;
 using NUnit.Framework;
 
@@ -18,12 +17,7 @@ namespace CastIron.Sql.Tests
             public bool SetupCommand(IDataInteraction command)
             {
                 command.ExecuteText("SELECT @param = 'TEST';");
-                var p = command.Command.CreateParameter();
-                p.ParameterName = "@param";
-                p.DbType = DbType.AnsiString;
-                p.Size = 4;
-                p.Direction = ParameterDirection.Output;
-                command.Command.Parameters.Add(p);
+                command.AddOutputParameter("@param", DbType.AnsiString, 4);
                 return true;
             }
         }
@@ -47,11 +41,7 @@ namespace CastIron.Sql.Tests
             public bool SetupCommand(IDataInteraction command)
             {
                 command.ExecuteText("SELECT @param = 'TEST';");
-                var p = new SqlParameter("@param", SqlDbType.Char, 4)
-                {
-                    Direction = ParameterDirection.Output
-                };
-                command.Command.Parameters.Add(p);
+                command.AddOutputParameter("@param", DbType.AnsiString, 4);
                 return true;
             }
         }
@@ -75,12 +65,7 @@ namespace CastIron.Sql.Tests
             public bool SetupCommand(IDataInteraction command)
             {
                 command.ExecuteText("SELECT @param = 'TEST';");
-                var p = command.Command.CreateParameter();
-                p.ParameterName = "@param";
-                p.DbType = DbType.AnsiString;
-                p.Size = 4;
-                p.Direction = ParameterDirection.Output;
-                command.Command.Parameters.Add(p);
+                command.AddOutputParameter("@param", DbType.AnsiString, 4);
                 return false;
             }
         }

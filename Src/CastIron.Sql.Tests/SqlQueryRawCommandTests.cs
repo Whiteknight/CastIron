@@ -62,12 +62,7 @@ namespace CastIron.Sql.Tests
             public bool SetupCommand(IDataInteraction command)
             {
                 command.ExecuteText("SELECT @value = 'TEST';");
-                var param = command.Command.CreateParameter();
-                param.ParameterName = "@value";
-                param.Direction = ParameterDirection.Output;
-                param.DbType = DbType.AnsiString;
-                param.Size = 4;
-                command.Command.Parameters.Add(param);
+                command.AddOutputParameter("@value", DbType.AnsiString, 4);
                 return true;
             }
 
