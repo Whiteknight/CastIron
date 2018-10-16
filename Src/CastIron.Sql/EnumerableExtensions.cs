@@ -15,9 +15,9 @@ namespace CastIron.Sql
         /// <param name="mapOnto"></param>
         public static void MapOnto<TRecord, TAggregate>(this IEnumerable<TRecord> enumerable, Func<TRecord, TAggregate> getAggregate, Action<TRecord, TAggregate> mapOnto)
         {
-            Assert.ArgumentNotNull(enumerable, nameof(enumerable));
-            Assert.ArgumentNotNull(getAggregate, nameof(getAggregate));
-            Assert.ArgumentNotNull(mapOnto, nameof(mapOnto));
+            CIAssert.ArgumentNotNull(enumerable, nameof(enumerable));
+            CIAssert.ArgumentNotNull(getAggregate, nameof(getAggregate));
+            CIAssert.ArgumentNotNull(mapOnto, nameof(mapOnto));
 
             foreach (var record in enumerable)
             {

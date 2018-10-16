@@ -15,9 +15,9 @@ namespace CastIron.Sql
 
         public SqlRunner(IDbConnectionFactory connectionFactory, ISqlStatementBuilder statementBuilder, IDataInteractionFactory interactionFactory)
         {
-            Assert.ArgumentNotNull(connectionFactory, nameof(connectionFactory));
-            Assert.ArgumentNotNull(statementBuilder, nameof(statementBuilder));
-            Assert.ArgumentNotNull(interactionFactory, nameof(interactionFactory));
+            CIAssert.ArgumentNotNull(connectionFactory, nameof(connectionFactory));
+            CIAssert.ArgumentNotNull(statementBuilder, nameof(statementBuilder));
+            CIAssert.ArgumentNotNull(interactionFactory, nameof(interactionFactory));
 
             _connectionFactory = connectionFactory;
             _interactionFactory = interactionFactory;

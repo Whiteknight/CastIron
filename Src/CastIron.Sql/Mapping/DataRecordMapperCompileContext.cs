@@ -9,8 +9,8 @@ namespace CastIron.Sql.Mapping
     {
         public DataRecordMapperCompileContext(IDataReader reader, ParameterExpression recordParam, ParameterExpression instance, Type parent, Type specific)
         {
-            Assert.ArgumentNotNull(reader, nameof(reader));
-            Assert.ArgumentNotNull(recordParam, nameof(recordParam));
+            CIAssert.ArgumentNotNull(reader, nameof(reader));
+            CIAssert.ArgumentNotNull(recordParam, nameof(recordParam));
 
             Reader = reader;
             RecordParam = recordParam;

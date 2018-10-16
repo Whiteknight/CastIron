@@ -1,13 +1,14 @@
 ﻿using System.Data;
+using CastIron.Sql;
 
-namespace CastIron.Sql.SqlServer
+namespace CastIron.Sqlite
 {
-    public class SqlServerDataInteractionFactory : IDataInteractionFactory
+    public class SqliteDataInteractionFactory : IDataInteractionFactory
     {
         public IDataInteraction Create(IDbCommand command)
         {
             CIAssert.ArgumentNotNull(command, nameof(command));
-            return new SqlServerDataInteraction(command);
+            return new SqliteDataInteraction(command);
         }
     }
 }

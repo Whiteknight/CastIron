@@ -1,11 +1,13 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Data;
+using CastIron.Sql;
 
-namespace CastIron.Sql.SqlServer
+namespace CastIron.Sqlite
 {
-    public class SqlServerDataInteraction : IDataInteraction
+    public class SqliteDataInteraction : IDataInteraction
     {
-        public SqlServerDataInteraction(IDbCommand command)
+        public SqliteDataInteraction(IDbCommand command)
         {
             CIAssert.ArgumentNotNull(command, nameof(command));
             Command = command;
@@ -38,29 +40,12 @@ namespace CastIron.Sql.SqlServer
 
         public IDataInteraction AddOutputParameter(string name, DbType dbType, int size)
         {
-            CIAssert.ArgumentNotNullOrEmpty(name, nameof(name));
-            var param = Command.CreateParameter();
-            param.Direction = ParameterDirection.Output;
-            param.ParameterName = NormalizeParameterName(name);
-            param.DbType = dbType;
-            if (size > 0)
-                param.Size = size;
-            Command.Parameters.Add(param);
-            return this;
+            throw new Exception("SQLite does not support OUTPUT or INPUT/OUTPUT parameters.");
         }
 
         public IDataInteraction AddInputOutputParameter(string name, object value, DbType dbType, int size)
         {
-            CIAssert.ArgumentNotNullOrEmpty(name, nameof(name));
-            var param = Command.CreateParameter();
-            param.Direction = ParameterDirection.InputOutput;
-            param.ParameterName = NormalizeParameterName(name);
-            param.DbType = dbType;
-            if (size > 0)
-                param.Size = size;
-            param.Value = value;
-            Command.Parameters.Add(param);
-            return this;
+            throw new Exception("SQLite does not support OUTPUT or INPUT/OUTPUT parameters.");
         }
 
         public IDataInteraction ExecuteText(string sqlText)

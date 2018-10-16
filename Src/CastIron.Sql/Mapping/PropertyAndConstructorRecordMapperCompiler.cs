@@ -22,8 +22,8 @@ namespace CastIron.Sql.Mapping
         // TODO: Ability to take the IDataRecord in the factory and consume some columns for constructor params so they aren't used later for properties?
         public Func<IDataRecord, T> CompileExpression<T>(Type specific, IDataReader reader, Func<T> factory, ConstructorInfo preferredConstructor)
         {
-            Assert.ArgumentNotNull(reader, nameof(reader));
-            Assert.ArgumentNotNull(specific, nameof(specific));
+            CIAssert.ArgumentNotNull(reader, nameof(reader));
+            CIAssert.ArgumentNotNull(specific, nameof(specific));
 
             var parentType = typeof(T);
 

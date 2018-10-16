@@ -158,7 +158,7 @@ SELECT
 
         public ISqlSelectQuery<T> Where(Action<ISelectWhereClauseBuilder<T>> build)
         {
-            Assert.ArgumentNotNull(build, nameof(build));
+            CIAssert.ArgumentNotNull(build, nameof(build));
             var builder = new WhereClauseBuilder();
             build?.Invoke(builder);
             _criteria = builder.Build();

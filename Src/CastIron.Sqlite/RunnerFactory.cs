@@ -1,5 +1,4 @@
 ﻿using CastIron.Sql;
-using CastIron.Sql.SqlServer;
 using CastIron.Sql.Statements;
 
 namespace CastIron.Sqlite
@@ -10,9 +9,9 @@ namespace CastIron.Sqlite
         {
             return new SqlRunner(
                 new SqliteDbConnectionFactory(connectionString), 
+                // TODO: Do we need a custom one of these for SQLite?
                 new SqlServerStatementBuilder(), 
-                // TODO: Do we need a different interaction wrapper for sqlite?
-                new SqlServerDataInteractionFactory());
+                new SqliteDataInteractionFactory());
         }
     }
 }

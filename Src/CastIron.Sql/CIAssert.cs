@@ -2,7 +2,7 @@
 
 namespace CastIron.Sql
 {
-    internal static class Assert
+    public static class CIAssert
     {
         public static void ArgumentNotNull(object value, string name)
         {
