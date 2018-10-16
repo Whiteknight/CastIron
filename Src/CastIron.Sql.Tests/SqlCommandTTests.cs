@@ -15,16 +15,16 @@ namespace CastIron.Sql.Tests
                 return result.GetOutputParameter("@param").ToString();
             }
 
-            public bool SetupCommand(IDbCommand command)
+            public bool SetupCommand(IDataInteraction command)
             {
-                command.CommandText = GetSql();
+                command.ExecuteText(GetSql());
 
-                var p1 = command.CreateParameter();
+                var p1 = command.Command.CreateParameter();
                 p1.ParameterName = "@param";
                 p1.DbType = DbType.StringFixedLength;
                 p1.Size = 4;
                 p1.Direction = ParameterDirection.Output;
-                command.Parameters.Add(p1);
+                command.Command.Parameters.Add(p1);
 
                 return true;
             }
@@ -50,14 +50,14 @@ namespace CastIron.Sql.Tests
                 return result.GetOutputParameter("@param").ToString();
             }
 
-            public bool SetupCommand(IDbCommand command)
+            public bool SetupCommand(IDataInteraction command)
             {
-                command.CommandText = "SELECT @param = 'TEST';";
+                command.ExecuteText("SELECT @param = 'TEST';");
                 var p = new SqlParameter("@param", SqlDbType.Char, 4)
                 {
                     Direction = ParameterDirection.Output
                 };
-                command.Parameters.Add(p);
+                command.Command.Parameters.Add(p);
                 return false;
             }
         }

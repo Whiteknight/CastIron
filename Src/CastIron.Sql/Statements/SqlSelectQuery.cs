@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Data;
 using System.Linq;
 using System.Linq.Expressions;
 
@@ -16,12 +15,10 @@ namespace CastIron.Sql.Statements
             _selectListBuilder = selectListBuilder ?? SelectListBuilder.GetCached();
         }
 
-        public bool SetupCommand(IDbCommand command)
+        public bool SetupCommand(IDataInteraction interaction)
         {
-            command.CommandType = CommandType.Text;
-            command.CommandText = GetSql();
-            // TODO: Add parameters, if the criteria include any
-            return true;
+            interaction.ExecuteText(GetSql());
+            return interaction.IsValid;
         }
 
         private string GetSql()

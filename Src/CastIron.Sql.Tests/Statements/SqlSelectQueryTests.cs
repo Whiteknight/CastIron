@@ -1,5 +1,4 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
-using System.Data;
 using System.Linq;
 using CastIron.Sql.Statements;
 using FluentAssertions;
@@ -22,16 +21,16 @@ namespace CastIron.Sql.Tests.Statements
 
         public class CreateTestObjectTableCommand : ISqlCommand
         {
-            public bool SetupCommand(IDbCommand command)
+            public bool SetupCommand(IDataInteraction interaction)
             {
-                command.CommandText = @"
+                interaction.ExecuteText(@"
 CREATE TABLE #TestObject (
     TestInt INT NOT NULL,
     TestString VARCHAR(10) NOT NULL,
     SecondInt INT NOT NULL
 );
 INSERT INTO #TestObject (TestInt, TestString, SecondInt) VALUES (3, 'FAIL', 4);
-INSERT INTO #TestObject (TestInt, TestString, SecondInt) VALUES (5, 'OK', 6);";
+INSERT INTO #TestObject (TestInt, TestString, SecondInt) VALUES (5, 'OK', 6);");
                 return true;
             }
         }
@@ -39,13 +38,15 @@ INSERT INTO #TestObject (TestInt, TestString, SecondInt) VALUES (5, 'OK', 6);";
         [Test]
         public void ToSql_Test([Values("MSSQL")] string provider)
         {
+            var runner = RunnerFactory.Create(provider);
+
             var target = new SqlSelectQuery<TestObject>()
                 .Where(b => b.Equal(c => c.TestInt, 5));
-            var batch = new SqlBatch();
+            var batch = runner.CreateBatch();
             batch.Add(new CreateTestObjectTableCommand());
             var promise = batch.Add(target);
 
-            var runner = RunnerFactory.Create(provider);
+            
             runner.Execute(batch);
 
             var result = promise.GetValue().ToList();

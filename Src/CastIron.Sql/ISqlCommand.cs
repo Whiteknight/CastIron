@@ -1,13 +1,11 @@
-﻿using System.Data;
-
-namespace CastIron.Sql
+﻿namespace CastIron.Sql
 {
     /// <summary>
     /// Used with .ExecuteNonQuery(), represents a command to update the database without returning any result sets.
     /// </summary>
     public interface ISqlCommand
     {
-        bool SetupCommand(IDbCommand command);
+        bool SetupCommand(IDataInteraction interaction);
     }
 
     /// <summary>

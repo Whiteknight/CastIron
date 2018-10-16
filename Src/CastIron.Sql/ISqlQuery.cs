@@ -1,6 +1,4 @@
-﻿using System.Data;
-
-namespace CastIron.Sql
+﻿namespace CastIron.Sql
 {
     /// <summary>
     /// Represents a query which returns result sets from the DB. The raw DbCommand is provided
@@ -9,7 +7,7 @@ namespace CastIron.Sql
     /// <typeparam name="T"></typeparam>
     public interface ISqlQuery<out T>
     {
-        bool SetupCommand(IDbCommand command);
+        bool SetupCommand(IDataInteraction interaction);
         T Read(SqlResultSet result);
     }
 }

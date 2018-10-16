@@ -1,4 +1,5 @@
-﻿using CastIron.Sql.Statements;
+﻿using CastIron.Sql.SqlServer;
+using CastIron.Sql.Statements;
 
 namespace CastIron.Sql
 {
@@ -6,7 +7,7 @@ namespace CastIron.Sql
     {
         public static ISqlRunner Create(string connectionString)
         {
-            return new SqlRunner(new SqlServerDbConnectionFactory(connectionString), new SqlStatementBuilder());
+            return new SqlRunner(new SqlServerDbConnectionFactory(connectionString), new SqlServerStatementBuilder(), new SqlServerDataInteractionFactory());
         }
     }
 }

@@ -10,9 +10,9 @@ namespace CastIron.Sql.Tests
     {
         public class CommandExecuted : ISqlQuery<string>
         {
-            public bool SetupCommand(IDbCommand command)
+            public bool SetupCommand(IDataInteraction command)
             {
-                command.CommandText = "SELECT 'TEST';";
+                command.ExecuteText("SELECT 'TEST';");
                 return true;
             }
 
@@ -32,9 +32,9 @@ namespace CastIron.Sql.Tests
 
         public class CommandNotExecuted : ISqlQuery<string>
         {
-            public bool SetupCommand(IDbCommand command)
+            public bool SetupCommand(IDataInteraction command)
             {
-                command.CommandText = "SELECT 'TEST';";
+                command.ExecuteText("SELECT 'TEST';");
                 return false;
             }
 
@@ -59,15 +59,15 @@ namespace CastIron.Sql.Tests
 
         public class CommandWithParameter : ISqlQuery<ParameterResult>
         {
-            public bool SetupCommand(IDbCommand command)
+            public bool SetupCommand(IDataInteraction command)
             {
-                command.CommandText = "SELECT @value = 'TEST';";
-                var param = command.CreateParameter();
+                command.ExecuteText("SELECT @value = 'TEST';");
+                var param = command.Command.CreateParameter();
                 param.ParameterName = "@value";
                 param.Direction = ParameterDirection.Output;
                 param.DbType = DbType.AnsiString;
                 param.Size = 4;
-                command.Parameters.Add(param);
+                command.Command.Parameters.Add(param);
                 return true;
             }
 

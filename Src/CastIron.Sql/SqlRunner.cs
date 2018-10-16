@@ -11,15 +11,19 @@ namespace CastIron.Sql
     public class SqlRunner : ISqlRunner
     {
         private readonly IDbConnectionFactory _connectionFactory;
+        private readonly IDataInteractionFactory _interactionFactory;
 
-        public SqlRunner(IDbConnectionFactory connectionFactory, ISqlStatementBuilder statementBuilder)
+        public SqlRunner(IDbConnectionFactory connectionFactory, ISqlStatementBuilder statementBuilder, IDataInteractionFactory interactionFactory)
         {
             Assert.ArgumentNotNull(connectionFactory, nameof(connectionFactory));
             Assert.ArgumentNotNull(statementBuilder, nameof(statementBuilder));
+            Assert.ArgumentNotNull(interactionFactory, nameof(interactionFactory));
 
             _connectionFactory = connectionFactory;
-            Stringifier = new QueryObjectStringifier();
+            _interactionFactory = interactionFactory;
             Statements = statementBuilder;
+
+            Stringifier = new QueryObjectStringifier(_interactionFactory);
         }
 
         public QueryObjectStringifier Stringifier { get; }
@@ -68,6 +72,11 @@ namespace CastIron.Sql
             }
         }
 
+        public SqlBatch CreateBatch()
+        {
+            return new SqlBatch(_interactionFactory);
+        }
+
         public void Execute(SqlBatch batch, Action<IContextBuilder> build = null)
         {
             Execute(batch.GetExecutors(), build);
@@ -80,12 +89,12 @@ namespace CastIron.Sql
 
         public T Query<T>(ISqlQuerySimple<T> query, Action<IContextBuilder> build = null)
         {
-            return Execute(c => new SqlQueryStrategy<T>(query).Execute(c, 0), build);
+            return Execute(c => new SqlQuerySimpleStrategy<T>(query).Execute(c, 0), build);
         }
 
         public T Query<T>(ISqlQuery<T> query, Action<IContextBuilder> build = null)
         {
-            return Execute(c => new SqlQueryRawCommandStrategy<T>(query).Execute(c, 0), build);
+            return Execute(c => new SqlQueryStrategy<T>(query, _interactionFactory).Execute(c, 0), build);
         }
 
         public T Query<T>(ISqlConnectionAccessor<T> accessor, Action<IContextBuilder> build = null)
@@ -115,12 +124,12 @@ namespace CastIron.Sql
 
         public void Execute(ISqlCommand commandObject, Action<IContextBuilder> build = null)
         {
-            Execute(c => new SqlCommandRawStrategy(commandObject).Execute(c, 0), build);
+            Execute(c => new SqlCommandRawStrategy(commandObject, _interactionFactory).Execute(c, 0), build);
         }
 
         public T Execute<T>(ISqlCommand<T> commandObject, Action<IContextBuilder> build = null)
         {
-            return Execute(c => new SqlCommandRawStrategy<T>(commandObject).Execute(c, 0), build);
+            return Execute(c => new SqlCommandRawStrategy<T>(commandObject, _interactionFactory).Execute(c, 0), build);
         }
 
         // TODO: Method variants where we can get a wrapped object which contains the (still open) connection, so we can stream data and then dispose the whole thing

@@ -1,7 +1,7 @@
 ﻿using System.Data;
 using System.Data.SqlClient;
 
-namespace CastIron.Sql
+namespace CastIron.Sql.SqlServer
 {
     /// <summary>
     /// Default IDbConnectionFactory implementation for Microsoft SQL Server and compatible databases

@@ -55,7 +55,7 @@ CREATE TABLE #DocumentTerms (
             public float TfIdfScore { get; set; }
         }
 
-        class TfIdfCalculationQuery : ISqlQuery<IReadOnlyList<TfIdfResult>>
+        private class TfIdfCalculationQuery : ISqlQuery<IReadOnlyList<TfIdfResult>>
         {
             private readonly string _term;
             private readonly int _start;
@@ -68,9 +68,9 @@ CREATE TABLE #DocumentTerms (
                 _pageSize = pageSize;
             }
 
-            public bool SetupCommand(IDbCommand command)
+            public bool SetupCommand(IDataInteraction command)
             {
-                command.CommandText = GetSql();
+                command.ExecuteText(GetSql());
                 command.AddParameterWithValue("@term", _term);
                 command.AddParameterWithValue("@start", _start);
                 command.AddParameterWithValue("@pageSize", _pageSize);
@@ -161,7 +161,9 @@ SELECT
         public void TfIdf_Test([Values("MSSQL", "SQLITE")] string provider)
         {
             TestUtilities.NeedsFixesFor("SQLITE", provider);
-            var batch = new SqlBatch();
+
+            var runner = RunnerFactory.Create(provider);
+            var batch = runner.CreateBatch();
             batch.Add(new CreateTfIdfTableCommand());
             batch.Add(new PopulateTermsTableCommand(new[]
             {
@@ -171,7 +173,7 @@ SELECT
             }));
             var promise1 = batch.Add(new TfIdfCalculationQuery("this"));
             var promise2 = batch.Add(new TfIdfCalculationQuery("example"));
-            var runner = RunnerFactory.Create(provider);
+            
             runner.Execute(batch);
 
             // "this" is common and has score of 0 for all documents

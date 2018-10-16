@@ -6,10 +6,12 @@ namespace CastIron.Sql.Execution
     public class SqlCommandRawStrategy
     {
         private readonly ISqlCommand _command;
+        private readonly IDataInteractionFactory _interactionFactory;
 
-        public SqlCommandRawStrategy(ISqlCommand command)
+        public SqlCommandRawStrategy(ISqlCommand command, IDataInteractionFactory interactionFactory)
         {
             _command = command;
+            _interactionFactory = interactionFactory;
         }
 
         public void Execute(IExecutionContext context, int index)
@@ -44,17 +46,20 @@ namespace CastIron.Sql.Execution
 
         public bool SetupCommand(IDbCommand command)
         {
-            return _command.SetupCommand(command);
+            var interaction = _interactionFactory.Create(command);
+            return _command.SetupCommand(interaction);
         }
     }
 
     public class SqlCommandRawStrategy<T>
     {
         private readonly ISqlCommand<T> _command;
+        private readonly IDataInteractionFactory _interactionFactory;
 
-        public SqlCommandRawStrategy(ISqlCommand<T> command)
+        public SqlCommandRawStrategy(ISqlCommand<T> command, IDataInteractionFactory interactionFactory)
         {
             _command = command;
+            _interactionFactory = interactionFactory;
         }
 
         public T Execute(IExecutionContext context, int index)
@@ -92,7 +97,8 @@ namespace CastIron.Sql.Execution
 
         public bool SetupCommand(IDbCommand command)
         {
-            return _command.SetupCommand(command);
+            var interaction = _interactionFactory.Create(command);
+            return _command.SetupCommand(interaction);
         }
     }
 }

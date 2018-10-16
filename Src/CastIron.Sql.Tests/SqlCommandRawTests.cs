@@ -15,15 +15,15 @@ namespace CastIron.Sql.Tests
                 return result.GetOutputParameter("@param").ToString();
             }
 
-            public bool SetupCommand(IDbCommand command)
+            public bool SetupCommand(IDataInteraction command)
             {
-                command.CommandText = "SELECT @param = 'TEST';";
-                var p = command.CreateParameter();
+                command.ExecuteText("SELECT @param = 'TEST';");
+                var p = command.Command.CreateParameter();
                 p.ParameterName = "@param";
                 p.DbType = DbType.AnsiString;
                 p.Size = 4;
                 p.Direction = ParameterDirection.Output;
-                command.Parameters.Add(p);
+                command.Command.Parameters.Add(p);
                 return true;
             }
         }
@@ -44,14 +44,14 @@ namespace CastIron.Sql.Tests
                 return result.GetOutputParameter<string>("@param");
             }
 
-            public bool SetupCommand(IDbCommand command)
+            public bool SetupCommand(IDataInteraction command)
             {
-                command.CommandText = "SELECT @param = 'TEST';";
+                command.ExecuteText("SELECT @param = 'TEST';");
                 var p = new SqlParameter("@param", SqlDbType.Char, 4)
                 {
                     Direction = ParameterDirection.Output
                 };
-                command.Parameters.Add(p);
+                command.Command.Parameters.Add(p);
                 return true;
             }
         }
@@ -72,15 +72,15 @@ namespace CastIron.Sql.Tests
                 return result.GetOutputParameter("@param").ToString();
             }
 
-            public bool SetupCommand(IDbCommand command)
+            public bool SetupCommand(IDataInteraction command)
             {
-                command.CommandText = "SELECT @param = 'TEST';";
-                var p = command.CreateParameter();
+                command.ExecuteText("SELECT @param = 'TEST';");
+                var p = command.Command.CreateParameter();
                 p.ParameterName = "@param";
                 p.DbType = DbType.AnsiString;
                 p.Size = 4;
                 p.Direction = ParameterDirection.Output;
-                command.Parameters.Add(p);
+                command.Command.Parameters.Add(p);
                 return false;
             }
         }

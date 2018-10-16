@@ -1,6 +1,6 @@
 ﻿namespace CastIron.Sql.Statements
 {
-    public class SqlStatementBuilder : ISqlStatementBuilder
+    public class SqlServerStatementBuilder : ISqlStatementBuilder
     {
         public ISqlSelectQuery<T> GetSelectStatement<T>()
         {

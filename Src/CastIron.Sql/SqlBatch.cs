@@ -7,16 +7,19 @@ using CastIron.Sql.Statements;
 
 namespace CastIron.Sql
 {
+    // TODO: Do we need an ISqlBatch abstraction or is this general-purpose enough?
     /// <summary>
     /// Batch of statements to all be executed together on a single open connection.
     /// </summary>
     public class SqlBatch
     {
+        private readonly IDataInteractionFactory _interactionFactory;
         private readonly ConcurrentQueue<Action<IExecutionContext, int>> _executors;
         private int _beingRead;
 
-        public SqlBatch()
+        public SqlBatch(IDataInteractionFactory interactionFactory)
         {
+            _interactionFactory = interactionFactory;
             _beingRead = 0;
             _executors = new ConcurrentQueue<Action<IExecutionContext, int>>();
         }
@@ -40,14 +43,14 @@ namespace CastIron.Sql
         public ISqlResultPromise<T> Add<T>(ISqlQuerySimple<T> query)
         {
             var result = new SqlResultPromise<T>();
-            AddExecutor((c, i) => result.SetValue(new SqlQueryStrategy<T>(query).Execute(c, i)));
+            AddExecutor((c, i) => result.SetValue(new SqlQuerySimpleStrategy<T>(query).Execute(c, i)));
             return result;
         }
 
         public ISqlResultPromise<T> Add<T>(ISqlQuery<T> query)
         {
             var result = new SqlResultPromise<T>();
-            AddExecutor((c, i) => result.SetValue(new SqlQueryRawCommandStrategy<T>(query).Execute(c, i)));
+            AddExecutor((c, i) => result.SetValue(new SqlQueryStrategy<T>(query, _interactionFactory).Execute(c, i)));
             return result;
         }
 
@@ -74,7 +77,7 @@ namespace CastIron.Sql
             var result = new SqlResultPromise();
             AddExecutor((c, i) =>
             {
-                new SqlCommandRawStrategy(command).Execute(c, i);
+                new SqlCommandRawStrategy(command, _interactionFactory).Execute(c, i);
                 result.IsComplete = true;
             });
             return result;
@@ -83,7 +86,7 @@ namespace CastIron.Sql
         public ISqlResultPromise<T> Add<T>(ISqlCommand<T> command)
         {
             var result = new SqlResultPromise<T>();
-            AddExecutor((c, i) => result.SetValue(new SqlCommandRawStrategy<T>(command).Execute(c, i)));
+            AddExecutor((c, i) => result.SetValue(new SqlCommandRawStrategy<T>(command, _interactionFactory).Execute(c, i)));
             return result;
         }
 

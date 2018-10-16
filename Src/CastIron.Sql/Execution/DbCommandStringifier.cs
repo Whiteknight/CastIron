@@ -5,6 +5,7 @@ using System.Text;
 namespace CastIron.Sql.Execution
 {
     // TODO: Unit testing and more use-cases
+    // TODO: Is this general-purpose or do we need to have one per provider?
     // Internal class to ToString an IDbCommand
     public class DbCommandStringifier
     {

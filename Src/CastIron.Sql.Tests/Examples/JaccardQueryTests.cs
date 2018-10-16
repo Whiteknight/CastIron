@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.Data;
 using System.Linq;
 using System.Text;
 using FluentAssertions;
@@ -67,9 +66,9 @@ CREATE UNIQUE NONCLUSTERED INDEX RelationsDocumentTerm
                 _pageSize = pageSize;
             }
 
-            public bool SetupCommand(IDbCommand command)
+            public bool SetupCommand(IDataInteraction command)
             {
-                command.CommandText = GetSql();
+                command.ExecuteText(GetSql());
                 command.AddParameterWithValue("@documentId", _documentId);
                 command.AddParameterWithValue("@start", _start);
                 command.AddParameterWithValue("@pageSize", _pageSize);
@@ -161,8 +160,9 @@ SELECT
         public void Jaccard_Test([Values("MSSQL", "SQLITE")] string provider)
         {
             TestUtilities.NeedsFixesFor("SQLITE", provider);
+
             var runner = RunnerFactory.Create(provider);
-            var batch = new SqlBatch();
+            var batch = runner.CreateBatch();
             batch.Add(new CreateJaccardTableCommand());
             batch.Add(new PopulateRelationsTable(new Dictionary<int, List<int>> {
                 { 1, new List<int> { 1, 2, 3, 4, 5, 6 } },
