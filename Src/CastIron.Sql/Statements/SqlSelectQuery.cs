@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using CastIron.Sql.Utility;
 
 namespace CastIron.Sql.Statements
 {
@@ -158,7 +159,7 @@ SELECT
 
         public ISqlSelectQuery<T> Where(Action<ISelectWhereClauseBuilder<T>> build)
         {
-            CIAssert.ArgumentNotNull(build, nameof(build));
+            Assert.ArgumentNotNull(build, nameof(build));
             var builder = new WhereClauseBuilder();
             build?.Invoke(builder);
             _criteria = builder.Build();

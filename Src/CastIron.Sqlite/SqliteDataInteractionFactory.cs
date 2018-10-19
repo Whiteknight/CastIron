@@ -1,5 +1,6 @@
 ﻿using System.Data;
 using CastIron.Sql;
+using CastIron.Sql.Utility;
 
 namespace CastIron.Sqlite
 {
@@ -7,7 +8,7 @@ namespace CastIron.Sqlite
     {
         public IDataInteraction Create(IDbCommand command)
         {
-            CIAssert.ArgumentNotNull(command, nameof(command));
+            Assert.ArgumentNotNull(command, nameof(command));
             return new SqliteDataInteraction(command);
         }
     }

@@ -27,15 +27,17 @@ namespace CastIron.Sql.Tests
             switch (provider)
             {
                 case "SQLITE":
-                    return CastIron.Sqlite.RunnerFactory.Create(_configuration["SQLITE"]);
+                    return Sqlite.RunnerFactory.Create(_configuration["SQLITE"]);
 
                 case "MSSQL":
-                    return CastIron.Sql.RunnerFactory.Create(_configuration["MSSQL"]);
+                    return Sql.RunnerFactory.Create(_configuration["MSSQL"]);
 
                 default:
                     Assert.Inconclusive("Unknown or unsupported provider " + provider);
-                    return null;
+                    break;
             }
+
+            return null;
         }
     }
 }

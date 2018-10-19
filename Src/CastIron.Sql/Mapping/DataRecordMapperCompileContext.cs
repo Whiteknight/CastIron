@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Linq.Expressions;
+using CastIron.Sql.Utility;
 
 namespace CastIron.Sql.Mapping
 {
@@ -9,8 +10,8 @@ namespace CastIron.Sql.Mapping
     {
         public DataRecordMapperCompileContext(IDataReader reader, ParameterExpression recordParam, ParameterExpression instance, Type parent, Type specific)
         {
-            CIAssert.ArgumentNotNull(reader, nameof(reader));
-            CIAssert.ArgumentNotNull(recordParam, nameof(recordParam));
+            Assert.ArgumentNotNull(reader, nameof(reader));
+            Assert.ArgumentNotNull(recordParam, nameof(recordParam));
 
             Reader = reader;
             RecordParam = recordParam;

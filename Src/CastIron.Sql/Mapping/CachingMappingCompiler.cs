@@ -4,6 +4,7 @@ using System.Data;
 using System.Reflection;
 using System.Text;
 using System.Threading;
+using CastIron.Sql.Utility;
 
 namespace CastIron.Sql.Mapping
 {
@@ -37,7 +38,7 @@ namespace CastIron.Sql.Mapping
 
         public Func<IDataRecord, T> CompileExpression<T>(IDataReader reader)
         {
-            CIAssert.ArgumentNotNull(reader, nameof(reader));
+            Assert.ArgumentNotNull(reader, nameof(reader));
 
             var key = CreateKey<T>(typeof(T), reader, null);
             if (_cache.TryGetValue(key, out object cached) && cached is Func<IDataRecord, T> func)
@@ -50,8 +51,8 @@ namespace CastIron.Sql.Mapping
 
         public Func<IDataRecord, T> CompileExpression<T>(Type specific, IDataReader reader, Func<T> factory, ConstructorInfo preferredConstructor)
         {
-            CIAssert.ArgumentNotNull(specific, nameof(specific));
-            CIAssert.ArgumentNotNull(reader, nameof(reader));
+            Assert.ArgumentNotNull(specific, nameof(specific));
+            Assert.ArgumentNotNull(reader, nameof(reader));
 
             // We cannot cache if a custom factory is provided. The internals of the factory can change
             if (factory != null)

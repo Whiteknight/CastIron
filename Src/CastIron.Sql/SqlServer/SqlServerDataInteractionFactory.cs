@@ -1,4 +1,5 @@
 ﻿using System.Data;
+using CastIron.Sql.Utility;
 
 namespace CastIron.Sql.SqlServer
 {
@@ -6,7 +7,7 @@ namespace CastIron.Sql.SqlServer
     {
         public IDataInteraction Create(IDbCommand command)
         {
-            CIAssert.ArgumentNotNull(command, nameof(command));
+            Assert.ArgumentNotNull(command, nameof(command));
             return new SqlServerDataInteraction(command);
         }
     }

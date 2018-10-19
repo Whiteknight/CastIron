@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using CastIron.Sql.Utility;
 
 namespace CastIron.Sql.Mapping
 {
@@ -22,8 +23,8 @@ namespace CastIron.Sql.Mapping
         // TODO: Ability to take the IDataRecord in the factory and consume some columns for constructor params so they aren't used later for properties?
         public Func<IDataRecord, T> CompileExpression<T>(Type specific, IDataReader reader, Func<T> factory, ConstructorInfo preferredConstructor)
         {
-            CIAssert.ArgumentNotNull(reader, nameof(reader));
-            CIAssert.ArgumentNotNull(specific, nameof(specific));
+            Assert.ArgumentNotNull(reader, nameof(reader));
+            Assert.ArgumentNotNull(specific, nameof(specific));
 
             var parentType = typeof(T);
 

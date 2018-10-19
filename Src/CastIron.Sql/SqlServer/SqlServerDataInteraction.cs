@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Data;
+using CastIron.Sql.Utility;
 
 namespace CastIron.Sql.SqlServer
 {
@@ -7,7 +8,7 @@ namespace CastIron.Sql.SqlServer
     {
         public SqlServerDataInteraction(IDbCommand command)
         {
-            CIAssert.ArgumentNotNull(command, nameof(command));
+            Assert.ArgumentNotNull(command, nameof(command));
             Command = command;
         }
 
@@ -17,7 +18,7 @@ namespace CastIron.Sql.SqlServer
 
         public IDataInteraction AddParameterWithValue(string name, object value)
         {
-            CIAssert.ArgumentNotNullOrEmpty(name, nameof(name));
+            Assert.ArgumentNotNullOrEmpty(name, nameof(name));
 
             var param = Command.CreateParameter();
             param.Direction = ParameterDirection.Input;
@@ -29,7 +30,7 @@ namespace CastIron.Sql.SqlServer
 
         public IDataInteraction AddParametersWithValues(IEnumerable<KeyValuePair<string, object>> parameters)
         {
-            CIAssert.ArgumentNotNull(parameters, nameof(parameters));
+            Assert.ArgumentNotNull(parameters, nameof(parameters));
 
             foreach (var parameter in parameters)
                 AddParameterWithValue(parameter.Key, parameter.Value);
@@ -38,7 +39,7 @@ namespace CastIron.Sql.SqlServer
 
         public IDataInteraction AddOutputParameter(string name, DbType dbType, int size)
         {
-            CIAssert.ArgumentNotNullOrEmpty(name, nameof(name));
+            Assert.ArgumentNotNullOrEmpty(name, nameof(name));
             var param = Command.CreateParameter();
             param.Direction = ParameterDirection.Output;
             param.ParameterName = NormalizeParameterName(name);
@@ -51,7 +52,7 @@ namespace CastIron.Sql.SqlServer
 
         public IDataInteraction AddInputOutputParameter(string name, object value, DbType dbType, int size)
         {
-            CIAssert.ArgumentNotNullOrEmpty(name, nameof(name));
+            Assert.ArgumentNotNullOrEmpty(name, nameof(name));
             var param = Command.CreateParameter();
             param.Direction = ParameterDirection.InputOutput;
             param.ParameterName = NormalizeParameterName(name);
@@ -65,7 +66,7 @@ namespace CastIron.Sql.SqlServer
 
         public IDataInteraction ExecuteText(string sqlText)
         {
-            CIAssert.ArgumentNotNullOrEmpty(sqlText, nameof(sqlText));
+            Assert.ArgumentNotNullOrEmpty(sqlText, nameof(sqlText));
 
             Command.CommandType = CommandType.Text;
             Command.CommandText = sqlText;
@@ -74,7 +75,7 @@ namespace CastIron.Sql.SqlServer
 
         public IDataInteraction CallStoredProc(string procedureName)
         {
-            CIAssert.ArgumentNotNullOrEmpty(procedureName, nameof(procedureName));
+            Assert.ArgumentNotNullOrEmpty(procedureName, nameof(procedureName));
 
             Command.CommandType = CommandType.StoredProcedure;
             Command.CommandText = procedureName;

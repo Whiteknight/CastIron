@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using CastIron.Sql.Execution;
 using CastIron.Sql.Statements;
+using CastIron.Sql.Utility;
 
 namespace CastIron.Sql
 {
@@ -15,9 +16,9 @@ namespace CastIron.Sql
 
         public SqlRunner(IDbConnectionFactory connectionFactory, ISqlStatementBuilder statementBuilder, IDataInteractionFactory interactionFactory)
         {
-            CIAssert.ArgumentNotNull(connectionFactory, nameof(connectionFactory));
-            CIAssert.ArgumentNotNull(statementBuilder, nameof(statementBuilder));
-            CIAssert.ArgumentNotNull(interactionFactory, nameof(interactionFactory));
+            Assert.ArgumentNotNull(connectionFactory, nameof(connectionFactory));
+            Assert.ArgumentNotNull(statementBuilder, nameof(statementBuilder));
+            Assert.ArgumentNotNull(interactionFactory, nameof(interactionFactory));
 
             _connectionFactory = connectionFactory;
             _interactionFactory = interactionFactory;
@@ -37,14 +38,14 @@ namespace CastIron.Sql
             return context;
         }
 
-        public void Execute(IReadOnlyList<Action<IExecutionContext, int>> statements, Action<IContextBuilder> build = null)
+        public void Execute(IReadOnlyList<Action<IExecutionContext, int>> executors, Action<IContextBuilder> build = null)
         {
             using (var context = CreateExecutionContext(build))
             {
                 context.StartAction("Open connection");
                 context.OpenConnection();
-                for (int i = 0; i < statements.Count; i++)
-                    statements[i](context, i);
+                for (int i = 0; i < executors.Count; i++)
+                    executors[i](context, i);
                 context.MarkComplete();
             }
         }

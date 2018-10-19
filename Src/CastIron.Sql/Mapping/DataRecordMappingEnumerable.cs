@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Data;
 using CastIron.Sql.Execution;
+using CastIron.Sql.Utility;
 
 namespace CastIron.Sql.Mapping
 {
@@ -15,9 +16,9 @@ namespace CastIron.Sql.Mapping
 
         public DataRecordMappingEnumerable(IDataReader reader, IExecutionContext context, Func<IDataRecord, T> map)
         {
-            CIAssert.ArgumentNotNull(reader, nameof(reader));
-            CIAssert.ArgumentNotNull(context, nameof(context));
-            CIAssert.ArgumentNotNull(map, nameof(map));
+            Assert.ArgumentNotNull(reader, nameof(reader));
+            Assert.ArgumentNotNull(context, nameof(context));
+            Assert.ArgumentNotNull(map, nameof(map));
 
             _reader = reader;
             _context = context;

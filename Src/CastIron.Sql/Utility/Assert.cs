@@ -1,8 +1,8 @@
 ﻿using System;
 
-namespace CastIron.Sql
+namespace CastIron.Sql.Utility
 {
-    public static class CIAssert
+    public static class Assert
     {
         public static void ArgumentNotNull(object value, string name)
         {
