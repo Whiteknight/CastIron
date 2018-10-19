@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace CastIron.Sql
@@ -13,8 +12,10 @@ namespace CastIron.Sql
     {
         bool IsComplete { get; }
         T GetValue();
-        WaitHandle WaitHandle { get; }
         Task<T> AsTask(TimeSpan timeout);
+        bool WaitForComplete();
+        bool WaitForComplete(TimeSpan wait);
+        bool WaitForComplete(int waitMs);
     }
 
     /// <summary>
@@ -24,7 +25,9 @@ namespace CastIron.Sql
     public interface ISqlResultPromise : IDisposable
     {
         bool IsComplete { get; }
-        WaitHandle WaitHandle { get; }
         Task AsTask(TimeSpan timeout);
+        bool WaitForComplete();
+        bool WaitForComplete(TimeSpan wait);
+        bool WaitForComplete(int waitMs);
     }
 }

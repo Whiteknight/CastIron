@@ -7,15 +7,23 @@ namespace CastIron.Sql
     public class SqlResultPromise : ISqlResultPromise
     {
         private readonly ManualResetEvent _waitHandle;
+        private volatile bool _isComplete;
 
         public SqlResultPromise()
         {
             _waitHandle = new ManualResetEvent(false);
         }
 
-        public bool IsComplete { get; set; }
+        public bool IsComplete => _isComplete;
 
-        public WaitHandle WaitHandle => _waitHandle;
+        public void SetComplete()
+        {
+            if (_isComplete)
+                return;
+            _isComplete = true;
+            Interlocked.MemoryBarrier();
+            _waitHandle.Set();
+        }
 
         public Task AsTask(TimeSpan timeout)
         {
@@ -36,11 +44,33 @@ namespace CastIron.Sql
         {
             _waitHandle?.Dispose();
         }
+
+        public bool WaitForComplete()
+        {
+            if (_isComplete)
+                return true;
+            return  _waitHandle.WaitOne();
+        }
+
+        public bool WaitForComplete(TimeSpan wait)
+        {
+            if (_isComplete)
+                return true;
+            return _waitHandle.WaitOne(wait);
+        }
+
+        public bool WaitForComplete(int waitMs)
+        {
+            if (_isComplete)
+                return true;
+            return _waitHandle.WaitOne(waitMs);
+        }
     }
 
     public class SqlResultPromise<T> : ISqlResultPromise<T>
     {
         private readonly ManualResetEvent _waitHandle;
+        private volatile bool _isComplete;
 
         private T _result;
 
@@ -49,9 +79,7 @@ namespace CastIron.Sql
             _waitHandle = new ManualResetEvent(false);
         }
 
-        public WaitHandle WaitHandle => _waitHandle;
-
-        public bool IsComplete { get; private set; }
+        public bool IsComplete => _isComplete;
 
         public T GetValue()
         {
@@ -62,8 +90,10 @@ namespace CastIron.Sql
 
         public void SetValue(T value)
         {
+            if (_isComplete)
+                throw new Exception("The value for this promise has already been set, and can only be set once");
             _result = value;
-            IsComplete = true;
+            _isComplete = true;
             Interlocked.MemoryBarrier();
             _waitHandle.Set();
         }
@@ -86,6 +116,27 @@ namespace CastIron.Sql
         public void Dispose()
         {
             _waitHandle?.Dispose();
+        }
+
+        public bool WaitForComplete()
+        {
+            if (_isComplete)
+                return true;
+            return _waitHandle.WaitOne();
+        }
+
+        public bool WaitForComplete(TimeSpan wait)
+        {
+            if (_isComplete)
+                return true;
+            return _waitHandle.WaitOne(wait);
+        }
+
+        public bool WaitForComplete(int waitMs)
+        {
+            if (_isComplete)
+                return true;
+            return _waitHandle.WaitOne(waitMs);
         }
     }
 }

@@ -67,7 +67,7 @@ namespace CastIron.Sql
             AddExecutor((c, i) =>
             {
                 new SqlCommandStrategy(command).Execute(c, i);
-                result.IsComplete = true;
+                result.SetComplete();
             });
             return result;
         }
@@ -78,7 +78,7 @@ namespace CastIron.Sql
             AddExecutor((c, i) =>
             {
                 new SqlCommandRawStrategy(command, _interactionFactory).Execute(c, i);
-                result.IsComplete = true;
+                result.SetComplete();
             });
             return result;
         }

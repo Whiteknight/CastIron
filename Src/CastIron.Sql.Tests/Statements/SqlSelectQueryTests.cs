@@ -26,11 +26,13 @@ namespace CastIron.Sql.Tests.Statements
                 interaction.ExecuteText(@"
 CREATE TABLE #TestObject (
     TestInt INT NOT NULL,
-    TestString VARCHAR(10) NOT NULL,
+    TestString VARCHAR(4) NOT NULL,
     SecondInt INT NOT NULL
 );
-INSERT INTO #TestObject (TestInt, TestString, SecondInt) VALUES (3, 'FAIL', 4);
-INSERT INTO #TestObject (TestInt, TestString, SecondInt) VALUES (5, 'OK', 6);");
+INSERT INTO #TestObject (TestInt, TestString, SecondInt) 
+    VALUES 
+        (3, 'FAIL', 4),
+        (5, 'OK',   6);");
                 return true;
             }
         }
@@ -40,13 +42,15 @@ INSERT INTO #TestObject (TestInt, TestString, SecondInt) VALUES (5, 'OK', 6);");
         {
             var runner = RunnerFactory.Create(provider);
 
-            var target = new SqlSelectQuery<TestObject>()
-                .Where(b => b.Equal(c => c.TestInt, 5));
             var batch = runner.CreateBatch();
-            batch.Add(new CreateTestObjectTableCommand());
-            var promise = batch.Add(target);
 
-            
+            // Create the table and populate with test data
+            batch.Add(new CreateTestObjectTableCommand());
+
+            // Query the objects from the table
+            var promise = batch.Add(new SqlSelectQuery<TestObject>()
+                .Where(b => b.Equal(c => c.TestInt, 5)));
+
             runner.Execute(batch);
 
             var result = promise.GetValue().ToList();
