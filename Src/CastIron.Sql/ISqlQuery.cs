@@ -8,6 +8,6 @@
     public interface ISqlQuery<out T>
     {
         bool SetupCommand(IDataInteraction interaction);
-        T Read(SqlResultSet result);
+        T Read(IDataResults result);
     }
 }

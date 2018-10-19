@@ -7,6 +7,6 @@
     public interface ISqlQuerySimple<out T>
     {
         string GetSql();
-        T Read(SqlResultSet result);
+        T Read(IDataResults result);
     }
 }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Data;
+using CastIron.Sql.Mapping;
 
 namespace CastIron.Sql.Execution
 {
@@ -79,7 +80,7 @@ namespace CastIron.Sql.Execution
                     dbCommand.ExecuteNonQuery();
 
                     context.StartAction(index, "Map Results");
-                    var resultSet = new SqlResultSet(dbCommand, context, null);
+                    var resultSet = new SqlDataReaderResult(dbCommand, context, null);
                     return _command.ReadOutputs(resultSet);
                 }
                 catch (SqlProblemException)

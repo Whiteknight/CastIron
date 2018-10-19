@@ -31,7 +31,7 @@ namespace CastIron.Sql.Tests.Mapping
                     SELECT NumberValue from @values;";
             }
 
-            public IReadOnlyList<TestNumber> Read(SqlResultSet result)
+            public IReadOnlyList<TestNumber> Read(IDataResults result)
             {
                 return result
                     .AsEnumerable<TestNumber>(c => c
@@ -75,7 +75,7 @@ namespace CastIron.Sql.Tests.Mapping
                     SELECT * from cte;";
             }
 
-            public IReadOnlyList<TestNumber> Read(SqlResultSet result)
+            public IReadOnlyList<TestNumber> Read(IDataResults result)
             {
                 return result
                     .AsEnumerable<TestNumber>(c => c

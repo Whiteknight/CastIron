@@ -1,5 +1,4 @@
 ﻿using System.Data;
-using System.Data.SqlClient;
 using FluentAssertions;
 using NUnit.Framework;
 
@@ -10,7 +9,7 @@ namespace CastIron.Sql.Tests
     {
         public class Command1 : ISqlCommand<string>
         {
-            public string ReadOutputs(SqlResultSet result)
+            public string ReadOutputs(IDataResults result)
             {
                 return result.GetOutputParameter("@param").ToString();
             }
@@ -39,7 +38,7 @@ namespace CastIron.Sql.Tests
 
         public class Command2 : ISqlCommand<string>
         {
-            public string ReadOutputs(SqlResultSet result)
+            public string ReadOutputs(IDataResults result)
             {
                 return result.GetOutputParameter("@param").ToString();
             }

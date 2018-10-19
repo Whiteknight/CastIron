@@ -21,7 +21,7 @@ namespace CastIron.Sql.Tests.Mapping
                 return "SELECT 5 AS TestInt, 'TEST' AS TestString, CAST(1 AS BIT) AS TestBool;";
             }
 
-            public TestObject1 Read(SqlResultSet result)
+            public TestObject1 Read(IDataResults result)
             {
                 return result.AsEnumerable<TestObject1>().FirstOrDefault();
             }
@@ -54,7 +54,7 @@ namespace CastIron.Sql.Tests.Mapping
                 return "SELECT 5 AS TestInt, 'TEST' AS TestString, CAST(1 AS BIT) AS TestBool;";
             }
 
-            public object[] Read(SqlResultSet result)
+            public object[] Read(IDataResults result)
             {
                 return result.AsEnumerable<object[]>().FirstOrDefault();
             }
@@ -78,7 +78,7 @@ namespace CastIron.Sql.Tests.Mapping
                 return "SELECT 5 AS TestInt, 'TEST' AS TestString, CAST(1 AS BIT) AS TestBool;";
             }
 
-            public object Read(SqlResultSet result)
+            public object Read(IDataResults result)
             {
                 return result.AsEnumerable<object>().FirstOrDefault();
             }
@@ -105,7 +105,7 @@ namespace CastIron.Sql.Tests.Mapping
                 return "SELECT CAST(5 AS BIGINT) AS TestInt, 6 AS TestString, 1 AS TestBool;";
             }
 
-            public TestObject1 Read(SqlResultSet result)
+            public TestObject1 Read(IDataResults result)
             {
                 return result.AsEnumerable<TestObject1>().FirstOrDefault();
             }

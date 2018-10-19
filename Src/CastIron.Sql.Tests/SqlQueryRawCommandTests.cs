@@ -16,7 +16,7 @@ namespace CastIron.Sql.Tests
                 return true;
             }
 
-            public string Read(SqlResultSet result)
+            public string Read(IDataResults result)
             {
                 return result.AsEnumerable<string>().FirstOrDefault();
             }
@@ -38,7 +38,7 @@ namespace CastIron.Sql.Tests
                 return false;
             }
 
-            public string Read(SqlResultSet result)
+            public string Read(IDataResults result)
             {
                 return result.AsEnumerable<string>().FirstOrDefault();
             }
@@ -66,7 +66,7 @@ namespace CastIron.Sql.Tests
                 return true;
             }
 
-            public ParameterResult Read(SqlResultSet result)
+            public ParameterResult Read(IDataResults result)
             {
                 return result.GetOutputParameters<ParameterResult>();
             }

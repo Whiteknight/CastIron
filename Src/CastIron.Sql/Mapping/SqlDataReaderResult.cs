@@ -8,76 +8,69 @@ using CastIron.Sql.Debugging;
 using CastIron.Sql.Execution;
 using CastIron.Sql.Mapping;
 
-namespace CastIron.Sql
+namespace CastIron.Sql.Mapping
 {
     /// <summary>
     /// Encapsulates both the IDataReader and the IDbCommand to give unified access to all result
     /// sets and output parameters from the command
     /// </summary>
-    public class SqlResultSet
+    public class SqlDataReaderResult : IDataResults
     {
         private readonly IDbCommand _command;
         private readonly IExecutionContext _context;
         private readonly IDataReader _reader;
-        private bool _isConsumed;
 
-        public SqlResultSet(IDbCommand command, IExecutionContext context, IDataReader reader)
+        private bool _isConsumed;
+        private bool _isConsuming;
+        public int CurrentSet { get; private set; }
+
+        public SqlDataReaderResult(IDbCommand command, IExecutionContext context, IDataReader reader)
         {
             _command = command;
             _context = context;
             _reader = reader;
+            _isConsumed = false;
+            _isConsuming = false;
+            CurrentSet = 0;
         }
 
         public IDataReader AsRawReader()
         {
             AssertHasReader();
-            MarkConsumed();
+            MarkRawReaderBeingConsumed();
             return _reader;
         }
 
         public IDataReader AsRawReaderWithBetterErrorMessages()
         {
             AssertHasReader();
-            MarkConsumed();
+            MarkRawReaderBeingConsumed();
             return new DataReaderWithBetterErrorMessages(_reader);
-        }
-
-        public MultiResultMapper AsResultMapper()
-        {
-            AssertHasReader();
-            MarkConsumed();
-            return new MultiResultMapper(_reader, _context);
         }
 
         public IEnumerable<T> AsEnumerable<T>(Func<IDataRecord, T> map = null)
         {
-            ValidateDataReader();
-            MarkConsumed();
+            AssertHasReader();
+            MarkForInPlaceConsuming();
+            if (CurrentSet == 0)
+                CurrentSet = 1;
             map = map ?? CachingMappingCompiler.GetDefaultInstance().CompileExpression<T>(_reader);
             return new DataRecordMappingEnumerable<T>(_reader, _context, map);
         }
 
-        public IEnumerable<T> AsEnumerable<T>(Func<T> factory)
-        {
-            return AsEnumerable<T>(null, factory, null);
-        }
-
-        public IEnumerable<T> AsEnumerable<T>(ConstructorInfo preferredConstructor)
-        {
-            return AsEnumerable<T>(null, null, preferredConstructor);
-        }
-
         public IEnumerable<T> AsEnumerable<T>(IRecordMapperCompiler compiler, Func<T> factory = null, ConstructorInfo preferredConstructor = null)
         {
-            ValidateDataReader();
-            MarkConsumed();
+            AssertHasReader();
+            MarkForInPlaceConsuming();
+            if (CurrentSet == 0)
+                CurrentSet = 1;
             var map = (compiler ?? CachingMappingCompiler.GetDefaultInstance()).CompileExpression(typeof(T), _reader, factory, preferredConstructor);
             return new DataRecordMappingEnumerable<T>(_reader, _context, map);
         }
 
         public IEnumerable<T> AsEnumerable<T>(Func<ISubclassMapping<T>, ISubclassMapping<T>> setup, IRecordMapperCompiler compiler = null)
         {
-            ValidateDataReader();
+            AssertHasReader();
             var mapping = new SubclassMapping<T>(compiler);
             setup(mapping);
             return AsEnumerable(mapping.BuildThunk(_reader));
@@ -127,23 +120,61 @@ namespace CastIron.Sql
             return t;
         }
 
-        private void MarkConsumed()
+        private void MarkRawReaderBeingConsumed()
         {
-            if (_isConsumed)
-                throw new Exception("SqlDataReader is forward-only, and cannot be consumed more than once");
+            if (_isConsumed || _isConsuming)
+                throw new Exception("SqlDataReader cannot be consumed more than once. Have you accessed the reader already or have you started reading values from it already?");
             _isConsumed = true;
         }
+
+        private void MarkForInPlaceConsuming()
+        {
+            if (_isConsumed)
+                throw new Exception("SqlDataReader is being consumed and cannot be accessed again.");
+            _isConsuming = true;
+        }
+
 
         private void AssertHasReader()
         {
             if (_reader == null)
-                throw new Exception("This result does not contain a data reader");
+                throw new Exception($"This result does not contain a data reader. Are you executing an {nameof(ISqlCommand)} variant?");
         }
 
-        private void ValidateDataReader()
+        public IDataResults AdvanceToNextResultSet()
         {
-            if (_reader == null)
-                throw new InvalidOperationException("Cannot map results to enumerable because the reader is null. Are you executing an ISqlCommand variant?");
+            return AdvanceToResultSet(CurrentSet + 1);
+        }
+
+        public IDataResults AdvanceToResultSet(int num)
+        {
+            AssertHasReader();
+
+            // TODO: Review all this logic to make sure it is sane and necessary
+            if (CurrentSet > num)
+                throw new Exception("Cannot read result sets out of order. At Set=" + CurrentSet + " but requested Set=" + num);
+            if (CurrentSet == 0 )
+            {
+                if (num == 1)
+                {
+                    CurrentSet = num;
+                    return this;
+                }
+
+                CurrentSet = 1;
+            }
+
+            while (CurrentSet < num)
+            {
+                CurrentSet++;
+                if (!_reader.NextResult())
+                    throw new Exception("Could not read result Set=" + CurrentSet + " (requested result Set=" + num + ")");
+            }
+
+            if (CurrentSet != num)
+                throw new Exception("Could not find result Set=" + num);
+
+            return this;
         }
     }
 }

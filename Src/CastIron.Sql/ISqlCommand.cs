@@ -15,6 +15,6 @@
     /// <typeparam name="T"></typeparam>
     public interface ISqlCommand<out T> : ISqlCommand
     {
-        T ReadOutputs(SqlResultSet result);
+        T ReadOutputs(IDataResults result);
     }
 }

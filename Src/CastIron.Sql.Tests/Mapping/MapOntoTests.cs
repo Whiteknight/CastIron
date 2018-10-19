@@ -40,9 +40,8 @@ namespace CastIron.Sql.Tests.Mapping
                     SELECT 1 AS Id, 'VALUE' AS Value;";
             }
 
-            public ResultRecord Read(SqlResultSet result)
+            public ResultRecord Read(IDataResults reader)
             {
-                var reader = result.AsResultMapper();
                 var records = reader.GetNextEnumerable<ResultRecord>().ToDictionary(r => r.Id);
                 reader
                     .GetNextEnumerable(r => new
@@ -74,9 +73,8 @@ namespace CastIron.Sql.Tests.Mapping
                     SELECT 1 AS Id, 'VALUE' AS Value;";
             }
 
-            public ResultRecord Read(SqlResultSet result)
+            public ResultRecord Read(IDataResults reader)
             {
-                var reader = result.AsResultMapper();
                 var records = reader.GetNextEnumerable<ResultRecord>().ToDictionary(r => r.Id);
                 reader.GetNextEnumerable<PartialRecordValue>().MapOnto(p => records[p.Id], (p, r) => r.Value = p.Value);
                 return records.Values.Single();

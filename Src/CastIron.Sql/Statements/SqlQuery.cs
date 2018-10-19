@@ -17,7 +17,7 @@ namespace CastIron.Sql.Statements
             return _sql;
         }
 
-        public IReadOnlyList<TRow> Read(SqlResultSet result)
+        public IReadOnlyList<TRow> Read(IDataResults result)
         {
             return result.AsEnumerable<TRow>().ToList();
         }

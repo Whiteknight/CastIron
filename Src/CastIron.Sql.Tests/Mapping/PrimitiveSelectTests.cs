@@ -22,7 +22,7 @@ namespace CastIron.Sql.Tests.Mapping
                 return _sql;
             }
 
-            public T Read(SqlResultSet result)
+            public T Read(IDataResults result)
             {
                 return result.AsEnumerable<T>().First();
             }

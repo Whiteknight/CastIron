@@ -33,7 +33,7 @@ SELECT
 ;";
         }
 
-        public IEnumerable<T> Read(SqlResultSet result)
+        public IEnumerable<T> Read(IDataResults result)
         {
             return result.AsEnumerable<T>().ToList();
         }

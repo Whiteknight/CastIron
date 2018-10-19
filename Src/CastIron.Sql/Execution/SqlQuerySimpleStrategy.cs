@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Data;
+using CastIron.Sql.Mapping;
 
 namespace CastIron.Sql.Execution
 {
@@ -29,7 +30,7 @@ namespace CastIron.Sql.Execution
                     using (var reader = dbCommand.ExecuteReader())
                     {
                         context.StartAction(index, "Map Results");
-                        var rawResultSet = new SqlResultSet(dbCommand, context, reader);
+                        var rawResultSet = new SqlDataReaderResult(dbCommand, context, reader);
                         return _query.Read(rawResultSet);
                     }
                 }

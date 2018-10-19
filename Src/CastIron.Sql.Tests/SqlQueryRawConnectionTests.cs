@@ -11,7 +11,7 @@ namespace CastIron.Sql.Tests
         public class Query1 : ISqlConnectionAccessor<string>
         {
             
-            public string Read(SqlResultSet result)
+            public string Read(IDataResults result)
             {
                 return result.AsEnumerable<string>().FirstOrDefault();
             }

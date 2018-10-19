@@ -9,7 +9,7 @@ namespace CastIron.Sql.Tests
     {
         public class CommandWithUntypedOutputParameter : ISqlCommand<string>
         {
-            public string ReadOutputs(SqlResultSet result)
+            public string ReadOutputs(IDataResults result)
             {
                 return result.GetOutputParameter("@param").ToString();
             }
@@ -33,7 +33,7 @@ namespace CastIron.Sql.Tests
 
         public class CommandWithTypedOutputParameter : ISqlCommand<string>
         {
-            public string ReadOutputs(SqlResultSet result)
+            public string ReadOutputs(IDataResults result)
             {
                 return result.GetOutputParameter<string>("@param");
             }
@@ -57,7 +57,7 @@ namespace CastIron.Sql.Tests
 
         public class CommandNotExecuted : ISqlCommand<string>
         {
-            public string ReadOutputs(SqlResultSet result)
+            public string ReadOutputs(IDataResults result)
             {
                 return result.GetOutputParameter("@param").ToString();
             }
