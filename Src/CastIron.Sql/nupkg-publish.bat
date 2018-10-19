@@ -1,1 +1,0 @@
-dotnet nuget push Src\CastIron.Sql\bin\Release\CastIron.Sql.%1.nupkg --source https://www.nuget.org/api/v2/package
