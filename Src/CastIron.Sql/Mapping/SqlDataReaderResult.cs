@@ -6,7 +6,6 @@ using System.Linq;
 using System.Reflection;
 using CastIron.Sql.Debugging;
 using CastIron.Sql.Execution;
-using CastIron.Sql.Mapping;
 
 namespace CastIron.Sql.Mapping
 {
@@ -175,6 +174,42 @@ namespace CastIron.Sql.Mapping
                 throw new Exception("Could not find result Set=" + num);
 
             return this;
+        }
+
+        public bool TryAdvanceToNextResultSet()
+        {
+            return TryAdvanceToResultSet(CurrentSet + 1);
+        }
+
+        public bool TryAdvanceToResultSet(int num)
+        {
+            AssertHasReader();
+
+            if (CurrentSet > num)
+                return false;
+
+            if (CurrentSet == 0)
+            {
+                if (num == 1)
+                {
+                    CurrentSet = num;
+                    return true;
+                }
+
+                CurrentSet = 1;
+            }
+
+            while (CurrentSet < num)
+            {
+                CurrentSet++;
+                if (!_reader.NextResult())
+                    return false;
+            }
+
+            if (CurrentSet != num)
+                return false;
+
+            return true;
         }
     }
 }

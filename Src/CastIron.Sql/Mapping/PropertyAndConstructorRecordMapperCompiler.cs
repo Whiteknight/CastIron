@@ -136,6 +136,7 @@ namespace CastIron.Sql.Mapping
             if (!string.IsNullOrEmpty(columnName) && context.ColumnNames.ContainsKey(columnName))
                 return context.ColumnNames[columnName];
 
+            // TODO: Allow fuzzy match (levenshtein?) or contains match. Configurable, with tolerances.
             return -1;
         }
 

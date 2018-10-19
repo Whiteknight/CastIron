@@ -21,6 +21,9 @@ namespace CastIron.Sql
 
         IDataResults AdvanceToNextResultSet();
         IDataResults AdvanceToResultSet(int num);
+
+        bool TryAdvanceToNextResultSet();
+        bool TryAdvanceToResultSet(int num);
     }
 
     public static class DataResultsExtensions
