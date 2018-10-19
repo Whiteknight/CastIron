@@ -30,7 +30,7 @@
   </ItemGroup>
 
     <ItemGroup Condition="'$(Configuration)' == 'Release'">
-        <PackageReference Include="CastIron.Sql" Version="0.2.0"></PackageReference>
+        <PackageReference Include="CastIron.Sql" Version="0.3.0"></PackageReference>
     </ItemGroup>
 
     <ItemGroup Condition="'$(Configuration)' == 'Debug'">

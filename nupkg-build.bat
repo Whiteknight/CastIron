@@ -1,3 +1,4 @@
+:: TODO: Break out separate build scripts per project
 dotnet build Src\CastIron.Sql\CastIron.Sql.csproj --configuration Release
 if ERRORLEVEL 1 GOTO :error
 

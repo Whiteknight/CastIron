@@ -233,6 +233,7 @@ namespace CastIron.Sql.Mapping
 
         private static Func<IDataRecord, T> CompileForPrimitiveType<T>(IDataReader reader)
         {
+            // TODO: Take an index of the column to use (default=0)
             var recordParam = Expression.Parameter(typeof(IDataRecord), "record");
             var context = new DataRecordMapperCompileContext(reader, recordParam, null, typeof(T), typeof(T));
 
