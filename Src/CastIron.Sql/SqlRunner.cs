@@ -11,6 +11,7 @@ namespace CastIron.Sql
     /// </summary>
     public class SqlRunner : ISqlRunner
     {
+        // TODO: Interception mechanism so we can inspect and modify the sql code in passing
         private readonly IDbConnectionFactory _connectionFactory;
         private readonly IDataInteractionFactory _interactionFactory;
 

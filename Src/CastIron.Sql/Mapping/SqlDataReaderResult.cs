@@ -75,6 +75,9 @@ namespace CastIron.Sql.Mapping
             return AsEnumerable(mapping.BuildThunk(_reader));
         }
 
+        // TODO: Method to .AsEnumerable the next N consecutive result sets
+        // TODO: Method to .AsEnumerable all remaining result sets
+
         public object GetOutputParameter(string name)
         {
             if (!_command.Parameters.Contains(name))
