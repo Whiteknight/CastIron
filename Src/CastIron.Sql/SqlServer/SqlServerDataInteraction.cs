@@ -1,5 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Data;
+using System.Linq;
+using System.Reflection;
 using CastIron.Sql.Utility;
 
 namespace CastIron.Sql.SqlServer
@@ -35,6 +37,14 @@ namespace CastIron.Sql.SqlServer
             foreach (var parameter in parameters)
                 AddParameterWithValue(parameter.Key, parameter.Value);
             return this;
+        }
+
+        public IDataInteraction AddParametersWithValues(object parameters)
+        {
+            Assert.ArgumentNotNull(parameters, nameof(parameters));
+            
+            var properties = parameters.GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public).ToDictionary(p => p.Name, p => p.GetValue(parameters));
+            return AddParametersWithValues(properties);
         }
 
         public IDataInteraction AddOutputParameter(string name, DbType dbType, int size)
