@@ -6,7 +6,7 @@ namespace CastIron.Sql
 {
     /// <summary>
     /// Build and setup the execution context for the db connection. Can be used to set options
-    /// and additions for the connection 
+    /// and additional details for the connection 
     /// </summary>
     public interface IContextBuilder
     {
