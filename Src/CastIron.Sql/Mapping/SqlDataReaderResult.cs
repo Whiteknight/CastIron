@@ -122,27 +122,6 @@ namespace CastIron.Sql.Mapping
             return t;
         }
 
-        private void MarkRawReaderBeingConsumed()
-        {
-            if (_isConsumed || _isConsuming)
-                throw new Exception("SqlDataReader cannot be consumed more than once. Have you accessed the reader already or have you started reading values from it already?");
-            _isConsumed = true;
-        }
-
-        private void MarkForInPlaceConsuming()
-        {
-            if (_isConsumed)
-                throw new Exception("SqlDataReader is being consumed and cannot be accessed again.");
-            _isConsuming = true;
-        }
-
-
-        private void AssertHasReader()
-        {
-            if (_reader == null)
-                throw new Exception($"This result does not contain a data reader. Are you executing an {nameof(ISqlCommand)} variant?");
-        }
-
         public IDataResults AdvanceToNextResultSet()
         {
             return AdvanceToResultSet(CurrentSet + 1);
@@ -213,6 +192,48 @@ namespace CastIron.Sql.Mapping
                 return false;
 
             return true;
+        }
+
+        protected void DisposeHeldReferences()
+        {
+            _context.MarkComplete();
+            _reader.Dispose();
+            _command.Dispose();
+            _context.Dispose();
+        }
+
+        private void MarkRawReaderBeingConsumed()
+        {
+            if (_isConsumed || _isConsuming)
+                throw new Exception("SqlDataReader cannot be consumed more than once. Have you accessed the reader already or have you started reading values from it already?");
+            _isConsumed = true;
+        }
+
+        private void MarkForInPlaceConsuming()
+        {
+            if (_isConsumed)
+                throw new Exception("SqlDataReader is being consumed and cannot be accessed again.");
+            _isConsuming = true;
+        }
+
+
+        private void AssertHasReader()
+        {
+            if (_reader == null)
+                throw new Exception($"This result does not contain a data reader. Are you executing an {nameof(ISqlCommand)} variant?");
+        }
+    }
+
+    public class SqlDataReaderResultStream : SqlDataReaderResult, IDataResultsStream
+    {
+        public SqlDataReaderResultStream(IDbCommand command, IExecutionContext context, IDataReader reader)
+            : base(command, context, reader)
+        {
+        }
+
+        public void Dispose()
+        {
+            DisposeHeldReferences();
         }
     }
 }

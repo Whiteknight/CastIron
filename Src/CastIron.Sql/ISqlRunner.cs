@@ -127,5 +127,9 @@ namespace CastIron.Sql
         /// <param name="build"></param>
         /// <returns></returns>
         T Execute<T>(ISqlCommand<T> command, Action<IContextBuilder> build = null);
+
+        IDataResultsStream QueryStream(ISqlQuery query, Action<IContextBuilder> build = null);
+        IDataResultsStream QueryStream(ISqlQuerySimple query, Action<IContextBuilder> build = null);
+        IDataResultsStream QueryStream(string sql, Action<IContextBuilder> build = null);
     }
 }

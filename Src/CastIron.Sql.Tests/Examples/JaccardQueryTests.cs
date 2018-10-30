@@ -75,7 +75,7 @@ CREATE UNIQUE NONCLUSTERED INDEX RelationsDocumentTerm
                 return true;
             }
 
-            public IReadOnlyList<JaccardMatch> Read(IDataResults result)
+            public IReadOnlyList<JaccardMatch> GetResults(IDataResults result)
             {
                 return result.AsEnumerable<JaccardMatch>().ToList();
             }

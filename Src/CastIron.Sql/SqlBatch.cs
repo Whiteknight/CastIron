@@ -27,9 +27,7 @@ namespace CastIron.Sql
         public IReadOnlyList<Action<IExecutionContext, int>> GetExecutors()
         {
             var beingRead = Interlocked.CompareExchange(ref _beingRead, 1, 0) == 0;
-            if (beingRead)
-                return _executors.ToArray();
-            return new Action<IExecutionContext, int>[0];
+            return beingRead ? _executors.ToArray() : new Action<IExecutionContext, int>[0];
         }
 
         private void AddExecutor(Action<IExecutionContext, int> executor)
@@ -42,23 +40,35 @@ namespace CastIron.Sql
 
         public ISqlResultPromise<T> Add<T>(ISqlQuerySimple<T> query)
         {
-            var result = new SqlResultPromise<T>();
-            AddExecutor((c, i) => result.SetValue(new SqlQuerySimpleStrategy<T>(query).Execute(c, i)));
-            return result;
+            var promise = new SqlResultPromise<T>();
+            AddExecutor((c, i) =>
+            {
+                var result = new SqlQuerySimpleStrategy<T>(query).Execute(c, i);
+                promise.SetValue(result);
+            });
+            return promise;
         }
 
         public ISqlResultPromise<T> Add<T>(ISqlQuery<T> query)
         {
-            var result = new SqlResultPromise<T>();
-            AddExecutor((c, i) => result.SetValue(new SqlQueryStrategy<T>(query, _interactionFactory).Execute(c, i)));
-            return result;
+            var promise = new SqlResultPromise<T>();
+            AddExecutor((c, i) =>
+            {
+                var result = new SqlQueryStrategy<T>(query, _interactionFactory).Execute(c, i);
+                promise.SetValue(result);
+            });
+            return promise;
         }
 
         public ISqlResultPromise<T> Add<T>(ISqlConnectionAccessor<T> query)
         {
-            var result = new SqlResultPromise<T>();
-            AddExecutor((c, i) => result.SetValue(new SqlConnectionAccessorStrategy<T>(query).Execute(c, i)));
-            return result;
+            var promise = new SqlResultPromise<T>();
+            AddExecutor((c, i) =>
+            {
+                var result = new SqlConnectionAccessorStrategy<T>(query).Execute(c, i);
+                promise.SetValue(result);
+            });
+            return promise;
         }
 
         public ISqlResultPromise Add(ISqlCommandSimple command)
@@ -85,9 +95,13 @@ namespace CastIron.Sql
 
         public ISqlResultPromise<T> Add<T>(ISqlCommand<T> command)
         {
-            var result = new SqlResultPromise<T>();
-            AddExecutor((c, i) => result.SetValue(new SqlCommandRawStrategy<T>(command, _interactionFactory).Execute(c, i)));
-            return result;
+            var promise = new SqlResultPromise<T>();
+            AddExecutor((c, i) =>
+            {
+                var result = new SqlCommandRawStrategy<T>(command, _interactionFactory).Execute(c, i);
+                promise.SetValue(result);
+            });
+            return promise;
         }
 
         public ISqlResultPromise Add(string sql)

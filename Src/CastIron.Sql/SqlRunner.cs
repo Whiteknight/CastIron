@@ -134,7 +134,25 @@ namespace CastIron.Sql
             return Execute(c => new SqlCommandRawStrategy<T>(commandObject, _interactionFactory).Execute(c, 0), build);
         }
 
-        // TODO: Method variants where we can get a wrapped object which contains the (still open) connection, so we can stream data and then dispose the whole thing
-        // TODO: This will probably be something like SqlResultSet, but with the connection and a .Dispose() method and logic to auto-dispose on stream end.
+        public IDataResultsStream QueryStream(ISqlQuery query, Action<IContextBuilder> build = null)
+        {
+            var context = CreateExecutionContext(build);
+            context.StartAction("Open connection");
+            context.OpenConnection();
+            return new SqlQueryStreamStrategy(query, _interactionFactory).Execute(context);
+        }
+
+        public IDataResultsStream QueryStream(ISqlQuerySimple query, Action<IContextBuilder> build = null)
+        {
+            var context = CreateExecutionContext(build);
+            context.StartAction("Open connection");
+            context.OpenConnection();
+            return new SqlQuerySimpleStreamStrategy(query).Execute(context);
+        }
+
+        public IDataResultsStream QueryStream(string sql, Action<IContextBuilder> build = null)
+        {
+            return QueryStream(new SqlQuery(sql), build);
+        }
     }
 }

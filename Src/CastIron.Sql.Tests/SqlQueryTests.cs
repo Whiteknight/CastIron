@@ -61,7 +61,7 @@ namespace CastIron.Sql.Tests
                 return interaction.IsValid;
             }
 
-            public Query2Values Read(IDataResults result)
+            public Query2Values GetResults(IDataResults result)
             {
                 return result.AsEnumerable<Query2Values>().Single();
             }
@@ -82,6 +82,17 @@ namespace CastIron.Sql.Tests
             result.Value1.Should().Be(5);
             result.Value2.Should().Be(3.14f);
             result.Value3.Should().Be("TEST");
+        }
+
+
+        [Test]
+        public void StreamingResults_Test([Values("MSSQL", "SQLITE")] string provider)
+        {
+            var runner = RunnerFactory.Create(provider);
+            var stream = runner.QueryStream("SELECT 1 UNION SELECT 2 UNION SELECT 3");
+            var result = stream.AsEnumerable<int>().ToList();
+            result.Should().ContainInOrder(1, 2, 3);
+            stream.Dispose();
         }
     }
 }

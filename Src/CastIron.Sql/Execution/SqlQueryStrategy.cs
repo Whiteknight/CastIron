@@ -33,7 +33,7 @@ namespace CastIron.Sql.Execution
                     {
                         context.StartAction(index, "Map Results");
                         var resultSet = new SqlDataReaderResult(command, context, reader);
-                        return _query.Read(resultSet);
+                        return _query.GetResults(resultSet);
                     }
                 }
                 catch (SqlProblemException)

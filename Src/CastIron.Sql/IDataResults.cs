@@ -114,6 +114,10 @@ namespace CastIron.Sql
         bool TryAdvanceToResultSet(int num);
     }
 
+    public interface IDataResultsStream : IDataResults, IDisposable
+    {
+    }
+
     /// <summary>
     /// Common extension methods for IDataResults
     /// </summary>

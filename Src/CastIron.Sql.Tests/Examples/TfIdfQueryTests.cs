@@ -78,7 +78,7 @@ CREATE TABLE #DocumentTerms (
                 return true;
             }
 
-            public IReadOnlyList<TfIdfResult> Read(IDataResults result)
+            public IReadOnlyList<TfIdfResult> GetResults(IDataResults result)
             {
                 return result.AsEnumerable<TfIdfResult>().ToList();
             }
