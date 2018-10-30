@@ -6,7 +6,6 @@ using System.Linq;
 using System.Reflection;
 using CastIron.Sql.Debugging;
 using CastIron.Sql.Execution;
-using CastIron.Sql.Utility;
 
 namespace CastIron.Sql.Mapping
 {
@@ -26,8 +25,6 @@ namespace CastIron.Sql.Mapping
 
         public SqlDataReaderResult(IDbCommand command, IExecutionContext context, IDataReader reader)
         {
-            Assert.ArgumentNotNull(reader, nameof(reader));
-
             _command = command;
             _context = context;
             _reader = reader;
