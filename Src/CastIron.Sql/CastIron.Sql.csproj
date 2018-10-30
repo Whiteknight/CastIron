@@ -5,15 +5,15 @@
     <AssemblyName>CastIron.Sql</AssemblyName>
     <RootNamespace>CastIron.Sql</RootNamespace>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <Version>0.4.1</Version>
+    <Version>0.5.0</Version>
     <Authors>Andrew F. Whitworth</Authors>
     <Company />
     <Description>Bare-metal SQL QueryObject implementation</Description>
     <Copyright>Copyright 2018</Copyright>
     <PackageLicenseUrl>https://github.com/Whiteknight/CastIron/blob/master/LICENSE</PackageLicenseUrl>
     <PackageProjectUrl>https://github.com/Whiteknight/CastIron</PackageProjectUrl>
-    <AssemblyVersion>0.4.1</AssemblyVersion>
-    <FileVersion>0.4.1</FileVersion>
+    <AssemblyVersion>0.5.0</AssemblyVersion>
+    <FileVersion>0.5.0</FileVersion>
   </PropertyGroup>
 
   <PropertyGroup>
