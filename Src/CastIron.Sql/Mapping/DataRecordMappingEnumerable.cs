@@ -35,7 +35,7 @@ namespace CastIron.Sql.Mapping
         {
             if (_alreadyRead)
                 throw new Exception("Cannot read the same result set more than once. Please cache your results and read from the cache");
-            if (_context.IsCompleted)
+            if (_context != null && _context.IsCompleted)
                 throw new Exception("The connection is closed and the result set cannot be read");
             _alreadyRead = true;
             return new ResultSetEnumerator(_reader, _context, _map);

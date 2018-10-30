@@ -24,7 +24,7 @@ namespace CastIron.Sql.Mapping
         public Func<IDataRecord, T> CompileExpression<T>(Type specific, IDataReader reader, Func<T> factory, ConstructorInfo preferredConstructor)
         {
             Assert.ArgumentNotNull(reader, nameof(reader));
-            Assert.ArgumentNotNull(specific, nameof(specific));
+            specific = specific ?? typeof(T);
 
             var parentType = typeof(T);
 

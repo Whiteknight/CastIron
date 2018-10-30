@@ -12,6 +12,12 @@ Features of CastIron:
 1. Easy batching of multiple commands and queries together
 1. Automatic and configurable mapping of result sets to values and objects
 
+## ISqlQuery and ISqlCommand
+
+The `ISqlQuery` type and related types (`ISqlQuery<T>`, `ISqlQuerySimple`, `ISqlQuerySimple<T>`) encapsulate a call to `IDbCommand.ExecuteReader()`, which produces an `IDataReader` for reading results. These results may also have values from output parameters, if any were provided.
+
+The `ISqlCommand` type and its variants (`ISqlCommand<T>`, `ISqlCommandSimple`, `ISqlCommandSimple<T>`) encapsulate a call to `IDbCommand.ExecuteNonQuery()` which will not produce an `IDataReader` and expects not to have explicit result sets. The results from these may be calculated or they may be derived from output parameters (if any are provided).
+
 ## Quick Start
 
 Start by creating an `ISqlRunner`:
@@ -20,7 +26,53 @@ Start by creating an `ISqlRunner`:
 var runner = RunnerFactory.Create(connectionString);
 ```
 
-## Query Objects
+## I want to...
 
-The Quer
+### Execute a query object and get a mapped result
+
+```csharp
+var result = runner.Query(new MyQueryObject());
+```
+
+### Execute a command object
+
+```csharp
+runner.Execute(new MyCommandObject());
+```
+
+### Execute a query object and get a raw `IDataReader`
+
+```csharp
+var reader = runner.QueryStream(new MyQueryObject()).AsRawReader();
+```
+
+### Execute a string of SQL and get a mapped result
+
+```csharp
+var result = runner.Query("SELECT * FROM MyTable");
+```
+
+### Execute a string of SQL which does not return a result
+
+```csharp
+runner.Execute("UPDATE MyTable SET ...");
+```
+
+### Just execute an SQL query and get an `IDataReader`
+
+```csharp 
+var result = runner.QueryStream("SELECT * FROM MyTable").AsRawReader();
+```
+
+### Map an existing `IDataReader` to an enumerable of objects
+
+```csharp
+var result = runner.WrapAsResultStream(reader).AsEnumerable<MyType>();
+```
+### Map an existing `DataTable` to an enumerable of objects
+
+```csharp
+var result = runner.WrapAsResultStream(table).AsEnumerable<MyType>();
+```
+
 

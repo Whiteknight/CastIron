@@ -6,6 +6,7 @@ using System.Linq;
 using System.Reflection;
 using CastIron.Sql.Debugging;
 using CastIron.Sql.Execution;
+using CastIron.Sql.Utility;
 
 namespace CastIron.Sql.Mapping
 {
@@ -25,6 +26,8 @@ namespace CastIron.Sql.Mapping
 
         public SqlDataReaderResult(IDbCommand command, IExecutionContext context, IDataReader reader)
         {
+            Assert.ArgumentNotNull(reader, nameof(reader));
+
             _command = command;
             _context = context;
             _reader = reader;
@@ -80,7 +83,7 @@ namespace CastIron.Sql.Mapping
 
         public object GetOutputParameter(string name)
         {
-            if (!_command.Parameters.Contains(name))
+            if (_command == null || !_command.Parameters.Contains(name))
                 return null;
 
             if (!(_command.Parameters[name] is DbParameter param))
@@ -108,6 +111,9 @@ namespace CastIron.Sql.Mapping
         {
             // TODO: Can we introspect and get constructor parameters by name?
             var t = new T();
+            if (_command == null)
+                return t;
+
             var propertyMap = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance)
                 .Where(p => p.CanWrite)
                 .ToDictionary(p => p.Name.ToLowerInvariant());
@@ -196,10 +202,10 @@ namespace CastIron.Sql.Mapping
 
         protected void DisposeHeldReferences()
         {
-            _context.MarkComplete();
+            _context?.MarkComplete();
             _reader.Dispose();
-            _command.Dispose();
-            _context.Dispose();
+            _command?.Dispose();
+            _context?.Dispose();
         }
 
         private void MarkRawReaderBeingConsumed()
@@ -230,6 +236,8 @@ namespace CastIron.Sql.Mapping
             : base(command, context, reader)
         {
         }
+
+        // TODO: .AsRawReader() will return the reader which the user can .Dispose(), but not dispose the connection or command
 
         public void Dispose()
         {
