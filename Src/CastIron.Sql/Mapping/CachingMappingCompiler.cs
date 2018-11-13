@@ -26,7 +26,7 @@ namespace CastIron.Sql.Mapping
             if (_defaultInstance != null)
                 return _defaultInstance;
 
-            var newInstance = new CachingMappingCompiler(new PropertyAndConstructorRecordMapperCompiler());
+            var newInstance = new CachingMappingCompiler(new RecordMapperCompiler());
             var oldValue = Interlocked.CompareExchange(ref _defaultInstance, newInstance, null);
             return oldValue ?? newInstance;
         }
@@ -41,7 +41,7 @@ namespace CastIron.Sql.Mapping
             Assert.ArgumentNotNull(reader, nameof(reader));
 
             var key = CreateKey<T>(typeof(T), reader, null);
-            if (_cache.TryGetValue(key, out object cached) && cached is Func<IDataRecord, T> func)
+            if (_cache.TryGetValue(key, out var cached) && cached is Func<IDataRecord, T> func)
                 return func;
 
             var compiled = _inner.CompileExpression<T>(reader);
@@ -59,7 +59,7 @@ namespace CastIron.Sql.Mapping
                 return _inner.CompileExpression(specific, reader, factory, preferredConstructor);
 
             var key = CreateKey<T>(specific, reader, null);
-            if (_cache.TryGetValue(key, out object cached) && cached is Func<IDataRecord, T> func)
+            if (_cache.TryGetValue(key, out var cached) && cached is Func<IDataRecord, T> func)
                 return func;
 
             var compiled = _inner.CompileExpression<T>(specific, reader, null, preferredConstructor);
@@ -85,7 +85,7 @@ namespace CastIron.Sql.Mapping
 
                 sb.AppendLine();
             }
-            for (int i = 0; i < reader.FieldCount; i++)
+            for (var i = 0; i < reader.FieldCount; i++)
             {
                 sb.Append(i);
                 sb.Append(":");
