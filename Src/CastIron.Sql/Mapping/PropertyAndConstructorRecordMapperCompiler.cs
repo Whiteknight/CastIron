@@ -38,12 +38,43 @@ namespace CastIron.Sql.Mapping
             if (parentType == typeof(object) && specific == typeof(object))
                 return CreateObjectArrayMap(reader) as Func<IDataRecord, T>;
 
+            if (parentType.Namespace == "System" && parentType.Name.StartsWith("Tuple") && specific == parentType && factory == null && preferredConstructor == null)
+                return CompileTupleMap<T>(reader);
+
             // Check that specific is an assignable subclass of parentType. At this point we're creating an object
             if (!parentType.IsAssignableFrom(specific))
                 throw new Exception($"Type {specific.Name} must be assignable to {typeof(T)}.Name");
 
             // At this point we're past the easy options and must compile the thunk
             return CompileThunkForObjectInstance(specific, reader, factory, preferredConstructor);
+        }
+
+        private static Func<IDataRecord, T> CompileTupleMap<T>(IDataReader reader)
+        {
+            var tupleType = typeof(T);
+            var recordParam = Expression.Parameter(typeof(IDataRecord), "record");
+            var instance = Expression.Variable(tupleType, "instance");
+            var context = new DataRecordMapperCompileContext(reader, recordParam, instance, typeof(T), tupleType);
+
+            var typeParams = tupleType.GenericTypeArguments;
+            if (typeParams.Length == 0 || typeParams.Length > 7)
+                throw new Exception($"Cannot create a tuple with {typeParams.Length} parameters. Must be between 1 and 7");
+            var factoryMethod = typeof(Tuple).GetMethods(BindingFlags.Public | BindingFlags.Static)
+                .Where(m => m.Name == nameof(Tuple.Create) && m.GetParameters().Length == typeParams.Length)
+                .Select(m => m.MakeGenericMethod(typeParams))
+                .FirstOrDefault();
+            if (factoryMethod == null)
+                throw new Exception($"Cannot find factory method for type {tupleType.Name}");
+            var args = new Expression[typeParams.Length];
+            for (var i = 0; i < typeParams.Length; i++)
+                args[i] = GetConversionExpression(i, context, context.Reader.GetFieldType(i), typeParams[i]);
+
+            context.Statements.Add(Expression.Assign(instance, Expression.Call(null, factoryMethod, args)));
+            context.Statements.Add(Expression.Convert(instance, typeof(T)));
+            var lambdaExpression = Expression.Lambda<Func<IDataRecord, T>>(Expression.Block(context.Parent, context.Variables, context.Statements), context.RecordParam);
+            DumpCodeToDebugConsole(lambdaExpression);
+
+            return lambdaExpression.Compile();
         }
 
         private static Func<IDataRecord, T> CompileThunkForObjectInstance<T>(Type specific, IDataReader reader, Func<T> factory, ConstructorInfo preferredConstructor)
@@ -148,7 +179,7 @@ namespace CastIron.Sql.Mapping
 
             // Map columns to constructor parameters by name, marking the columns consumed so they aren't used again later
             var args = new Expression[constructor.Parameters.Length];
-            for (int i = 0; i < constructor.Parameters.Length; i++)
+            for (var i = 0; i < constructor.Parameters.Length; i++)
             {
                 var parameter = constructor.Parameters[i];
                 var name = parameter.Name.ToLowerInvariant();
