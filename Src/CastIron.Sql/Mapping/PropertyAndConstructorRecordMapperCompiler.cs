@@ -12,61 +12,46 @@ namespace CastIron.Sql.Mapping
 {
     public class PropertyAndConstructorRecordMapperCompiler : IRecordMapperCompiler
     {
+        private readonly ConstructorFinder _constructorFinder;
+
+        public PropertyAndConstructorRecordMapperCompiler()
+        {
+            _constructorFinder = new ConstructorFinder();
+        }
+
         // TODO: Ability to take the IDataRecord in the factory and consume some columns for constructor params so they aren't used later for properties?
         public Func<IDataRecord, T> CompileExpression<T>(Type specific, IDataReader reader, Func<T> factory, ConstructorInfo preferredConstructor)
         {
             Assert.ArgumentNotNull(reader, nameof(reader));
             specific = specific ?? typeof(T);
+            if (factory != null && preferredConstructor != null)
+                throw new Exception($"May specify at most one of {nameof(factory)} or {nameof(preferredConstructor)}");
 
+            // Prepare the list of expressions
             var context = CreateCompileContextForObjectInstance<T>(specific, reader);
             WriteInstantiationExpressionForObjectInstance(factory, preferredConstructor, context);
             WritePropertyAssignmentExpressions(context);
+
             // Add return statement to return the converted instance
             context.Statements.Add(Expression.Convert(context.Instance, typeof(T)));
+
+            // Compile the expression to a Func<>
             var lambdaExpression = Expression.Lambda<Func<IDataRecord, T>>(Expression.Block(context.Parent, context.Variables, context.Statements), context.RecordParam);
             DumpCodeToDebugConsole(lambdaExpression);
-
             return lambdaExpression.Compile();
         }
 
-        private static void WriteInstantiationExpressionForObjectInstance<T>(Func<T> factory, ConstructorInfo preferredConstructor, DataRecordMapperCompileContext context)
+        private void WriteInstantiationExpressionForObjectInstance<T>(Func<T> factory, ConstructorInfo preferredConstructor, DataRecordMapperCompileContext context)
         {
             if (factory != null)
             {
-                if (preferredConstructor != null)
-                    throw new Exception($"May specify at most one of {nameof(factory)} or {nameof(preferredConstructor)}");
-
                 context.Statements.Add(Expression.Assign(context.Instance, Expression.Call(Expression.Constant(factory.Target), factory.Method)));
                 return;
             }
 
-            var constructor = FindSuitableConstructor(preferredConstructor, context);
+            var constructor = _constructorFinder.FindBestMatch(preferredConstructor, context.Specific, context.ColumnNames);
             var constructorCall = CreateConstructorCallExpression(constructor, context);
             context.Statements.Add(Expression.Assign(context.Instance, constructorCall));
-        }
-
-        private static ScoredConstructor FindSuitableConstructor(ConstructorInfo preferredConstructor, DataRecordMapperCompileContext context)
-        {
-            // If the user has specified a preferred constructor, use that.
-            if (preferredConstructor != null)
-            {
-                if (!preferredConstructor.IsPublic || preferredConstructor.IsStatic)
-                    throw new Exception("Specified constructor is static or non-public and cannot be used");
-                if (preferredConstructor.DeclaringType != context.Specific)
-                    throw new Exception($"Specified constructor is for type {preferredConstructor.DeclaringType?.FullName} instead of the expected {context.Specific.FullName}");
-
-                return new ScoredConstructor(preferredConstructor, context.ColumnNames);
-            }
-
-            // Otherwise score all constructors and find the best match
-            var best = context.Specific.GetConstructors()
-                .Select(c => new ScoredConstructor(c, context.ColumnNames))
-                .Where(x => x.Score >= 0)
-                .OrderByDescending(x => x.Score)
-                .FirstOrDefault();
-            if (best == null)
-                throw new Exception($"Cannot find a suitable constructor for type {context.Specific.FullName}");
-            return best;
         }
 
         private static DataRecordMapperCompileContext CreateCompileContextForObjectInstance<T>(Type specific, IDataReader reader)
@@ -110,17 +95,18 @@ namespace CastIron.Sql.Mapping
             return -1;
         }
 
-        private static NewExpression CreateConstructorCallExpression(ScoredConstructor constructor, DataRecordMapperCompileContext context)
+        private static NewExpression CreateConstructorCallExpression(ConstructorInfo constructor, DataRecordMapperCompileContext context)
         {
+            var parameters = constructor.GetParameters();
             // Default parameterless constructor, just call it
-            if (constructor.Parameters.Length == 0)
-                return Expression.New(constructor.Constructor);
+            if (parameters.Length == 0)
+                return Expression.New(constructor);
 
             // Map columns to constructor parameters by name, marking the columns consumed so they aren't used again later
-            var args = new Expression[constructor.Parameters.Length];
-            for (var i = 0; i < constructor.Parameters.Length; i++)
+            var args = new Expression[parameters.Length];
+            for (var i = 0; i < parameters.Length; i++)
             {
-                var parameter = constructor.Parameters[i];
+                var parameter = parameters[i];
                 var name = parameter.Name.ToLowerInvariant();
                 if (!context.ColumnNames.ContainsKey(name))
                 {
@@ -137,10 +123,8 @@ namespace CastIron.Sql.Mapping
                 args[i] = DataRecordExpressions.GetConversionExpression(columnIdx, context, context.Reader.GetFieldType(columnIdx), parameter.ParameterType);
             }
 
-            return Expression.New(constructor.Constructor, args);
+            return Expression.New(constructor, args);
         }
-
-        
 
         private static IEnumerable<PropertyInfo> GetMappableProperties(Type specific, DataRecordMapperCompileContext context)
         {
@@ -162,43 +146,6 @@ namespace CastIron.Sql.Mapping
                 return;
             var code = (string) debugViewProp.GetGetMethod(true).Invoke(expr, null);
             Debug.WriteLine(code);
-        }
-    }
-
-    public class ScoredConstructor
-    {
-        public ConstructorInfo Constructor { get; }
-
-        public ScoredConstructor(ConstructorInfo constructor, IReadOnlyDictionary<string, int> columnNames)
-        {
-            Constructor = constructor;
-            Parameters = constructor.GetParameters();
-            Score = ScoreConstructorByParameterNames(columnNames, Parameters);
-        }
-
-        // TODO: Also score a constructor by an array of types
-
-        public ParameterInfo[] Parameters { get; }
-
-        public int Score { get; }
-
-        private static int ScoreConstructorByParameterNames(IReadOnlyDictionary<string, int> columnNames, ParameterInfo[] parameters)
-        {
-            int score = 0;
-            foreach (var param in parameters)
-            {
-                var name = param.Name.ToLowerInvariant();
-                if (!columnNames.ContainsKey(name))
-                    return -1;
-                if (!CompilerTypes.Primitive.Contains(param.ParameterType))
-                    return -1;
-
-                // TODO: check that the types are compatible. Add a big delta where the match is easy, smaller delta where the match requires conversion
-                // TODO: Return -1 where the types cannot be converted
-                score++;
-            }
-
-            return score;
         }
     }
 }
