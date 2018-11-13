@@ -27,8 +27,9 @@ namespace CastIron.Sql.Mapping
             if (factory != null && preferredConstructor != null)
                 throw new Exception($"May specify at most one of {nameof(factory)} or {nameof(preferredConstructor)}");
 
-            // Prepare the list of expressions
             var context = CreateCompileContextForObjectInstance<T>(specific, reader);
+
+            // Prepare the list of expressions
             WriteInstantiationExpressionForObjectInstance(factory, preferredConstructor, context);
             WritePropertyAssignmentExpressions(context);
 
@@ -41,19 +42,6 @@ namespace CastIron.Sql.Mapping
             return lambdaExpression.Compile();
         }
 
-        private void WriteInstantiationExpressionForObjectInstance<T>(Func<T> factory, ConstructorInfo preferredConstructor, DataRecordMapperCompileContext context)
-        {
-            if (factory != null)
-            {
-                context.Statements.Add(Expression.Assign(context.Instance, Expression.Call(Expression.Constant(factory.Target), factory.Method)));
-                return;
-            }
-
-            var constructor = _constructorFinder.FindBestMatch(preferredConstructor, context.Specific, context.ColumnNames);
-            var constructorCall = CreateConstructorCallExpression(constructor, context);
-            context.Statements.Add(Expression.Assign(context.Instance, constructorCall));
-        }
-
         private static DataRecordMapperCompileContext CreateCompileContextForObjectInstance<T>(Type specific, IDataReader reader)
         {
             var recordParam = Expression.Parameter(typeof(IDataRecord), "record");
@@ -61,6 +49,26 @@ namespace CastIron.Sql.Mapping
             var context = new DataRecordMapperCompileContext(reader, recordParam, instance, typeof(T), specific);
             context.PopulateColumnLookups(reader);
             return context;
+        }
+
+        private void WriteInstantiationExpressionForObjectInstance<T>(Func<T> factory, ConstructorInfo preferredConstructor, DataRecordMapperCompileContext context)
+        {
+            if (factory != null)
+            {
+                context.Statements.Add(Expression.Assign(context.Instance, Expression.Call(Expression.Constant(factory.Target), factory.Method)));
+                // TODO: If the factory returns null, should we skil the record or throw an exception?
+                var exceptionConstructor = typeof(Exception).GetConstructor(new[] {typeof(string)});
+                if (exceptionConstructor == null)
+                    return;
+                context.Statements.Add(Expression.IfThen(
+                    Expression.Equal(context.Instance, Expression.Constant(null)), 
+                    Expression.Throw(Expression.New(exceptionConstructor, Expression.Constant("Provided factory method returned a null value")))));
+                return;
+            }
+
+            var constructor = _constructorFinder.FindBestMatch(preferredConstructor, context.Specific, context.ColumnNames);
+            var constructorCall = CreateConstructorCallExpression(constructor, context);
+            context.Statements.Add(Expression.Assign(context.Instance, constructorCall));
         }
 
         private static void WritePropertyAssignmentExpressions(DataRecordMapperCompileContext context)
@@ -91,7 +99,7 @@ namespace CastIron.Sql.Mapping
             if (!string.IsNullOrEmpty(columnName) && context.ColumnNames.ContainsKey(columnName))
                 return context.ColumnNames[columnName];
 
-            // TODO: Allow fuzzy match (levenshtein?) or contains match. Configurable, with tolerances.
+            // TODO: Allow fuzzy match (levenshtein?) or contains match (Configurable, with tolerances)?
             return -1;
         }
 
