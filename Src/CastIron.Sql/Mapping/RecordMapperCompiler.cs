@@ -11,6 +11,7 @@ namespace CastIron.Sql.Mapping
         private readonly PropertyAndConstructorRecordMapperCompiler _constructors;
         private readonly ObjectRecordMapperCompiler _objects;
         private readonly PrimitiveRecordMapperCompiler _primitives;
+        private readonly StringRecordMapperCompiler _strings;
 
         public RecordMapperCompiler()
         {
@@ -18,6 +19,7 @@ namespace CastIron.Sql.Mapping
             _constructors = new PropertyAndConstructorRecordMapperCompiler();
             _objects = new ObjectRecordMapperCompiler();
             _primitives = new PrimitiveRecordMapperCompiler();
+            _strings = new StringRecordMapperCompiler();
         }
 
         public Func<IDataRecord, T> CompileExpression<T>(Type specific, IDataReader reader, Func<T> factory, ConstructorInfo preferredConstructor)
@@ -34,11 +36,17 @@ namespace CastIron.Sql.Mapping
         {
             if (CompilerTypes.Primitive.Contains(parentType))
                 return _primitives;
+            
             // If asked for an object array, or just an object, return those as object arrays and don't do any fancy mapping
             if (parentType == typeof(object[]) && specific == typeof(object[]))
                 return _objects;
             if (parentType == typeof(object) && specific == typeof(object))
                 return _objects;
+
+            // If asked for an array of strings, we can do that too
+            if ((parentType == typeof(object) || parentType == typeof(object[]) || parentType == typeof(string[])) && specific == typeof(string[]))
+                return _strings;
+
             if (parentType.Namespace == "System" && parentType.Name.StartsWith("Tuple") && specific == parentType && factory == null && preferredConstructor == null)
                 return _tuples;
             if (!parentType.IsAssignableFrom(specific))

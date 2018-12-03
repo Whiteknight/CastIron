@@ -120,5 +120,41 @@ namespace CastIron.Sql.Tests.Mapping
             result.TestString.Should().Be("6");
             result.TestBool.Should().Be(true);
         }
+
+        public class TestQuery_StringArray : ISqlQuerySimple<string[]>
+        {
+            public string GetSql()
+            {
+                return "SELECT 5 AS TestInt, 'TEST' AS TestString, CAST(1 AS BIT) AS TestBool;";
+            }
+
+            public string[] Read(IDataResults result)
+            {
+                return result.AsEnumerable<string[]>().FirstOrDefault();
+            }
+        }
+
+        [Test]
+        public void TestQuery_MapToStringArray_MSSQL([Values("MSSQL")] string provider)
+        {
+            var target = RunnerFactory.Create(provider);
+            var result = target.Query(new TestQuery_StringArray());
+            result.Length.Should().Be(3);
+            result[0].Should().Be("5");
+            result[1].Should().Be("TEST");
+            result[2].Should().Be("True");
+        }
+
+        [Test]
+        public void TestQuery_MapToStringArray_SQLITE([Values("SQLITE")] string provider)
+        {
+            var target = RunnerFactory.Create(provider);
+            var result = target.Query(new TestQuery_StringArray());
+            result.Length.Should().Be(3);
+            result[0].Should().Be("5");
+            result[1].Should().Be("TEST");
+            // TODO: Can we (and should we) try to force BIT->Boolean?
+            result[2].Should().Be("1");
+        }
     }
 }
