@@ -47,8 +47,13 @@ namespace CastIron.Sql.Mapping
             typeof(long?),
             typeof(short),
             typeof(short?),
-            typeof(string)
+            typeof(string),
+            typeof(uint),
+            typeof(uint?),
+            typeof(ulong),
+            typeof(ulong?),
+            typeof(ushort),
+            typeof(ushort?),
         };
-
     }
 }
