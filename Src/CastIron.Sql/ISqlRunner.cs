@@ -190,7 +190,6 @@ namespace CastIron.Sql
         /// The IDataReader (and IDbCommand and IDbConnection, if any) will need to be managed and disposed
         /// manually.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
         /// <param name="runner"></param>
         /// <param name="reader"></param>
         /// <param name="command">If provided, gives access to mapped output parameters</param>

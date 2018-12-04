@@ -122,7 +122,7 @@ namespace CastIron.Sql
             {
                 context.StartAction("Open connection");
                 context.OpenConnection();
-                for (int i = 0; i < executors.Count; i++)
+                for (var i = 0; i < executors.Count; i++)
                     executors[i](context, i);
                 context.MarkComplete();
             }

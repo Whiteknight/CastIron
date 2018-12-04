@@ -58,7 +58,7 @@ namespace CastIron.Sql.Mapping
             if (factory != null)
                 return _inner.CompileExpression(specific, reader, factory, preferredConstructor);
 
-            var key = CreateKey<T>(specific, reader, null);
+            var key = CreateKey<T>(specific, reader, preferredConstructor);
             if (_cache.TryGetValue(key, out var cached) && cached is Func<IDataRecord, T> func)
                 return func;
 
