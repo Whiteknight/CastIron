@@ -67,10 +67,10 @@ namespace CastIron.Sql.Mapping
             return new DataRecordMappingEnumerable<T>(_reader, _context, map);
         }
 
-        public IEnumerable<T> AsEnumerable<T>(Func<ISubclassMapping<T>, ISubclassMapping<T>> setup, IRecordMapperCompiler compiler = null)
+        public IEnumerable<T> AsEnumerable<T>(Func<ISubclassMapping<T>, ISubclassMapping<T>> setup)
         {
             AssertHasReader();
-            var mapping = new SubclassMapping<T>(compiler);
+            var mapping = new SubclassMapping<T>();
             setup(mapping);
             return AsEnumerable(mapping.BuildThunk(_reader));
         }

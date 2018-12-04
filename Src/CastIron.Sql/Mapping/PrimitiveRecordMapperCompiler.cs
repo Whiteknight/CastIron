@@ -8,13 +8,24 @@ namespace CastIron.Sql.Mapping
 {
     public class PrimitiveRecordMapperCompiler : IRecordMapperCompiler
     {
+        private readonly int _columnIndex;
+
+        public PrimitiveRecordMapperCompiler(int columnIndex = 0)
+        {
+            _columnIndex = columnIndex;
+        }
+
         public Func<IDataRecord, T> CompileExpression<T>(Type specific, IDataReader reader, Func<T> factory, ConstructorInfo preferredConstructor)
         {
-            // TODO: Take an index of the column to use (default=0)
+            if (!CompilerTypes.Primitive.Contains(typeof(T)))
+                return r => default(T);
+            if (!CompilerTypes.Primitive.Contains(specific))
+                return r => default(T);
+
             var recordParam = Expression.Parameter(typeof(IDataRecord), "record");
             var context = new DataRecordMapperCompileContext(reader, recordParam, null, typeof(T), typeof(T));
 
-            var expr = DataRecordExpressions.GetConversionExpression(0, context, reader.GetFieldType(0), context.Parent);
+            var expr = DataRecordExpressions.GetConversionExpression(_columnIndex, context, reader.GetFieldType(_columnIndex), context.Parent);
             context.Statements.Add(expr);
             var lambdaExpression = Expression.Lambda<Func<IDataRecord, T>>(Expression.Block(context.Parent, context.Variables, context.Statements), recordParam);
             DumpCodeToDebugConsole(lambdaExpression);

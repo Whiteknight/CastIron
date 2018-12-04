@@ -53,9 +53,8 @@ namespace CastIron.Sql
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="setup"></param>
-        /// <param name="compiler"></param>
         /// <returns></returns>
-        IEnumerable<T> AsEnumerable<T>(Func<ISubclassMapping<T>, ISubclassMapping<T>> setup, IRecordMapperCompiler compiler = null);
+        IEnumerable<T> AsEnumerable<T>(Func<ISubclassMapping<T>, ISubclassMapping<T>> setup);
 
         /// <summary>
         /// Get the value of the output parameter by name
@@ -213,12 +212,11 @@ namespace CastIron.Sql
         /// <typeparam name="T"></typeparam>
         /// <param name="results"></param>
         /// <param name="setup"></param>
-        /// <param name="compiler"></param>
         /// <returns></returns>
-        public static IEnumerable<T> GetNextEnumerable<T>(this IDataResults results, Func<ISubclassMapping<T>, ISubclassMapping<T>> setup, IRecordMapperCompiler compiler = null)
+        public static IEnumerable<T> GetNextEnumerable<T>(this IDataResults results, Func<ISubclassMapping<T>, ISubclassMapping<T>> setup)
         {
             Assert.ArgumentNotNull(results, nameof(results));
-            return results.AdvanceToNextResultSet().AsEnumerable<T>(setup, compiler);
+            return results.AdvanceToNextResultSet().AsEnumerable<T>(setup);
         }
     }
 }

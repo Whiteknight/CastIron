@@ -19,6 +19,7 @@ namespace CastIron.Sql.Mapping
             context.Statements.Add(getRawStmt);
 
             // TODO: Should we store the converted values into variables instead of inlining them?
+            // TODO: If the target property is a concrete collection type like List<T> we can do the item conversion and then wrap it in the collection
 
             // The target is string, regardless of the data type we can .ToString() it
             if (targetType == typeof(string))

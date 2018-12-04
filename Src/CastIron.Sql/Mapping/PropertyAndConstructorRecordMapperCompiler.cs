@@ -56,7 +56,7 @@ namespace CastIron.Sql.Mapping
             if (factory != null)
             {
                 context.Statements.Add(Expression.Assign(context.Instance, Expression.Call(Expression.Constant(factory.Target), factory.Method)));
-                // TODO: If the factory returns null, should we skil the record or throw an exception?
+                // TODO: If the factory returns null, should we skip the record or throw an exception?
                 var exceptionConstructor = typeof(Exception).GetConstructor(new[] {typeof(string)});
                 if (exceptionConstructor == null)
                     return;

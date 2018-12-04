@@ -47,23 +47,17 @@ namespace CastIron.Sql
 
         public bool WaitForComplete()
         {
-            if (_isComplete)
-                return true;
-            return  _waitHandle.WaitOne();
+            return _isComplete || _waitHandle.WaitOne();
         }
 
         public bool WaitForComplete(TimeSpan wait)
         {
-            if (_isComplete)
-                return true;
-            return _waitHandle.WaitOne(wait);
+            return _isComplete || _waitHandle.WaitOne(wait);
         }
 
         public bool WaitForComplete(int waitMs)
         {
-            if (_isComplete)
-                return true;
-            return _waitHandle.WaitOne(waitMs);
+            return _isComplete || _waitHandle.WaitOne(waitMs);
         }
     }
 
@@ -120,23 +114,17 @@ namespace CastIron.Sql
 
         public bool WaitForComplete()
         {
-            if (_isComplete)
-                return true;
-            return _waitHandle.WaitOne();
+            return _isComplete || _waitHandle.WaitOne();
         }
 
         public bool WaitForComplete(TimeSpan wait)
         {
-            if (_isComplete)
-                return true;
-            return _waitHandle.WaitOne(wait);
+            return _isComplete || _waitHandle.WaitOne(wait);
         }
 
         public bool WaitForComplete(int waitMs)
         {
-            if (_isComplete)
-                return true;
-            return _waitHandle.WaitOne(waitMs);
+            return _isComplete || _waitHandle.WaitOne(waitMs);
         }
     }
 }

@@ -7,14 +7,12 @@ namespace CastIron.Sql.Mapping
 {
     public class SubclassMapping<TParent> : ISubclassMapping<TParent>
     {
-        private readonly IRecordMapperCompiler _inner;
         private readonly List<SubclassPredicate> _subclasses;
         private readonly SubclassPredicate _otherwise;
         private bool _calledOtherwise;
 
-        public SubclassMapping(IRecordMapperCompiler inner = null)
+        public SubclassMapping()
         {
-            _inner = inner ?? CachingMappingCompiler.GetDefaultInstance();
             _subclasses = new List<SubclassPredicate>();
             _otherwise = new SubclassPredicate
             {
@@ -27,41 +25,10 @@ namespace CastIron.Sql.Mapping
         {
             public Type Type { get; set; }
             public Func<IDataRecord, bool> Predicate { get; set; }
+            public IRecordMapperCompiler Compiler { get; set; }
             public Func<TParent> Factory { get; set; }
             public ConstructorInfo Constructor { get; set; }
             public Func<IDataRecord, TParent> Mapper { get; set; }
-        }
-
-        public ISubclassMapping<TParent> UseSubclass<T>(Func<IDataRecord, bool> determine, Func<IDataRecord, TParent> map = null, Func<TParent> factory = null, ConstructorInfo preferredConstructor = null)
-            where T : TParent
-        {
-            if (typeof(T).IsAbstract)
-                throw new Exception("Type must be concrete");
-            AssertCorrectCreationArguments(map, factory, preferredConstructor);
-            _subclasses.Add(new SubclassPredicate
-            {
-                Type = typeof(T),
-                Predicate = determine ?? (r => true),
-                Factory = factory,
-                Constructor = preferredConstructor
-            });
-            return this;
-        }
-
-        public ISubclassMapping<TParent> Otherwise<T>(Func<IDataRecord, TParent>  map = null, Func<TParent> factory = null, ConstructorInfo preferredConstructor = null)
-            where T : TParent
-        {
-            if (_calledOtherwise)
-                throw new Exception($".{nameof(Otherwise)}() method can be called at most once.");
-            if (typeof(T).IsAbstract)
-                throw new Exception("Type must be concrete");
-            AssertCorrectCreationArguments(map, factory, preferredConstructor);
-
-            _otherwise.Type = typeof(T);
-            _otherwise.Factory = factory;
-            _otherwise.Constructor = preferredConstructor;
-            _calledOtherwise = true;
-            return this;
         }
 
         private void AssertCorrectCreationArguments(Func<IDataRecord, TParent> map, Func<TParent> factory, ConstructorInfo preferredConstructor)
@@ -117,8 +84,78 @@ namespace CastIron.Sql.Mapping
             if (!typeof(TParent).IsAssignableFrom(subclass.Type))
                 throw new Exception($"Type {subclass.Type.FullName} is not assignable to {typeof(TParent).FullName}");
             if (subclass.Mapper == null)
-                subclass.Mapper = _inner.CompileExpression(subclass.Type, reader, subclass.Factory, subclass.Constructor);
+                subclass.Mapper = (subclass.Compiler ?? CachingMappingCompiler.GetDefaultInstance()).CompileExpression(subclass.Type, reader, subclass.Factory, subclass.Constructor);
             newSubclasses.Add(subclass);
+        }
+
+        public ISubclassMapping<TParent> UseSubclass<T>(Func<IDataRecord, bool> determine, Func<IDataRecord, TParent> map = null) where T : TParent
+        {
+            if (typeof(T).IsAbstract)
+                throw new Exception("Type must be concrete");
+            AssertCorrectCreationArguments(map, null, null);
+            _subclasses.Add(new SubclassPredicate
+            {
+                Type = typeof(T),
+                Predicate = determine ?? (r => true),
+                Mapper = map
+            });
+            return this;
+        }
+
+        public ISubclassMapping<TParent> UseSubclass<T>(Func<IDataRecord, bool> determine, IRecordMapperCompiler compiler, Func<TParent> factory = null, ConstructorInfo preferredConstructor = null) where T : TParent
+        {
+            if (typeof(T).IsAbstract)
+                throw new Exception("Type must be concrete");
+            AssertCorrectCreationArguments(null, factory, preferredConstructor);
+            _subclasses.Add(new SubclassPredicate
+            {
+                Type = typeof(T),
+                Predicate = determine ?? (r => true),
+                Factory = factory,
+                Constructor = preferredConstructor
+            });
+            return this;
+        }
+
+        public ISubclassMapping<TParent> Otherwise<T>(Func<IDataRecord, TParent> map = null) where T : TParent
+        {
+            if (_calledOtherwise)
+                throw new Exception($".{nameof(Otherwise)}() method can be called at most once.");
+            if (typeof(T).IsAbstract)
+                throw new Exception("Type must be concrete");
+            AssertCorrectCreationArguments(map, null, null);
+
+            _otherwise.Type = typeof(T);
+            _otherwise.Mapper = map;
+            _calledOtherwise = true;
+            return this;
+        }
+
+        public ISubclassMapping<TParent> Otherwise<T>(IRecordMapperCompiler compiler, Func<TParent> factory = null, ConstructorInfo preferredConstructor = null) where T : TParent
+        {
+            if (_calledOtherwise)
+                throw new Exception($".{nameof(Otherwise)}() method can be called at most once.");
+            if (typeof(T).IsAbstract)
+                throw new Exception("Type must be concrete");
+            AssertCorrectCreationArguments(null, factory, preferredConstructor);
+
+            _otherwise.Type = typeof(T);
+            _otherwise.Compiler = compiler;
+            _otherwise.Constructor = preferredConstructor;
+            _otherwise.Factory = factory;
+            _calledOtherwise = true;
+            return this;
+        }
+
+        public ISubclassMapping<TParent> OtherwiseDefault()
+        {
+            if (_calledOtherwise)
+                throw new Exception($".{nameof(Otherwise)}() method can be called at most once.");            
+
+            _otherwise.Type = typeof(TParent);
+            _otherwise.Mapper = r => default(TParent);
+            _calledOtherwise = true;
+            return this;
         }
     }
 }

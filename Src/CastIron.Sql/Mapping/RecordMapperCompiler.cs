@@ -38,13 +38,11 @@ namespace CastIron.Sql.Mapping
                 return _primitives;
             
             // If asked for an object array, or just an object, return those as object arrays and don't do any fancy mapping
-            if (parentType == typeof(object[]) && specific == typeof(object[]))
-                return _objects;
-            if (parentType == typeof(object) && specific == typeof(object))
+            if (ObjectRecordMapperCompiler.IsMatchingType(parentType) && ObjectRecordMapperCompiler.IsMatchingType(specific))
                 return _objects;
 
             // If asked for an array of strings, we can do that too
-            if ((parentType == typeof(object) || parentType == typeof(object[]) || parentType == typeof(string[])) && specific == typeof(string[]))
+            if (StringRecordMapperCompiler.IsMatchingType(parentType) && StringRecordMapperCompiler.IsMatchingType(specific))
                 return _strings;
 
             if (parentType.Namespace == "System" && parentType.Name.StartsWith("Tuple") && specific == parentType && factory == null && preferredConstructor == null)
