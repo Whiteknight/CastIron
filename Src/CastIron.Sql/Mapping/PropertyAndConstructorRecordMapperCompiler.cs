@@ -11,6 +11,9 @@ namespace CastIron.Sql.Mapping
 {
     public class PropertyAndConstructorRecordMapperCompiler : IRecordMapperCompiler
     {
+        // TODO: Nested objects. Columns starting with <NAME>_* will be used to populate the fields of property <NAME>
+        // TODO: Need a way to dump contents of all columns which aren't explicitly mapped to an ICollection<object> or similar
+
         private readonly ConstructorFinder _constructorFinder;
 
         public PropertyAndConstructorRecordMapperCompiler()

@@ -124,9 +124,7 @@ namespace CastIron.Sql.Mapping
 
         public ParameterExpression AddVariable<T>(string name)
         {
-            var variable = Expression.Variable(typeof(T), name);
-            _variables.Add(variable);
-            return variable;
+            return AddVariable(typeof(T), name);
         }
 
         public ParameterExpression AddVariable(Type t, string name)
