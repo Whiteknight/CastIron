@@ -72,30 +72,24 @@ namespace CastIron.Sql.Mapping
             var properties = GetMappableProperties(context.Specific, context);
             foreach (var property in properties)
             {
-                var columnIdx = GetColumnIndexForProperty(context, property);
-                if (columnIdx < 0)
+                var columnName = property.Name.ToLowerInvariant();
+                var idx = context.GetColumnIndex(columnName);
+                if (idx < 0)
+                {
+                    columnName = property
+                        .GetCustomAttributes(typeof(ColumnAttribute), true)
+                        .Cast<ColumnAttribute>()
+                        .Select(c => c.Name.ToLowerInvariant())
+                        .FirstOrDefault();
+                    idx = context.GetColumnIndex(columnName);
+                }
+                if (idx < 0)
                     continue;
 
-                var conversion = DataRecordExpressions.GetConversionExpression(columnIdx, context, context.Reader.GetFieldType(columnIdx), property.PropertyType);
+                // Get the index by ColumnAttribute.Name
+                var conversion = DataRecordExpressions.GetConversionExpression(columnName, context, property.PropertyType);
                 context.AddStatement(Expression.Call(context.Instance, property.GetSetMethod(), conversion));
             }
-        }
-
-        private static int GetColumnIndexForProperty(DataRecordMapperCompileContext context, PropertyInfo property)
-        {
-            // Get the index by property name
-            var columnName = property.Name.ToLowerInvariant();
-            var idx = context.GetColumnIndex(columnName);
-            if (idx >= 0)
-                return idx;
-
-            // Get the index by ColumnAttribute.Name
-            columnName = property
-                .GetCustomAttributes(typeof(ColumnAttribute), true)
-                .Cast<ColumnAttribute>()
-                .Select(c => c.Name.ToLowerInvariant())
-                .FirstOrDefault();
-            return context.GetColumnIndex(columnName);
         }
 
         private static NewExpression CreateConstructorCallExpression(ConstructorInfo constructor, DataRecordMapperCompileContext context)
@@ -121,9 +115,8 @@ namespace CastIron.Sql.Mapping
 
                 // Get the column index and mark the column as being mapped
                 context.MarkMapped(name);
-                var columnIdx = context.GetColumnIndex(name);
 
-                args[i] = DataRecordExpressions.GetConversionExpression(columnIdx, context, context.Reader.GetFieldType(columnIdx), parameter.ParameterType);
+                args[i] = DataRecordExpressions.GetConversionExpression(name, context, parameter.ParameterType);
             }
 
             return Expression.New(constructor, args);

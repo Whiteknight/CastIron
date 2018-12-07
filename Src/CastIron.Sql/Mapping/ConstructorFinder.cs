@@ -50,12 +50,21 @@ namespace CastIron.Sql.Mapping
                     var name = param.Name.ToLowerInvariant();
                     if (!context.HasColumn(name))
                         return -1;
-                    if (!CompilerTypes.Primitive.Contains(param.ParameterType))
-                        return -1;
+                    if (DataRecordExpressions.IsSupportedPrimitiveType(param.ParameterType))
+                    {
+                        score++;
+                        continue;
+                    }
+
+                    if (DataRecordExpressions.IsSupportedCollectionType(param.ParameterType))
+                    {
+                        score++;
+                        continue;
+                    }
 
                     // TODO: check that the types are compatible. Add a big delta where the match is easy, smaller delta where the match requires conversion
                     // TODO: Return -1 where the types cannot be converted
-                    score++;
+                    return -1;
                 }
 
                 return score;

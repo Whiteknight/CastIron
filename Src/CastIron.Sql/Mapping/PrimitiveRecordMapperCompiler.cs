@@ -16,15 +16,15 @@ namespace CastIron.Sql.Mapping
 
         public Func<IDataRecord, T> CompileExpression<T>(Type specific, IDataReader reader, Func<T> factory, ConstructorInfo preferredConstructor)
         {
-            if (!CompilerTypes.Primitive.Contains(typeof(T)))
+            if (!DataRecordExpressions.IsSupportedPrimitiveType(typeof(T)))
                 return r => default(T);
-            if (!CompilerTypes.Primitive.Contains(specific))
+            if (!DataRecordExpressions.IsSupportedPrimitiveType(specific))
                 return r => default(T);
 
             var recordParam = Expression.Parameter(typeof(IDataRecord), "record");
             var context = new DataRecordMapperCompileContext(reader, recordParam, null, typeof(T), typeof(T));
 
-            var expr = DataRecordExpressions.GetConversionExpression(_columnIndex, context, reader.GetFieldType(_columnIndex), context.Parent);
+            var expr = DataRecordExpressions.GetConversionExpression(_columnIndex, context, context.Parent);
             context.AddStatement(expr);
             return context.CompileLambda<T>();
         }

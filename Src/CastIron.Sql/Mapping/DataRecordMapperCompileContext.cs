@@ -15,6 +15,7 @@ namespace CastIron.Sql.Mapping
         private readonly List<ColumnInfo> _unnamedColumns;
         private readonly List<ParameterExpression> _variables;
         private readonly List<Expression> _statements;
+        private int _varNumber;
 
         private class ColumnInfo
         {
@@ -45,6 +46,7 @@ namespace CastIron.Sql.Mapping
             _statements = new List<Expression>();
             _columnNames = new Dictionary<string, List<ColumnInfo>>();
             _unnamedColumns = new List<ColumnInfo>();
+            _varNumber = 0;
         }
         
         public IDataReader Reader { get; }
@@ -127,6 +129,13 @@ namespace CastIron.Sql.Mapping
             return variable;
         }
 
+        public ParameterExpression AddVariable(Type t, string name)
+        {
+            var variable = Expression.Variable(t, name);
+            _variables.Add(variable);
+            return variable;
+        }
+
         public void AddStatement(Expression expr)
         {
             _statements.Add(expr);
@@ -150,6 +159,11 @@ namespace CastIron.Sql.Mapping
                 return;
             var code = (string)debugViewProp.GetGetMethod(true).Invoke(expr, null);
             Debug.WriteLine(code);
+        }
+
+        public int GetNextVarNumber()
+        {
+            return _varNumber++;
         }
     }
 }

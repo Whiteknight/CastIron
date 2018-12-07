@@ -125,15 +125,19 @@ var defaultCompiler = CachingMappingCompiler.GetDefaultInstance();
 
 ### `ObjectRecordMapperCompiler`
 
-The `ObjectRecordMapperCompiler` maps the `IDataReader` into an enumerable of `object[]` by calling the `IDataRecord.GetValues()` method. This object array will include `DBNull` instances instead of `null` which will need to be detected and converted in your application if desired.
+The `ObjectRecordMapperCompiler` maps the `IDataReader` into an enumerable of `object` or `object[]`. If there is exactly one column and the requested type is `object`, the value returned will be the object from the column. Otherwise, the returned value will be `object[]` cast to the requested type. This object array will include `DBNull` instances instead of `null` which will need to be detected and converted in your application if desired.
 
 The supported types of this compiler are:
 
 * `object`
 * `object[]`
 * `IEnumerable<object>`
+* `ICollection<object>`
 * `IList<object>`
 * `IReadOnlyList<object>`
+* `IEnumerable`
+* `IList`
+* `ICollection`
 
 ### `StringRecordMapperCompiler`
 
@@ -170,13 +174,41 @@ The `TupleRecordMapperCompiler` maps a row into a `Tuple<>` by ordinal column in
 
 ### `PropertyAndConstructorRecordMapperCompiler`
 
-The `PropertyAndConstructorRecordMapperCompiler` is the most advanced compiler in CastIron. It maps a row into an object by matching constructor parameters and public writable properties by name. Name matching is case insensitive.
+The `PropertyAndConstructorRecordMapperCompiler` is the most advanced compiler in CastIron. It maps a row into an object by matching constructor parameters and public writable properties by name. Name matching is case insensitive. This compiler first creates an instance by using either a supplied factory method or else it will find an appropriate constructor. When the object is instantiated, any remaining columns from the result set will be mapped to public properties on the instance.
+
+#### Creating the Instance
 
 If a `factory` method is provided, the compiler will use the factory method to create the instance and will not attempt to match constructor parameters.
 
 If a `preferredConstructor` is provided, the compiler will use the given constructor and will match constructor parameters by name. Constructor parameters which do not have a matching column or a column which cannot be mapped, will be given a default value.
 
 If `factory` and `preferredConstructor` are both omitted, the compiler will find the best "matching" constructor. The best match is the constructor with the largest number of parameters which correspond to column names in the result set. Constructors with parameters that do not correspond to a column will be ignored. Constructors with parameters which are not mappable primitive types (see the list under "`PrimitiveRecordMapperCompiler`") will be ignored. If a suitable constructor cannot be found, an exception will be thrown.
+
+Constructor parameters which can be mapped will be one of the primitive types (see "`PrimitiveRecordMapperCompiler`" above) or a supported collection type (see "Collection Types" below).
+
+#### Mapping Properties
+
+Public properties with public `set` methods can be mapped to columns with the same name (case insensitive). The properties must either be one of the primitive types (see "`PrimitiveRecordMapperCompiler`" above) or a supported collection type (see "Collection Types" below).
+
+#### Collection Types
+
+Constructor parameters and public properties can be collection types of the supported primitive types (see "`PrimitiveRecordMapperCompiler`" above for the complete list). All columns the in `IDataRecord` with a matching name will be added to the collection with that name.
+
+Array types will be instantiated directly and filled by assigning to array indices.
+
+Interface types which inherit from `ICollection<T>` will be instantiated as a `List<T>` and elements added with the `.Add()` method.
+
+Concrete types which inherit from `ICollection<T>` will be instantiated by invoking the default parameterless constructor. Elements will be added by calling the `.Add()` method. Any custom collection type which implements `ICollection<T>`, has a default parameterless constructor and implements the `.Add()` method can be used for this purpose. 
+
+For example, the following properties can all be mapped:
+
+```csharp
+public string[] MyStrings { get; set;}
+
+public IList<int> MyInts { get; set;}   // instantiated as List<int>
+
+public HashSet<double> MyDoubles { get; set;}
+```
 
 ### `RecordMapperCompiler` 
 

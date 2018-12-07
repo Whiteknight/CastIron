@@ -34,7 +34,7 @@ namespace CastIron.Sql.Mapping
 
         private IRecordMapperCompiler GetStrategy(Type parentType, Type specific, object factory, object preferredConstructor)
         {
-            if (CompilerTypes.Primitive.Contains(parentType))
+            if (DataRecordExpressions.IsSupportedPrimitiveType(parentType))
                 return _primitives;
             
             // If asked for an object array, or just an object, return those as object arrays and don't do any fancy mapping
