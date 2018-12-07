@@ -281,5 +281,35 @@ namespace CastIron.Sql.Tests.Mapping
             result.TestString[1].Should().Be("TEST");
             result.TestString[2].Should().Be("3.14");
         }
+
+        public class TestObjectUnnamedValues
+        {
+            [UnnamedColumns]
+            public IList<string> UnnamedValues { get; set;  }
+        }
+
+        public class TestQuery_UnnamedColumns<T> : ISqlQuerySimple<T>
+        {
+            public string GetSql()
+            {
+                return "SELECT 5, 'TEST', 3.14;";
+            }
+
+            public T Read(IDataResults result)
+            {
+                return result.AsEnumerable<T>().FirstOrDefault();
+            }
+        }
+
+        [Test]
+        public void TestQuery_MapToUnnamedValuesCollection([Values("MSSQL")] string provider)
+        {
+            var target = RunnerFactory.Create(provider);
+            var result = target.Query(new TestQuery_UnnamedColumns<TestObjectUnnamedValues>());
+            result.UnnamedValues.Count.Should().Be(3);
+            result.UnnamedValues[0].Should().Be("5");
+            result.UnnamedValues[1].Should().Be("TEST");
+            result.UnnamedValues[2].Should().Be("3.14");
+        }
     }
 }

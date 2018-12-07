@@ -12,7 +12,6 @@ namespace CastIron.Sql.Mapping
     public class DataRecordMapperCompileContext
     {
         private readonly Dictionary<string, List<ColumnInfo>> _columnNames;
-        private readonly List<ColumnInfo> _unnamedColumns;
         private readonly List<ParameterExpression> _variables;
         private readonly List<Expression> _statements;
         private int _varNumber;
@@ -45,7 +44,6 @@ namespace CastIron.Sql.Mapping
                 _variables.Add(instance);
             _statements = new List<Expression>();
             _columnNames = new Dictionary<string, List<ColumnInfo>>();
-            _unnamedColumns = new List<ColumnInfo>();
             _varNumber = 0;
         }
         
@@ -62,12 +60,7 @@ namespace CastIron.Sql.Mapping
         {
             for (var i = 0; i < reader.FieldCount; i++)
             {
-                var name = reader.GetName(i).ToLowerInvariant();
-                if (string.IsNullOrEmpty(name))
-                {
-                    _unnamedColumns.Add(new ColumnInfo(i));
-                    return;
-                }
+                var name = (reader.GetName(i) ?? "").ToLowerInvariant();
                 if (!_columnNames.ContainsKey(name))
                     _columnNames.Add(name, new List<ColumnInfo>());
                 _columnNames[name].Add(new ColumnInfo(i));
@@ -76,28 +69,23 @@ namespace CastIron.Sql.Mapping
 
         public bool HasColumn(string name)
         {
-            if (string.IsNullOrEmpty(name))
+            if (name == null)
                 return false;
             return _columnNames.ContainsKey(name);
         }
 
         public int GetColumnIndex(string name)
         {
-            if (string.IsNullOrEmpty(name))
+            if (name == null || !_columnNames.ContainsKey(name))
                 return -1;
-            return _columnNames.ContainsKey(name) ? _columnNames[name].Select(c => c.Index).First() : -1;
+            return _columnNames[name].Select(c => c.Index).First();
         }
 
         public IReadOnlyList<int> GetColumnIndices(string name)
         {
-            if (string.IsNullOrEmpty(name))
+            if (name == null)
                 return new List<int>();
             return _columnNames.ContainsKey(name) ? _columnNames[name].Select(c => c.Index).ToList() : new List<int>();
-        }
-
-        public IReadOnlyList<int> GetUnnamedColumnIndices()
-        {
-            return _unnamedColumns?.Select(c => c.Index).ToList() ?? new List<int>();
         }
 
         public void MarkMapped(string name, int count = 1)

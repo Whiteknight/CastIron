@@ -75,23 +75,35 @@ namespace CastIron.Sql.Mapping
             var properties = GetMappableProperties(context.Specific, context);
             foreach (var property in properties)
             {
+                // Look for a column name matching the property name
                 var columnName = property.Name.ToLowerInvariant();
                 var idx = context.GetColumnIndex(columnName);
-                if (idx < 0)
+                if (idx >= 0)
                 {
-                    columnName = property
-                        .GetCustomAttributes(typeof(ColumnAttribute), true)
-                        .Cast<ColumnAttribute>()
+                    var conversion = DataRecordExpressions.GetConversionExpression(columnName, context, property.PropertyType);
+                    context.AddStatement(Expression.Call(context.Instance, property.GetSetMethod(), conversion));
+                    continue;
+                }
+
+                // Look for a column name matching the ColumnNameAttribute.Name value
+                columnName = property.GetTypedAttributes<ColumnAttribute>()
                         .Select(c => c.Name.ToLowerInvariant())
                         .FirstOrDefault();
-                    idx = context.GetColumnIndex(columnName);
-                }
-                if (idx < 0)
+                idx = context.GetColumnIndex(columnName);
+                if (idx >= 0)
+                {
+                    var conversion = DataRecordExpressions.GetConversionExpression(columnName, context, property.PropertyType);
+                    context.AddStatement(Expression.Call(context.Instance, property.GetSetMethod(), conversion));
                     continue;
+                }
 
-                // Get the index by ColumnAttribute.Name
-                var conversion = DataRecordExpressions.GetConversionExpression(columnName, context, property.PropertyType);
-                context.AddStatement(Expression.Call(context.Instance, property.GetSetMethod(), conversion));
+                // If the property is tagged with UnnamedColumnsAttribute, we use all unnamed columns
+                var acceptsUnnamed = property.GetTypedAttributes<UnnamedColumnsAttribute>().Any();
+                if (acceptsUnnamed)
+                {
+                    var conversion = DataRecordExpressions.GetConversionExpression("", context, property.PropertyType);
+                    context.AddStatement(Expression.Call(context.Instance, property.GetSetMethod(), conversion));
+                }                
             }
         }
 

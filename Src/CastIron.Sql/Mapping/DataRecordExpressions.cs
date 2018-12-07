@@ -104,13 +104,13 @@ namespace CastIron.Sql.Mapping
         {
             if (targetType.IsArray && targetType.HasElementType)
             {
-                var indices = GetIndices(columnName, context);
+                var indices = context.GetColumnIndices(columnName);
                 return GetArrayConversionExpression(context, targetType, indices);
             }
 
             if (targetType.IsGenericType)
             {
-                var indices = GetIndices(columnName, context);
+                var indices = context.GetColumnIndices(columnName);
                 if (targetType.IsInterface)
                     return GetInterfaceCollectionConversionExpression(context, targetType, indices);
 
@@ -119,13 +119,6 @@ namespace CastIron.Sql.Mapping
 
             var firstIndex = context.GetColumnIndex(columnName);
             return GetScalarConversionExpression(firstIndex, context, context.Reader.GetFieldType(firstIndex), targetType);
-        }
-
-        private static IReadOnlyList<int> GetIndices(string columnName, DataRecordMapperCompileContext context)
-        {
-            if (string.IsNullOrEmpty(columnName))
-                return context.GetUnnamedColumnIndices();
-            return context.GetColumnIndices(columnName);
         }
 
         private static Expression GetInterfaceCollectionConversionExpression(DataRecordMapperCompileContext context, Type targetType, IReadOnlyList<int> indices)
