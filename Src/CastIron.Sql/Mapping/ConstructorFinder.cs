@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 
@@ -7,7 +6,7 @@ namespace CastIron.Sql.Mapping
 {
     public class ConstructorFinder
     {
-        public ConstructorInfo FindBestMatch(ConstructorInfo preferredConstructor, Type type, IReadOnlyDictionary<string, int> columnNames)
+        public ConstructorInfo FindBestMatch(ConstructorInfo preferredConstructor, Type type, DataRecordMapperCompileContext context)
         {
             // If the user has specified a preferred constructor, use that.
             if (preferredConstructor != null)
@@ -22,7 +21,7 @@ namespace CastIron.Sql.Mapping
 
             // Otherwise score all constructors and find the best match
             var best = type.GetConstructors()
-                .Select(c => new ScoredConstructor(c, columnNames))
+                .Select(c => new ScoredConstructor(c, context))
                 .Where(x => x.Score >= 0)
                 .OrderByDescending(x => x.Score)
                 .FirstOrDefault();
@@ -33,23 +32,23 @@ namespace CastIron.Sql.Mapping
 
         private class ScoredConstructor
         {
-            public ScoredConstructor(ConstructorInfo constructor, IReadOnlyDictionary<string, int> columnNames)
+            public ScoredConstructor(ConstructorInfo constructor, DataRecordMapperCompileContext context)
             {
                 Constructor = constructor;
                 var parameters = constructor.GetParameters();
-                Score = ScoreConstructorByParameterNames(columnNames, parameters);
+                Score = ScoreConstructorByParameterNames(context, parameters);
             }
 
             public ConstructorInfo Constructor { get; }
             public int Score { get; }
 
-            private static int ScoreConstructorByParameterNames(IReadOnlyDictionary<string, int> columnNames, ParameterInfo[] parameters)
+            private static int ScoreConstructorByParameterNames(DataRecordMapperCompileContext context, ParameterInfo[] parameters)
             {
                 int score = 0;
                 foreach (var param in parameters)
                 {
                     var name = param.Name.ToLowerInvariant();
-                    if (!columnNames.ContainsKey(name))
+                    if (!context.HasColumn(name))
                         return -1;
                     if (!CompilerTypes.Primitive.Contains(param.ParameterType))
                         return -1;

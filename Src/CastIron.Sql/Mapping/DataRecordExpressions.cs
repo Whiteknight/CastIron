@@ -13,10 +13,9 @@ namespace CastIron.Sql.Mapping
         public static Expression GetConversionExpression(int columnIdx, DataRecordMapperCompileContext context, Type columnType, Type targetType)
         {
             // Pull the value out of the reader into the rawVar
-            var rawVar = Expression.Variable(typeof(object), "raw_" + columnIdx);
-            context.Variables.Add(rawVar);
+            var rawVar = context.AddVariable<object>("raw_" + columnIdx);
             var getRawStmt = Expression.Assign(rawVar, Expression.Call(context.RecordParam, GetValueMethod, Expression.Constant(columnIdx)));
-            context.Statements.Add(getRawStmt);
+            context.AddStatement(getRawStmt);
 
             // TODO: Should we store the converted values into variables instead of inlining them?
             // TODO: If the target property is a concrete collection type like List<T> we can do the item conversion and then wrap it in the collection

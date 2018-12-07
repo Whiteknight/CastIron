@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Data;
-using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -29,24 +28,9 @@ namespace CastIron.Sql.Mapping
             for (var i = 0; i < typeParams.Length; i++)
                 args[i] = DataRecordExpressions.GetConversionExpression(i, context, context.Reader.GetFieldType(i), typeParams[i]);
 
-            context.Statements.Add(Expression.Assign(instance, Expression.Call(null, factoryMethod, args)));
-            context.Statements.Add(Expression.Convert(instance, typeof(T)));
-            var lambdaExpression = Expression.Lambda<Func<IDataRecord, T>>(Expression.Block(context.Parent, context.Variables, context.Statements), context.RecordParam);
-            DumpCodeToDebugConsole(lambdaExpression);
-
-            return lambdaExpression.Compile();
-        }
-
-        [Conditional("DEBUG")]
-        private static void DumpCodeToDebugConsole(Expression expr)
-        {
-            // This property is marked private, so we can only get to it by reflection, which would be terrible if
-            // this wasn't a debug-only helper routine
-            var debugViewProp = typeof(Expression).GetProperty("DebugView", BindingFlags.Instance | BindingFlags.NonPublic);
-            if (debugViewProp == null)
-                return;
-            var code = (string)debugViewProp.GetGetMethod(true).Invoke(expr, null);
-            Debug.WriteLine(code);
+            context.AddStatement(Expression.Assign(instance, Expression.Call(null, factoryMethod, args)));
+            context.AddStatement(Expression.Convert(instance, typeof(T)));
+            return context.CompileLambda<T>();
         }
     }
 }
