@@ -32,9 +32,6 @@ namespace CastIron.Sql.Mapping
             return best.Constructor;
         }
 
-        private const int ScoreOneToOneMatch = 2;
-        private const int ScoreManyToOneMatch = 1;
-
         private class ScoredConstructor
         {
             public ScoredConstructor(ConstructorInfo constructor, IReadOnlyDictionary<string, int> columnNames)
@@ -57,17 +54,18 @@ namespace CastIron.Sql.Mapping
                         var name = param.Name.ToLowerInvariant();
                         if (columnNames.ContainsKey(name))
                         {
-                            score += columnNames[name] == 1 ? ScoreOneToOneMatch : ScoreManyToOneMatch;
+                            score += 1;
                             continue;
                         }
 
                         if (param.GetCustomAttributes<UnnamedColumnsAttribute>().Any())
                         {
-                            score++;
+                            score += columnNames.ContainsKey("") ? 1 : 0;
                             continue;
                         }
                         return -1;
                     }
+
                     if (DataRecordExpressions.IsSupportedCollectionType(param.ParameterType))
                     {
                         var name = param.Name.ToLowerInvariant();
@@ -79,7 +77,7 @@ namespace CastIron.Sql.Mapping
 
                         if (param.GetCustomAttributes<UnnamedColumnsAttribute>().Any())
                         {
-                            score += columnNames[""];
+                            score += columnNames.ContainsKey("") ? columnNames[""] : 0;
                             continue;
                         }
                         return -1;
