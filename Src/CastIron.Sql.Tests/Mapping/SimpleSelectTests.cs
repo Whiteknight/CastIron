@@ -282,11 +282,7 @@ namespace CastIron.Sql.Tests.Mapping
             result.TestString[2].Should().Be("3.14");
         }
 
-        public class TestObjectUnnamedValues
-        {
-            [UnnamedColumns]
-            public IList<string> UnnamedValues { get; set;  }
-        }
+        
 
         public class TestQuery_UnnamedColumns<T> : ISqlQuerySimple<T>
         {
@@ -301,11 +297,38 @@ namespace CastIron.Sql.Tests.Mapping
             }
         }
 
+        public class TestObjectUnnamedValues
+        {
+            [UnnamedColumns]
+            public IList<string> UnnamedValues { get; set; }
+        }
+
         [Test]
         public void TestQuery_MapToUnnamedValuesCollection([Values("MSSQL")] string provider)
         {
             var target = RunnerFactory.Create(provider);
             var result = target.Query(new TestQuery_UnnamedColumns<TestObjectUnnamedValues>());
+            result.UnnamedValues.Count.Should().Be(3);
+            result.UnnamedValues[0].Should().Be("5");
+            result.UnnamedValues[1].Should().Be("TEST");
+            result.UnnamedValues[2].Should().Be("3.14");
+        }
+
+        public class TestObjectUnnamedValuesCtor
+        {
+            public TestObjectUnnamedValuesCtor([UnnamedColumns] IList<string> unnamedValues)
+            {
+                UnnamedValues = unnamedValues;
+            }
+
+            public IList<string> UnnamedValues { get; }
+        }
+
+        [Test]
+        public void TestQuery_MapToUnnamedValuesCollectionCtor([Values("MSSQL")] string provider)
+        {
+            var target = RunnerFactory.Create(provider);
+            var result = target.Query(new TestQuery_UnnamedColumns<TestObjectUnnamedValuesCtor>());
             result.UnnamedValues.Count.Should().Be(3);
             result.UnnamedValues[0].Should().Be("5");
             result.UnnamedValues[1].Should().Be("TEST");

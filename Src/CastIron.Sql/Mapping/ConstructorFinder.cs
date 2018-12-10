@@ -1,12 +1,14 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 
 namespace CastIron.Sql.Mapping
 {
+    // TODO: Would like this to be abstracted behind an interface WITHOUT exposing DataRecordMapperCompileContext publicly.
     public class ConstructorFinder
     {
-        public ConstructorInfo FindBestMatch(ConstructorInfo preferredConstructor, Type type, DataRecordMapperCompileContext context)
+        public ConstructorInfo FindBestMatch(ConstructorInfo preferredConstructor, Type type, IReadOnlyDictionary<string, int> columnNames)
         {
             // If the user has specified a preferred constructor, use that.
             if (preferredConstructor != null)
@@ -21,7 +23,7 @@ namespace CastIron.Sql.Mapping
 
             // Otherwise score all constructors and find the best match
             var best = type.GetConstructors()
-                .Select(c => new ScoredConstructor(c, context))
+                .Select(c => new ScoredConstructor(c, columnNames))
                 .Where(x => x.Score >= 0)
                 .OrderByDescending(x => x.Score)
                 .FirstOrDefault();
@@ -30,37 +32,67 @@ namespace CastIron.Sql.Mapping
             return best.Constructor;
         }
 
+        private const int ScoreOneToOneMatch = 2;
+        private const int ScoreManyToOneMatch = 1;
+
         private class ScoredConstructor
         {
-            public ScoredConstructor(ConstructorInfo constructor, DataRecordMapperCompileContext context)
+            public ScoredConstructor(ConstructorInfo constructor, IReadOnlyDictionary<string, int> columnNames)
             {
                 Constructor = constructor;
                 var parameters = constructor.GetParameters();
-                Score = ScoreConstructorByParameterNames(context, parameters);
+                Score = ScoreConstructorByParameterNames(columnNames, parameters);
             }
 
             public ConstructorInfo Constructor { get; }
             public int Score { get; }
 
-            private static int ScoreConstructorByParameterNames(DataRecordMapperCompileContext context, ParameterInfo[] parameters)
+            private static int ScoreConstructorByParameterNames(IReadOnlyDictionary<string, int> columnNames, ParameterInfo[] parameters)
             {
-                int score = 0;
+                var score = 0;
                 foreach (var param in parameters)
                 {
-                    var name = param.Name.ToLowerInvariant();
-                    if (!context.HasColumn(name))
-                        return -1;
                     if (DataRecordExpressions.IsSupportedPrimitiveType(param.ParameterType))
+                    {
+                        var name = param.Name.ToLowerInvariant();
+                        if (columnNames.ContainsKey(name))
+                        {
+                            score += columnNames[name] == 1 ? ScoreOneToOneMatch : ScoreManyToOneMatch;
+                            continue;
+                        }
+
+                        if (param.GetCustomAttributes<UnnamedColumnsAttribute>().Any())
+                        {
+                            score++;
+                            continue;
+                        }
+                        return -1;
+                    }
+                    if (DataRecordExpressions.IsSupportedCollectionType(param.ParameterType))
+                    {
+                        var name = param.Name.ToLowerInvariant();
+                        if (columnNames.ContainsKey(name))
+                        {
+                            score += columnNames[name];
+                            continue;
+                        }
+
+                        if (param.GetCustomAttributes<UnnamedColumnsAttribute>().Any())
+                        {
+                            score += columnNames[""];
+                            continue;
+                        }
+                        return -1;
+                    }
+                    
+
+                    if (param.GetCustomAttributes<UnnamedColumnsAttribute>().Any())
                     {
                         score++;
                         continue;
                     }
 
-                    if (DataRecordExpressions.IsSupportedCollectionType(param.ParameterType))
-                    {
-                        score++;
-                        continue;
-                    }
+                    // TODO: If the constructor param has the same name as a property, and that property has [Column("")] should we use that?
 
                     // TODO: check that the types are compatible. Add a big delta where the match is easy, smaller delta where the match requires conversion
                     // TODO: Return -1 where the types cannot be converted

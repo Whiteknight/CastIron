@@ -151,5 +151,10 @@ namespace CastIron.Sql.Mapping
         {
             return _varNumber++;
         }
+
+        public IReadOnlyDictionary<string, int> GetColumnNameCounts()
+        {
+            return _columnNames.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.Count);
+        }
     }
 }

@@ -14,6 +14,7 @@ namespace CastIron.Sql.Mapping
         // TODO: Nested objects. Columns starting with <NAME>_* will be used to populate the fields of property <NAME>
         // TODO: Need a way to dump contents of all columns which aren't explicitly mapped to an ICollection<object> or similar
 
+        private static readonly ConstructorInfo _exceptionConstructor = typeof(Exception).GetConstructor(new[] { typeof(string) });
         private readonly ConstructorFinder _constructorFinder;
 
         public PropertyAndConstructorRecordMapperCompiler()
@@ -54,63 +55,31 @@ namespace CastIron.Sql.Mapping
         {
             if (factory != null)
             {
-                context.AddStatement(Expression.Assign(context.Instance, Expression.Call(Expression.Constant(factory.Target), factory.Method)));
-                // TODO: If the factory returns null, should we skip the record or throw an exception?
-                var exceptionConstructor = typeof(Exception).GetConstructor(new[] {typeof(string)});
-                if (exceptionConstructor == null)
-                    return;
-                context.AddStatement(Expression.IfThen(
-                    Expression.Equal(context.Instance, Expression.Constant(null)), 
-                    Expression.Throw(Expression.New(exceptionConstructor, Expression.Constant("Provided factory method returned a null value")))));
+                WriteFactoryMethodCallExpression(factory, context);
                 return;
             }
 
-            var constructor = _constructorFinder.FindBestMatch(preferredConstructor, context.Specific, context);
-            var constructorCall = CreateConstructorCallExpression(constructor, context);
+            var constructor = _constructorFinder.FindBestMatch(preferredConstructor, context.Specific, context.GetColumnNameCounts());
+            var constructorCall = WriteConstructorCallExpression(constructor, context);
             context.AddStatement(Expression.Assign(context.Instance, constructorCall));
         }
 
-        private static void WritePropertyAssignmentExpressions(DataRecordMapperCompileContext context)
+        private static void WriteFactoryMethodCallExpression<T>(Func<T> factory, DataRecordMapperCompileContext context)
         {
-            var properties = GetMappableProperties(context.Specific, context);
-            foreach (var property in properties)
-            {
-                // Look for a column name matching the property name
-                var columnName = property.Name.ToLowerInvariant();
-                var idx = context.GetColumnIndex(columnName);
-                if (idx >= 0)
-                {
-                    var conversion = DataRecordExpressions.GetConversionExpression(columnName, context, property.PropertyType);
-                    context.AddStatement(Expression.Call(context.Instance, property.GetSetMethod(), conversion));
-                    continue;
-                }
-
-                // Look for a column name matching the ColumnNameAttribute.Name value
-                columnName = property.GetTypedAttributes<ColumnAttribute>()
-                        .Select(c => c.Name.ToLowerInvariant())
-                        .FirstOrDefault();
-                idx = context.GetColumnIndex(columnName);
-                if (idx >= 0)
-                {
-                    var conversion = DataRecordExpressions.GetConversionExpression(columnName, context, property.PropertyType);
-                    context.AddStatement(Expression.Call(context.Instance, property.GetSetMethod(), conversion));
-                    continue;
-                }
-
-                // If the property is tagged with UnnamedColumnsAttribute, we use all unnamed columns
-                var acceptsUnnamed = property.GetTypedAttributes<UnnamedColumnsAttribute>().Any();
-                if (acceptsUnnamed)
-                {
-                    var conversion = DataRecordExpressions.GetConversionExpression("", context, property.PropertyType);
-                    context.AddStatement(Expression.Call(context.Instance, property.GetSetMethod(), conversion));
-                }                
-            }
+            context.AddStatement(Expression.Assign(
+                context.Instance, 
+                Expression.Call(Expression.Constant(factory.Target), factory.Method)));            
+            context.AddStatement(Expression.IfThen(
+                Expression.Equal(context.Instance, Expression.Constant(null)),
+                Expression.Throw(
+                    Expression.New(
+                        _exceptionConstructor, 
+                        Expression.Constant($"Provided factory method returned a null value for type {typeof(T).FullName}")))));
         }
 
-        private static NewExpression CreateConstructorCallExpression(ConstructorInfo constructor, DataRecordMapperCompileContext context)
+        private static NewExpression WriteConstructorCallExpression(ConstructorInfo constructor, DataRecordMapperCompileContext context)
         {
             var parameters = constructor.GetParameters();
-            // Default parameterless constructor, just call it
             if (parameters.Length == 0)
                 return Expression.New(constructor);
 
@@ -120,21 +89,63 @@ namespace CastIron.Sql.Mapping
             {
                 var parameter = parameters[i];
                 var name = parameter.Name.ToLowerInvariant();
-                if (!context.HasColumn(name))
+                if (context.HasColumn(name))
                 {
-                    // The user has specified a constructor where a parameter does not correspond to a column 
-                    // Fill in the default value and hope the user knows what they are doing.
-                    args[i] = Expression.Constant(DataRecordExpressions.GetDefaultValue(parameter.ParameterType));
+                    context.MarkMapped(name);
+                    args[i] = DataRecordExpressions.GetConversionExpression(name, context, parameter.ParameterType);
                     continue;
                 }
 
-                // Get the column index and mark the column as being mapped
-                context.MarkMapped(name);
+                if (parameter.GetCustomAttributes<UnnamedColumnsAttribute>().Any())
+                {
+                    context.MarkMapped("");
+                    args[i] = DataRecordExpressions.GetConversionExpression("", context, parameter.ParameterType);
+                    continue;
+                }
 
-                args[i] = DataRecordExpressions.GetConversionExpression(name, context, parameter.ParameterType);
+                // No matching column name, fill in the default value
+                args[i] = Expression.Convert(Expression.Constant(DataRecordExpressions.GetDefaultValue(parameter.ParameterType)), parameter.ParameterType);
             }
 
             return Expression.New(constructor, args);
+        }
+
+        private static void WritePropertyAssignmentExpressions(DataRecordMapperCompileContext context)
+        {
+            var properties = GetMappableProperties(context.Specific, context);
+            foreach (var property in properties)
+                WritePropertyAssignmentExpression(context, property);
+        }
+
+        private static void WritePropertyAssignmentExpression(DataRecordMapperCompileContext context, PropertyInfo property)
+        {
+            // Look for a column name matching the property name
+            var columnName = property.Name.ToLowerInvariant();
+            if (context.HasColumn(columnName))
+            {
+                var conversion = DataRecordExpressions.GetConversionExpression(columnName, context, property.PropertyType);
+                context.AddStatement(Expression.Call(context.Instance, property.GetSetMethod(), conversion));
+                return;
+            }
+
+            // Look for a column name matching the ColumnNameAttribute.Name value
+            columnName = property.GetTypedAttributes<ColumnAttribute>()
+                .Select(c => c.Name.ToLowerInvariant())
+                .FirstOrDefault();
+            if (context.HasColumn(columnName))
+            {
+                var conversion = DataRecordExpressions.GetConversionExpression(columnName, context, property.PropertyType);
+                context.AddStatement(Expression.Call(context.Instance, property.GetSetMethod(), conversion));
+                return;
+            }
+
+            // If the property is tagged with UnnamedColumnsAttribute, we use all unnamed columns
+            var acceptsUnnamed = property.GetTypedAttributes<UnnamedColumnsAttribute>().Any();
+            if (acceptsUnnamed)
+            {
+                var conversion = DataRecordExpressions.GetConversionExpression("", context, property.PropertyType);
+                context.AddStatement(Expression.Call(context.Instance, property.GetSetMethod(), conversion));
+            }
         }
 
         private static IEnumerable<PropertyInfo> GetMappableProperties(Type specific, DataRecordMapperCompileContext context)
