@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Data;
+using System.Threading;
 using CastIron.Sql.Execution;
 using CastIron.Sql.Utility;
 
@@ -12,7 +13,7 @@ namespace CastIron.Sql.Mapping
         private readonly IDataReader _reader;
         private readonly IExecutionContext _context;
         private readonly Func<IDataRecord, T> _map;
-        private bool _alreadyRead;
+        private int _readAttempts;
 
         public DataRecordMappingEnumerable(IDataReader reader, IExecutionContext context, Func<IDataRecord, T> map)
         {
@@ -23,7 +24,7 @@ namespace CastIron.Sql.Mapping
             _reader = reader;
             _context = context;
             _map = map;
-            _alreadyRead = false;
+            _readAttempts = 0;
         }
 
         IEnumerator IEnumerable.GetEnumerator()
@@ -33,11 +34,11 @@ namespace CastIron.Sql.Mapping
 
         public IEnumerator<T> GetEnumerator()
         {
-            if (_alreadyRead)
+            var attempt = Interlocked.Increment(ref _readAttempts);
+            if (attempt > 1)
                 throw new Exception("Cannot read the same result set more than once. Please cache your results and read from the cache");
             if (_context != null && _context.IsCompleted)
                 throw new Exception("The connection is closed and the result set cannot be read");
-            _alreadyRead = true;
             return new ResultSetEnumerator(_reader, _context, _map);
         }
 
@@ -66,7 +67,7 @@ namespace CastIron.Sql.Mapping
                     return false;
                 }
 
-                bool ok = _reader.Read();
+                var ok = _reader.Read();
                 Current = ok ? _read(_reader) : default(T);
                 return ok;
             }

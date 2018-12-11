@@ -2,6 +2,7 @@
 using System.Data;
 using System.Linq.Expressions;
 using System.Reflection;
+using CastIron.Sql.Utility;
 
 namespace CastIron.Sql.Mapping
 {
@@ -16,6 +17,7 @@ namespace CastIron.Sql.Mapping
 
         public Func<IDataRecord, T> CompileExpression<T>(Type specific, IDataReader reader, Func<T> factory, ConstructorInfo preferredConstructor)
         {
+            Assert.ArgumentNotNull(reader, nameof(reader));
             var t = typeof(T);
             if (DataRecordExpressions.IsSupportedPrimitiveType(t))
             {

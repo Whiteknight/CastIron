@@ -12,14 +12,13 @@ namespace CastIron.Sql.Mapping
     public class PropertyAndConstructorRecordMapperCompiler : IRecordMapperCompiler
     {
         // TODO: Nested objects. Columns starting with <NAME>_* will be used to populate the fields of property <NAME>
-        // TODO: Need a way to dump contents of all columns which aren't explicitly mapped to an ICollection<object> or similar
 
         private static readonly ConstructorInfo _exceptionConstructor = typeof(Exception).GetConstructor(new[] { typeof(string) });
-        private readonly ConstructorFinder _constructorFinder;
+        private readonly IConstructorFinder _constructorFinder;
 
-        public PropertyAndConstructorRecordMapperCompiler()
+        public PropertyAndConstructorRecordMapperCompiler(IConstructorFinder constructorFinder = null)
         {
-            _constructorFinder = new ConstructorFinder();
+            _constructorFinder = constructorFinder ?? new ConstructorFinder();
         }
 
         // TODO: Ability to take the IDataRecord in the factory and consume some columns for constructor params so they aren't used later for properties?

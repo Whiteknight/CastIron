@@ -3,6 +3,7 @@ using System.Data;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using CastIron.Sql.Utility;
 
 namespace CastIron.Sql.Mapping
 {
@@ -10,6 +11,8 @@ namespace CastIron.Sql.Mapping
     {
         public Func<IDataRecord, T> CompileExpression<T>(Type specific, IDataReader reader, Func<T> factory, ConstructorInfo preferredConstructor)
         {
+            Assert.ArgumentNotNull(reader, nameof(reader));
+
             var tupleType = typeof(T);
             var recordParam = Expression.Parameter(typeof(IDataRecord), "record");
             var instance = Expression.Variable(tupleType, "instance");

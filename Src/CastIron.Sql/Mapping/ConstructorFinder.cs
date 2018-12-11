@@ -2,14 +2,16 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using CastIron.Sql.Utility;
 
 namespace CastIron.Sql.Mapping
 {
-    // TODO: Would like this to be abstracted behind an interface WITHOUT exposing DataRecordMapperCompileContext publicly.
-    public class ConstructorFinder
+    public class ConstructorFinder : IConstructorFinder
     {
         public ConstructorInfo FindBestMatch(ConstructorInfo preferredConstructor, Type type, IReadOnlyDictionary<string, int> columnNames)
         {
+            Assert.ArgumentNotNull(type, nameof(type));
+
             // If the user has specified a preferred constructor, use that.
             if (preferredConstructor != null)
             {
@@ -20,6 +22,8 @@ namespace CastIron.Sql.Mapping
 
                 return preferredConstructor;
             }
+
+            Assert.ArgumentNotNull(columnNames, nameof(columnNames));
 
             // Otherwise score all constructors and find the best match
             var best = type.GetConstructors()
