@@ -144,82 +144,6 @@ namespace CastIron.Sql.Mapping
             return GetScalarConversionExpression(firstIndex, context, context.Reader.GetFieldType(firstIndex), targetType);
         }
 
-        private static Expression GetInterfaceCollectionConversionExpression(DataRecordMapperCompileContext context, Type targetType, IReadOnlyList<int> indices)
-        {
-            if (targetType.GenericTypeArguments.Length != 1)
-                throw new Exception($"Cannot map to object of type {targetType.FullName}");
-            var elementType = targetType.GenericTypeArguments[0];
-            var listType = typeof(List<>).MakeGenericType(elementType);
-            if (!targetType.IsAssignableFrom(listType))
-                throw new Exception($"Cannot map to object of type {targetType.FullName}. Must be compatible with List<{elementType.Name}>.");
-            var constructor = listType.GetConstructor(new Type[0]);
-            if (constructor == null)
-                throw new Exception($"Collection type {listType.FullName} must have a default parameterless constructor");
-            var addMethod = listType.GetMethod(nameof(List<object>.Add));
-            if (addMethod == null)
-                throw new Exception($".{nameof(List<object>.Add)}() Method missing from collection type {listType.FullName}");
-            var listVar = context.AddVariable(listType, "list_" + context.GetNextVarNumber());
-            context.AddStatement(Expression.Assign(listVar, Expression.New(constructor)));
-
-            foreach (var index in indices)
-            {
-                var getScalarExpression = GetScalarConversionExpression(index, context, context.Reader.GetFieldType(index), elementType);
-                context.AddStatement(Expression.Call(listVar, addMethod, getScalarExpression));
-            }
-
-            return Expression.Convert(listVar, targetType);
-        }
-
-        private static Expression GetArrayConversionExpression(DataRecordMapperCompileContext context, Type targetType, IReadOnlyList<int> indices)
-        {
-            var elementType = targetType.GetElementType();
-
-            var constructor = targetType.GetConstructor(new[] {typeof(int)});
-            if (constructor == null)
-                throw new Exception($"Array type {targetType.FullName} must have a standard array constructor");
-
-            var arrayVar = context.AddVariable(targetType, "array_" + context.GetNextVarNumber());
-            context.AddStatement(Expression.Assign(arrayVar, Expression.New(constructor, Expression.Constant(indices.Count))));
-
-            for (int i = 0; i < indices.Count; i++)
-            {
-                var columnIndex = indices[i];
-                var getScalarExpression = GetScalarConversionExpression(columnIndex, context, context.Reader.GetFieldType(columnIndex), elementType);
-                context.AddStatement(Expression.Assign(Expression.ArrayAccess(arrayVar, Expression.Constant(i)), getScalarExpression));
-            }
-
-            return arrayVar;
-        }
-
-        private static Expression GetConcreteCollectionConversionExpression(DataRecordMapperCompileContext context, Type targetType, IReadOnlyList<int> indices)
-        {
-            if (targetType.GenericTypeArguments.Length != 1)
-                throw new Exception($"Cannot map to object of type {targetType.FullName}");
-            var elementType = targetType.GenericTypeArguments[0];
-            var collectionType = typeof(ICollection<>).MakeGenericType(elementType);
-            if (!collectionType.IsAssignableFrom(targetType))
-                throw new Exception($"Cannot map to object of type {targetType.FullName}. Expected ICollection<{elementType.Name}>.");
-
-            var constructor = targetType.GetConstructor(new Type[0]);
-            if (constructor == null)
-                throw new Exception($"Collection type {targetType.FullName} must have a default parameterless constructor");
-
-            var addMethod = collectionType.GetMethod(nameof(ICollection<object>.Add));
-            if (addMethod == null)
-                throw new Exception($".{nameof(ICollection<object>.Add)}() Method missing from collection type {targetType.FullName}");
-
-            var listVar = context.AddVariable(targetType, "list_" + context.GetNextVarNumber());
-            context.AddStatement(Expression.Assign(listVar, Expression.New(constructor)));
-
-            foreach (var index in indices)
-            {
-                var getScalarExpression = GetScalarConversionExpression(index, context, context.Reader.GetFieldType(index), elementType);
-                context.AddStatement(Expression.Call(listVar, addMethod, getScalarExpression));
-            }
-
-            return listVar;
-        }
-
         public static Expression GetConversionExpression(int columnIdx, DataRecordMapperCompileContext context, Type targetType)
         {
             var columnType = context.Reader.GetFieldType(columnIdx);
@@ -232,8 +156,6 @@ namespace CastIron.Sql.Mapping
             var rawVar = context.AddVariable<object>("raw_" + context.GetNextVarNumber());
             var getRawStmt = Expression.Assign(rawVar, Expression.Call(context.RecordParam, GetValueMethod, Expression.Constant(columnIdx)));
             context.AddStatement(getRawStmt);
-
-            // TODO: Should we store the converted values into variables instead of inlining them?
 
             if (targetType == typeof(object))
             {
@@ -286,33 +208,111 @@ namespace CastIron.Sql.Mapping
                     Expression.Constant(false));
             }
 
-            // TODO: If columnType == typeof(string) and targetType is numeric or DateTime, we should be able to parse.
-
-            // Parse string to numeric type
-            if (columnType == typeof(string) && (_numericTypes.Contains(targetType) || targetType == typeof(DateTime)))
+            // Convert.ChangeType where the column is IConvertable. Convert to the non-Nullable<> version of TargetType
+            if (IsConvertible(columnType))
             {
-                
+                var baseTargetType = GetTypeWithoutNullability(targetType);
                 return Expression.Condition(
                     Expression.NotEqual(_dbNullExp, rawVar),
                     Expression.Convert(
-                        Expression.Call(null, _convertMethod, new Expression[] { rawVar, Expression.Constant(targetType, typeof(Type)) }), targetType),
+                        Expression.Call(null, _convertMethod, new Expression[] { rawVar, Expression.Constant(baseTargetType, typeof(Type)) }), targetType),
                     Expression.Convert(
                         Expression.Constant(GetDefaultValue(targetType)), targetType));
             }
             
-            // We fall back to a basic conversion and hope all goes well
-            return Expression.Condition(
-                Expression.NotEqual(_dbNullExp, rawVar),
-                Expression.Convert(
-                    rawVar,
-                    targetType
-                ),
-                Expression.Convert(Expression.Constant(GetDefaultValue(targetType)), targetType));
+            // There is no conversion rule, so just return a default value.
+            return Expression.Convert(Expression.Constant(GetDefaultValue(targetType)), targetType);
         }
 
         public static object GetDefaultValue(Type t)
         {
             return t.IsValueType ? Activator.CreateInstance(t) : null;
+        }
+
+        private static Expression GetInterfaceCollectionConversionExpression(DataRecordMapperCompileContext context, Type targetType, IReadOnlyList<int> indices)
+        {
+            if (targetType.GenericTypeArguments.Length != 1)
+                throw new Exception($"Cannot map to object of type {targetType.FullName}");
+            var elementType = targetType.GenericTypeArguments[0];
+            var listType = typeof(List<>).MakeGenericType(elementType);
+            if (!targetType.IsAssignableFrom(listType))
+                throw new Exception($"Cannot map to object of type {targetType.FullName}. Must be compatible with List<{elementType.Name}>.");
+            var constructor = listType.GetConstructor(new Type[0]);
+            if (constructor == null)
+                throw new Exception($"Collection type {listType.FullName} must have a default parameterless constructor");
+            var addMethod = listType.GetMethod(nameof(List<object>.Add));
+            if (addMethod == null)
+                throw new Exception($".{nameof(List<object>.Add)}() Method missing from collection type {listType.FullName}");
+            var listVar = context.AddVariable(listType, "list_" + context.GetNextVarNumber());
+            context.AddStatement(Expression.Assign(listVar, Expression.New(constructor)));
+
+            foreach (var index in indices)
+            {
+                var getScalarExpression = GetScalarConversionExpression(index, context, context.Reader.GetFieldType(index), elementType);
+                context.AddStatement(Expression.Call(listVar, addMethod, getScalarExpression));
+            }
+
+            return Expression.Convert(listVar, targetType);
+        }
+
+        private static Expression GetArrayConversionExpression(DataRecordMapperCompileContext context, Type targetType, IReadOnlyList<int> indices)
+        {
+            var elementType = targetType.GetElementType();
+
+            var constructor = targetType.GetConstructor(new[] { typeof(int) });
+            if (constructor == null)
+                throw new Exception($"Array type {targetType.FullName} must have a standard array constructor");
+
+            var arrayVar = context.AddVariable(targetType, "array_" + context.GetNextVarNumber());
+            context.AddStatement(Expression.Assign(arrayVar, Expression.New(constructor, Expression.Constant(indices.Count))));
+
+            for (int i = 0; i < indices.Count; i++)
+            {
+                var columnIndex = indices[i];
+                var getScalarExpression = GetScalarConversionExpression(columnIndex, context, context.Reader.GetFieldType(columnIndex), elementType);
+                context.AddStatement(Expression.Assign(Expression.ArrayAccess(arrayVar, Expression.Constant(i)), getScalarExpression));
+            }
+
+            return arrayVar;
+        }
+
+        private static Expression GetConcreteCollectionConversionExpression(DataRecordMapperCompileContext context, Type targetType, IReadOnlyList<int> indices)
+        {
+            if (targetType.GenericTypeArguments.Length != 1)
+                throw new Exception($"Cannot map to object of type {targetType.FullName}");
+            var elementType = targetType.GenericTypeArguments[0];
+            var collectionType = typeof(ICollection<>).MakeGenericType(elementType);
+            if (!collectionType.IsAssignableFrom(targetType))
+                throw new Exception($"Cannot map to object of type {targetType.FullName}. Expected ICollection<{elementType.Name}>.");
+
+            var constructor = targetType.GetConstructor(new Type[0]);
+            if (constructor == null)
+                throw new Exception($"Collection type {targetType.FullName} must have a default parameterless constructor");
+
+            var addMethod = collectionType.GetMethod(nameof(ICollection<object>.Add));
+            if (addMethod == null)
+                throw new Exception($".{nameof(ICollection<object>.Add)}() Method missing from collection type {targetType.FullName}");
+
+            var listVar = context.AddVariable(targetType, "list_" + context.GetNextVarNumber());
+            context.AddStatement(Expression.Assign(listVar, Expression.New(constructor)));
+
+            foreach (var index in indices)
+            {
+                var getScalarExpression = GetScalarConversionExpression(index, context, context.Reader.GetFieldType(index), elementType);
+                context.AddStatement(Expression.Call(listVar, addMethod, getScalarExpression));
+            }
+
+            return listVar;
+        }
+
+        private static bool IsConvertible(Type t)
+        {
+            return typeof(IConvertible).IsAssignableFrom(t);
+        }
+
+        private static Type GetTypeWithoutNullability(Type t)
+        {
+            return t.IsGenericType && t.GetGenericTypeDefinition() == typeof(Nullable<>) ? t.GenericTypeArguments[0] : t;
         }
     }
 }
