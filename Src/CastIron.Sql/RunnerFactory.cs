@@ -11,7 +11,7 @@ namespace CastIron.Sql
         /// <summary>
         /// Create the ISqlRunner for the given connection string
         /// </summary>
-        /// <param name="connectionString"></param>
+        /// <param name="connectionString">The connection string to use for SQL Server</param>
         /// <returns></returns>
         public static ISqlRunner Create(string connectionString)
         {

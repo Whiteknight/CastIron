@@ -6,6 +6,10 @@
     /// </summary>
     public interface ISqlCommandSimple
     {
+        /// <summary>
+        /// Get a string of SQL to execute
+        /// </summary>
+        /// <returns></returns>
         string GetSql();
     }
 
@@ -16,6 +20,11 @@
     /// <typeparam name="T"></typeparam>
     public interface ISqlCommandSimple<out T> : ISqlCommandSimple
     {
+        /// <summary>
+        /// Return outputs from the command including output parameter values and command metadata
+        /// </summary>
+        /// <param name="result"></param>
+        /// <returns></returns>
         T ReadOutputs(IDataResults result);
     }
 }

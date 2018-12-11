@@ -5,6 +5,11 @@
     /// </summary>
     public interface ISqlCommand
     {
+        /// <summary>
+        /// Setup the IDataInteraction command with SQL and parameters
+        /// </summary>
+        /// <param name="interaction"></param>
+        /// <returns></returns>
         bool SetupCommand(IDataInteraction interaction);
     }
 
@@ -15,6 +20,11 @@
     /// <typeparam name="T"></typeparam>
     public interface ISqlCommand<out T> : ISqlCommand
     {
+        /// <summary>
+        /// Read the command outputs, such as output parameters or command metadata
+        /// </summary>
+        /// <param name="result"></param>
+        /// <returns></returns>
         T ReadOutputs(IDataResults result);
     }
 }

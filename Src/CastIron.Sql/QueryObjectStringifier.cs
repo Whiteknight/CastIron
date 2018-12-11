@@ -5,6 +5,7 @@ namespace CastIron.Sql
 {
     /// <summary>
     /// Facilitates pretty-printing of commands for the purposes of debugging, logging and auditing
+    /// Notice that the stringified commands may not be complete or valid SQL in some situations
     /// </summary>
     public class QueryObjectStringifier
     {

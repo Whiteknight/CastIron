@@ -2,6 +2,10 @@
 
 namespace CastIron.Sql
 {
+    /// <summary>
+    /// Exception wrapper type which encapsulates an exception and (if available) the SQL command
+    /// which was attempting to execute
+    /// </summary>
     public class SqlProblemException : Exception
     {
         public SqlProblemException()

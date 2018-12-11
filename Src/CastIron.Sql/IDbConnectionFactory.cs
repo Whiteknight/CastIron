@@ -9,6 +9,10 @@ namespace CastIron.Sql
     /// </summary>
     public interface IDbConnectionFactory
     {
+        /// <summary>
+        /// Creates the new IDbConnection for the current provider
+        /// </summary>
+        /// <returns></returns>
         IDbConnection Create();
     }
 }

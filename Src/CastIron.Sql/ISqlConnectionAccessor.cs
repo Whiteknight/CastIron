@@ -9,6 +9,12 @@ namespace CastIron.Sql
     /// <typeparam name="T"></typeparam>
     public interface ISqlConnectionAccessor<out T> 
     {
+        /// <summary>
+        /// Perform some operation of the initialized connection and transaction objects. Some result is expected.
+        /// </summary>
+        /// <param name="connection">The open connection object</param>
+        /// <param name="transaction">The current transaction object or null</param>
+        /// <returns></returns>
         T Query(IDbConnection connection, IDbTransaction transaction);
     }
 
@@ -18,6 +24,11 @@ namespace CastIron.Sql
     /// </summary>
     public interface ISqlConnectionAccessor
     {
+        /// <summary>
+        /// Perform some operation on the initialized connection and transaction objects. No result is expected
+        /// </summary>
+        /// <param name="connection">The open connection object</param>
+        /// <param name="transaction">The current transaction object or null</param>
         void Execute(IDbConnection connection, IDbTransaction transaction);
     }
 }

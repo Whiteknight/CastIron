@@ -3,6 +3,9 @@ using CastIron.Sql.Statements;
 
 namespace CastIron.Sqlite
 {
+    /// <summary>
+    /// Factory to create ISqlRunner instances for SQLite
+    /// </summary>
     public static class RunnerFactory
     {
         public static ISqlRunner Create(string connectionString)
