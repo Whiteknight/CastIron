@@ -11,7 +11,6 @@ namespace CastIron.Sql.Mapping
         private readonly PropertyAndConstructorRecordMapperCompiler _constructors;
         private readonly ObjectRecordMapperCompiler _objects;
         private readonly PrimitiveRecordMapperCompiler _primitives;
-        private readonly StringRecordMapperCompiler _strings;
 
         public RecordMapperCompiler()
         {
@@ -19,7 +18,6 @@ namespace CastIron.Sql.Mapping
             _constructors = new PropertyAndConstructorRecordMapperCompiler();
             _objects = new ObjectRecordMapperCompiler();
             _primitives = new PrimitiveRecordMapperCompiler();
-            _strings = new StringRecordMapperCompiler();
         }
 
         public Func<IDataRecord, T> CompileExpression<T>(Type specific, IDataReader reader, Func<T> factory, ConstructorInfo preferredConstructor)
@@ -34,22 +32,20 @@ namespace CastIron.Sql.Mapping
 
         private IRecordMapperCompiler GetStrategy(Type parentType, Type specific, object factory, object preferredConstructor)
         {
-            if (DataRecordExpressions.IsSupportedPrimitiveType(parentType))
+            if (PrimitiveRecordMapperCompiler.IsMatchingType(parentType))
                 return _primitives;
             
             // If asked for an object array, or just an object, return those as object arrays and don't do any fancy mapping
             if (ObjectRecordMapperCompiler.IsMatchingType(parentType) && ObjectRecordMapperCompiler.IsMatchingType(specific))
                 return _objects;
 
-            // If asked for an array of strings, we can do that too
-            if (StringRecordMapperCompiler.IsMatchingType(parentType) && StringRecordMapperCompiler.IsMatchingType(specific))
-                return _strings;
-
-            if (parentType.Namespace == "System" && parentType.Name.StartsWith("Tuple") && specific == parentType && factory == null && preferredConstructor == null)
+            if (TupleRecordMapperCompiler.IsMatchingType(parentType, factory, preferredConstructor))
                 return _tuples;
-            if (!parentType.IsAssignableFrom(specific))
-                throw new Exception($"Type {specific.Name} must be assignable to {parentType.Name}.Name");
-            return _constructors;
+
+            if (parentType.IsAssignableFrom(specific))
+                return _constructors;
+
+            throw new Exception($"Could not find mapper for Type=({(specific ?? parentType).Name} is {parentType.Name})");
         }
     }
 }

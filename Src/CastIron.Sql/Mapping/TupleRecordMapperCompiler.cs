@@ -32,5 +32,10 @@ namespace CastIron.Sql.Mapping
             context.AddStatement(Expression.Convert(instance, typeof(T)));
             return context.CompileLambda<T>();
         }
+
+        public static bool IsMatchingType(Type parentType, object factory, object preferredConstructor)
+        {
+            return parentType.Namespace == "System" && parentType.Name.StartsWith("Tuple") && factory == null && preferredConstructor == null;
+        }
     }
 }

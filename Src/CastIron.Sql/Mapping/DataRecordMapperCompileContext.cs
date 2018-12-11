@@ -15,6 +15,7 @@ namespace CastIron.Sql.Mapping
         private readonly List<ParameterExpression> _variables;
         private readonly List<Expression> _statements;
         private int _varNumber;
+        private readonly int _numColumns;
 
         private class ColumnInfo
         {
@@ -45,6 +46,7 @@ namespace CastIron.Sql.Mapping
             _statements = new List<Expression>();
             _columnNames = new Dictionary<string, List<ColumnInfo>>();
             _varNumber = 0;
+            _numColumns = reader.FieldCount;
         }
         
         public IDataReader Reader { get; }
@@ -86,6 +88,11 @@ namespace CastIron.Sql.Mapping
             if (name == null)
                 return new List<int>();
             return _columnNames.ContainsKey(name) ? _columnNames[name].Select(c => c.Index).ToList() : new List<int>();
+        }
+
+        public IReadOnlyList<int> GetAllColumnIndices()
+        {
+            return Enumerable.Range(0, _numColumns).ToList();
         }
 
         public void MarkMapped(string name, int count = 1)

@@ -16,17 +16,33 @@ namespace CastIron.Sql.Mapping
 
         public Func<IDataRecord, T> CompileExpression<T>(Type specific, IDataReader reader, Func<T> factory, ConstructorInfo preferredConstructor)
         {
-            if (!DataRecordExpressions.IsSupportedPrimitiveType(typeof(T)))
-                return r => default(T);
-            if (!DataRecordExpressions.IsSupportedPrimitiveType(specific))
-                return r => default(T);
+            var t = typeof(T);
+            if (DataRecordExpressions.IsSupportedPrimitiveType(t))
+            {
+                var recordParam = Expression.Parameter(typeof(IDataRecord), "record");
+                var context = new DataRecordMapperCompileContext(reader, recordParam, null, typeof(T), typeof(T));
 
-            var recordParam = Expression.Parameter(typeof(IDataRecord), "record");
-            var context = new DataRecordMapperCompileContext(reader, recordParam, null, typeof(T), typeof(T));
+                var expr = DataRecordExpressions.GetConversionExpression(_columnIndex, context, context.Parent);
+                context.AddStatement(expr);
+                return context.CompileLambda<T>();
+            }
 
-            var expr = DataRecordExpressions.GetConversionExpression(_columnIndex, context, context.Parent);
-            context.AddStatement(expr);
-            return context.CompileLambda<T>();
+            if (DataRecordExpressions.IsSupportedCollectionType(t))
+            {
+                var recordParam = Expression.Parameter(typeof(IDataRecord), "record");
+                var context = new DataRecordMapperCompileContext(reader, recordParam, null, typeof(T), typeof(T));
+
+                var expr = DataRecordExpressions.GetConversionExpression(context, context.Parent);
+                context.AddStatement(expr);
+                return context.CompileLambda<T>();
+            }
+
+            return r => default(T);
+        }
+
+        public static bool IsMatchingType(Type t)
+        {
+            return DataRecordExpressions.IsSupportedPrimitiveType(t) || DataRecordExpressions.IsSupportedCollectionType(t);
         }
     }
 }

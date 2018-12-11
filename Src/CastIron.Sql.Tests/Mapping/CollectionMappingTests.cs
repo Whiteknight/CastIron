@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using CastIron.Sql.Statements;
 using FluentAssertions;
 using NUnit.Framework;
 
@@ -166,6 +168,26 @@ namespace CastIron.Sql.Tests.Mapping
             result.TestString[0].Should().Be("5");
             result.TestString[1].Should().Be("TEST");
             result.TestString[2].Should().Be("3.14");
+        }
+
+        [Test]
+        public void TestQuery_MapToRawIntArray([Values("MSSQL", "SQLITE")] string provider)
+        {
+            var target = RunnerFactory.Create(provider);
+            var result = target.Query(new SqlQuery<List<int>>("SELECT 5, 6, '7'")).First();
+            result.Count.Should().Be(3);
+            result[0].Should().Be(5);
+            result[1].Should().Be(6);
+            result[2].Should().Be(7);
+        }
+
+        [Test]
+        public void TestQuery_MapStringToDateTimeList([Values("MSSQL", "SQLITE")] string provider)
+        {
+            var target = RunnerFactory.Create(provider);
+            var result = target.Query(new SqlQuery<List<DateTime>>("SELECT '2018-12-11 17:01:02'")).First();
+            result.Count.Should().Be(1);
+            result[0].Should().Be(new DateTime(2018, 12, 11, 17, 1, 2));
         }
     }
 }

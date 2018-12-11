@@ -67,6 +67,7 @@ namespace CastIron.Sql.Mapping
 
         private static readonly MethodInfo GetValueMethod = typeof(IDataRecord).GetMethod(nameof(IDataRecord.GetValue));
         private static readonly Expression _dbNullExp = Expression.Field(null, typeof(DBNull), nameof(DBNull.Value));
+        private static readonly MethodInfo _convertMethod = typeof(Convert).GetMethod(nameof(Convert.ChangeType), new[] { typeof(object), typeof(Type) });
 
         public static bool IsSupportedPrimitiveType(Type t)
         {
@@ -95,9 +96,31 @@ namespace CastIron.Sql.Mapping
                 var collectionType = typeof(ICollection<>).MakeGenericType(elementType);
                 if (!collectionType.IsAssignableFrom(t))
                     return false;
+
+                return true;
             }
 
-            return true;
+            return false;
+        }
+
+        public static Expression GetConversionExpression(DataRecordMapperCompileContext context, Type targetType)
+        {
+            if (targetType.IsArray && targetType.HasElementType)
+            {
+                var indices = context.GetAllColumnIndices();
+                return GetArrayConversionExpression(context, targetType, indices);
+            }
+
+            if (targetType.IsGenericType)
+            {
+                var indices = context.GetAllColumnIndices();
+                if (targetType.IsInterface)
+                    return GetInterfaceCollectionConversionExpression(context, targetType, indices);
+
+                return GetConcreteCollectionConversionExpression(context, targetType, indices);
+            }
+
+            return GetScalarConversionExpression(0, context, context.Reader.GetFieldType(0), targetType);
         }
 
         public static Expression GetConversionExpression(string columnName, DataRecordMapperCompileContext context, Type targetType)
@@ -263,6 +286,20 @@ namespace CastIron.Sql.Mapping
                     Expression.Constant(false));
             }
 
+            // TODO: If columnType == typeof(string) and targetType is numeric or DateTime, we should be able to parse.
+
+            // Parse string to numeric type
+            if (columnType == typeof(string) && (_numericTypes.Contains(targetType) || targetType == typeof(DateTime)))
+            {
+                
+                return Expression.Condition(
+                    Expression.NotEqual(_dbNullExp, rawVar),
+                    Expression.Convert(
+                        Expression.Call(null, _convertMethod, new Expression[] { rawVar, Expression.Constant(targetType, typeof(Type)) }), targetType),
+                    Expression.Convert(
+                        Expression.Constant(GetDefaultValue(targetType)), targetType));
+            }
+            
             // We fall back to a basic conversion and hope all goes well
             return Expression.Condition(
                 Expression.NotEqual(_dbNullExp, rawVar),
