@@ -1,9 +1,13 @@
 # Quickstart
 
-Start by creating an `ISqlRunner`:
+Start by creating an `ISqlRunner` for your chosen provider:
 
 ```csharp
-var runner = RunnerFactory.Create(connectionString);
+// MS SQL Server
+var runner = CastIron.Sql.RunnerFactory.Create(connectionString);
+
+// SQLite, requires CastIron.Sqlite package
+var runner = CastIron.Sqlite.RunnerFactory.Create(connectionString);
 ```
 
 ## I want to...
@@ -23,7 +27,11 @@ runner.Execute(new MyCommandObject());
 ### Execute a query object and get a raw `IDataReader`
 
 ```csharp
-var reader = runner.QueryStream(new MyQueryObject()).AsRawReader();
+using (var stream = runner.QueryStream(new MyQueryObject())))
+{
+    var reader = stream.AsRawReader();
+    ...
+}
 ```
 
 ### Execute a string of SQL and get a mapped result
@@ -41,7 +49,11 @@ runner.Execute("UPDATE MyTable SET ...");
 ### Just execute an SQL query and get an `IDataReader`
 
 ```csharp 
-var result = runner.QueryStream("SELECT * FROM MyTable").AsRawReader();
+using (var stream = runner.QueryStream("SELECT * FROM MyTable"))
+{
+    var reader = stream.AsRawReader();
+    ...
+}
 ```
 
 ### Map an existing `IDataReader` to an enumerable of objects
@@ -49,6 +61,7 @@ var result = runner.QueryStream("SELECT * FROM MyTable").AsRawReader();
 ```csharp
 var result = runner.WrapAsResultStream(reader).AsEnumerable<MyType>();
 ```
+
 ### Map an existing `DataTable` to an enumerable of objects
 
 ```csharp

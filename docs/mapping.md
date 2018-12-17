@@ -1,6 +1,20 @@
 # Mapping
 
-All result mapping starts with an `IDataResults` or `IDataResultsStream`. An `IDataResults` instance is automatically passed to the `Read()` method of your `ISqlQuery` and certain `ISqlCommand<T>` variants. `IDataResultsStream` instances come from the `ISqlRunner.QueryStream()` method. In either case, the basics of mapping are the same.
+Mapping results from an `System.Data.IDataReader` to an enumerable of custom objects is one of the core features of CastIron. The conversion from a data reader to objects is rarely a straight-forward task, so CastIron provides a set of built-in mappers and mapper-builders to handle some of the complexities in a heuristic-based way.
+
+All result mapping starts with an `IDataResults` or `IDataResultsStream`, which encapsulates the `System.Data.IDataReader` and some additional details. An `IDataResults` instance is automatically passed to the `Read()` method of your `ISqlQuery` and certain `ISqlCommand<T>` variants. `IDataResultsStream` instances come from the `ISqlRunner.QueryStream()` method. In either case, the basics of mapping are the same.
+
+### Basic Mapping Heuristics
+
+The most basic, default behavior of CastIron is to map result set columns to object properties and constructor parameters by matching names, case insensitive. However this raises some difficulties because database columns do not need to have a name, may have a name which uses special characters which cannot be represented as property or parameter names in C# code, and may have multiple columns with the same name. The built-in mappers follow the given few rules:
+
+1. If the property or parameter is a scalar type, the first matching column will be mapped
+1. If the property or parameter is a supported collection type, all matching columns will be mapped
+1. If the name of the property or parameter name matches, case insensitive, those columns will be mapped first
+1. Otherwise, if the property is tagged with the `ColumnAttribute`, and the `ColumnAttribute.Name` property matches, case insensitive, those columns will be mapped
+1. Otherwise, if the property or parameter is tagged with the `UnnamedColumnsAttribute`, any unnamed columns will be mapped
+
+It is possible to provide mappings which use other behaviors, but CastIron does not supply any of these (yet). `ColumnAttribute.Order` and `ColumnAttribute.TypeName` are not currently supported.
 
 ## The Old-Fashioned Way
 
@@ -103,9 +117,11 @@ This overload is one level of abstraction higher than the `AsRawReader()` method
 
 There are several `IRecordMapperCompiler` types in the `CastIron.Sql.Mapping` namespace which you can use. The default mapper will automatically select the most appropriate one based on the type and options you provide, but if you would like more control or to provide custom behavior you can specify one of these.
 
+Mapper compilers create a `Func<IDataRecord, T>` delegate which, once created, can be used and reused with any `IDataReader` instances which have the same schema: The readers must have the same columns with the same names, in the same order, with the same basic data types. This is because once the named properties are matched to named columns, the numeric indices are used to perform the actual movement of data between the two.
+
 ### `CachingMappingCompiler`
 
-The `CachingMappingCompiler` is a Decorator around another compiler which provides caching behaviors. If the mapper can be cached, it will be held in memory. This provides a nice performance boost when the same queries are executed over and over again.
+The `CachingMappingCompiler` is a Decorator around another compiler which provides caching behaviors. If the compiled mapper can be cached, it will be held in memory. This provides a nice performance boost when the same queries are executed over and over again.
 
 ```csharp
 var compiler = new CachingMappingCompiler(innerCompiler);
@@ -139,18 +155,9 @@ The supported types of this compiler are:
 * `IList`
 * `ICollection`
 
-### `StringRecordMapperCompiler`
-
-The `StringRecordMapperCompiler` maps the `IDataReader` into an enumerable of `string[]`. This compiler calls `.ToString()` on each entry in the record, except for `DBNull` which is converted to `null`. The following types are supported by this compiler:
-
-* `string[]`
-* `IEnumerable<string>`
-* `IList<string>`
-* `IReadOnlyList<string>`
-
 ### `PrimitiveRecordMapperCompiler`
 
-The `PrimitiveRecordMapperCompiler` is used to map a value from a single column of the record to the given primitive type via unboxing and converstion. If the value is `DBNull` the default value for that type is returned instead. This mapper supports the following types and their `Nullable<T>` variants where available:
+The `PrimitiveRecordMapperCompiler` is used to map a value from a single column of the record to the given primitive type via unboxing and converstion. If the value is `DBNull` the default value for that type is returned instead. This mapper supports the following types, and their `Nullable<T>` variants, and collection types where available:
 
 * `bool`
 * `byte`
@@ -168,13 +175,33 @@ The `PrimitiveRecordMapperCompiler` is used to map a value from a single column 
 * `ulong`
 * `ushort`
 
+#### Collection Types
+
+Constructor parameters and public properties can be collection types of the supported primitive types. All columns the in `IDataRecord` with a matching name will be added to the collection with that name.
+
+Array types will be instantiated directly and filled by assigning to array indices.
+
+Interface types which inherit from `ICollection<T>` will be instantiated as a `List<T>` and elements added with the `.Add()` method.
+
+Concrete types which inherit from `ICollection<T>` will be instantiated by invoking the default parameterless constructor. Elements will be added by calling the `.Add()` method. Any custom collection type which implements `ICollection<T>`, has a default parameterless constructor and implements the `.Add()` method can be used for this purpose. 
+
+For example, the following types properties can all be mapped:
+
+```csharp
+string[] results = ...;
+
+IList<int> results = ...;   // instantiated as List<int>
+
+HashSet<double> results = ...;
+```
+
 ### `TupleRecordMapperCompiler`
 
 The `TupleRecordMapperCompiler` maps a row into a `Tuple<>` by ordinal column index. The first column becomes the first parameter, the second column the second parameter, etc. This compiler can handle a Tuple with up to 7 values. This compiler expects each type to be a primitive value (see the list under "`PrimitiveRecordMapperCompiler`" above) and cannot map where the tuple type parameter is a class.
 
 ### `PropertyAndConstructorRecordMapperCompiler`
 
-The `PropertyAndConstructorRecordMapperCompiler` is the most advanced compiler in CastIron. It maps a row into an object by matching constructor parameters and public writable properties by name. Name matching is case insensitive. This compiler first creates an instance by using either a supplied factory method or else it will find an appropriate constructor. When the object is instantiated, any remaining columns from the result set will be mapped to public properties on the instance.
+The `PropertyAndConstructorRecordMapperCompiler` is the most advanced compiler in CastIron. It maps a row into an object by matching constructor parameters and public writable properties by name. Name matching is case insensitive, and obeys `ColumnAttribute.Name` when provided. This compiler first creates an instance by using either a supplied factory method or else it will find an appropriate constructor. When the object is instantiated, any remaining columns from the result set will be mapped to public properties on the instance.
 
 #### Creating the Instance
 
@@ -190,25 +217,7 @@ Constructor parameters which can be mapped will be one of the primitive types (s
 
 Public properties with public `set` methods can be mapped to columns with the same name (case insensitive). The properties must either be one of the primitive types (see "`PrimitiveRecordMapperCompiler`" above) or a supported collection type (see "Collection Types" below).
 
-#### Collection Types
 
-Constructor parameters and public properties can be collection types of the supported primitive types (see "`PrimitiveRecordMapperCompiler`" above for the complete list). All columns the in `IDataRecord` with a matching name will be added to the collection with that name.
-
-Array types will be instantiated directly and filled by assigning to array indices.
-
-Interface types which inherit from `ICollection<T>` will be instantiated as a `List<T>` and elements added with the `.Add()` method.
-
-Concrete types which inherit from `ICollection<T>` will be instantiated by invoking the default parameterless constructor. Elements will be added by calling the `.Add()` method. Any custom collection type which implements `ICollection<T>`, has a default parameterless constructor and implements the `.Add()` method can be used for this purpose. 
-
-For example, the following properties can all be mapped:
-
-```csharp
-public string[] MyStrings { get; set;}
-
-public IList<int> MyInts { get; set;}   // instantiated as List<int>
-
-public HashSet<double> MyDoubles { get; set;}
-```
 
 ### `RecordMapperCompiler` 
 

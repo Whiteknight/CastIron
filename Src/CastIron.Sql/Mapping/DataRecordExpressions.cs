@@ -103,6 +103,8 @@ namespace CastIron.Sql.Mapping
             return false;
         }
 
+        // TODO: Map to a dictionary types, if we have a key derivation function
+
         public static Expression GetConversionExpression(DataRecordMapperCompileContext context, Type targetType)
         {
             if (targetType.IsArray && targetType.HasElementType)
@@ -152,6 +154,7 @@ namespace CastIron.Sql.Mapping
 
         private static Expression GetScalarConversionExpression(int columnIdx, DataRecordMapperCompileContext context, Type columnType, Type targetType)
         { 
+            // TODO: targetType == typeof(dynamic)
             // Pull the value out of the reader into the rawVar
             var rawVar = context.AddVariable<object>("raw_" + context.GetNextVarNumber());
             var getRawStmt = Expression.Assign(rawVar, Expression.Call(context.RecordParam, GetValueMethod, Expression.Constant(columnIdx)));

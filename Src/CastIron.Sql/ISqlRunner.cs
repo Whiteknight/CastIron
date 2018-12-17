@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
+using CastIron.Sql.Execution;
 using CastIron.Sql.Mapping;
 using CastIron.Sql.Statements;
 using CastIron.Sql.Utility;
@@ -25,6 +26,12 @@ namespace CastIron.Sql
         ISqlStatementBuilder Statements { get; }
 
         /// <summary>
+        /// Factory to create IDataInteraction objects to abstract details of the underlying connection
+        /// and command objects
+        /// </summary>
+        IDataInteractionFactory InteractionFactory { get; }
+
+        /// <summary>
         /// Create a batch object which will execute multiple commands and queries in a single connection
         /// for efficiency.
         /// </summary>
@@ -32,107 +39,37 @@ namespace CastIron.Sql
         SqlBatch CreateBatch();
 
         /// <summary>
-        /// Execute all the statements in a batch
+        /// Create an execution context for a database connection. The context provides parameters
+        /// and utilities to help manage the connection
         /// </summary>
-        /// <param name="batch"></param>
         /// <param name="build"></param>
-        void Execute(SqlBatch batch, Action<IContextBuilder> build = null);
+        /// <returns></returns>
+        ExecutionContext CreateExecutionContext(Action<IContextBuilder> build);
 
         /// <summary>
-        /// Execute the query object and return the result. Maps internally to a call to 
-        /// IDbCommand.ExecuteReader()
+        /// Open a connection to the database and execute a list of executors on the open connection
+        /// </summary>
+        /// <param name="executors"></param>
+        /// <param name="build"></param>
+        void Execute(IReadOnlyList<Action<IExecutionContext, int>> executors, Action<IContextBuilder> build);
+
+        /// <summary>
+        /// Open a connection to the database and execute an executor on the open connection. The
+        /// executor is expected to return a result
         /// </summary>
         /// <typeparam name="T"></typeparam>
-        /// <param name="query"></param>
+        /// <param name="executor"></param>
         /// <param name="build"></param>
         /// <returns></returns>
-        T Query<T>(ISqlQuerySimple<T> query, Action<IContextBuilder> build = null);
+        T Execute<T>(Func<IExecutionContext, T> executor, Action<IContextBuilder> build);
 
         /// <summary>
-        /// Execute the query object and return the result. Maps internally to a call to 
-        /// IDbCommand.ExecuteReader()
+        /// Open a connection to the database and execute an executor on the open connection. The
+        /// executor is not expected to return a result
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="query"></param>
+        /// <param name="executor"></param>
         /// <param name="build"></param>
-        /// <returns></returns>
-        T Query<T>(ISqlQuery<T> query, Action<IContextBuilder> build = null);
-
-        /// <summary>
-        /// Execute the query object and return the result. Maps internally to a call to 
-        /// IDbCommand.ExecuteReader()
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="accessor"></param>
-        /// <param name="build"></param>
-        /// <returns></returns>
-        T Query<T>(ISqlConnectionAccessor<T> accessor, Action<IContextBuilder> build = null);
-
-        /// <summary>
-        /// Establish a connection to the provider and pass control of the connection to an accessor object 
-        /// for low-level manipulation
-        /// </summary>
-        /// <param name="accessor"></param>
-        /// <param name="build"></param>
-        void Execute(ISqlConnectionAccessor accessor, Action<IContextBuilder> build = null);
-
-        /// <summary>
-        /// Execute the command and return no result. Maps internally to a call to 
-        /// IDbCommand.ExecuteNonQuery()
-        /// </summary>
-        /// <param name="command"></param>
-        /// <param name="build"></param>
-        void Execute(ISqlCommandSimple command, Action<IContextBuilder> build = null);
-
-        /// <summary>
-        /// Execute the command and return a result. Commands will not
-        /// generate an IDataReader or IDataResults, so results will either need to be calculated or
-        /// derived from output parameters. Maps internally to a call to IDbCommand.ExecuteNonQuery()
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="command"></param>
-        /// <param name="build"></param>
-        /// <returns></returns>
-        T Execute<T>(ISqlCommandSimple<T> command, Action<IContextBuilder> build = null);
-
-        /// <summary>
-        /// Execute the command and return no result. Maps internally to a call to 
-        /// IDbCommand.ExecuteNonQuery()
-        /// </summary>
-        /// <param name="command"></param>
-        /// <param name="build"></param>
-        void Execute(ISqlCommand command, Action<IContextBuilder> build = null);
-
-        /// <summary>
-        /// Execute the command and return a result. Commands will not
-        /// generate an IDataReader or IDataResults, so results will either need to be calculated or
-        /// derived from output parameters. Maps internally to a call to IDbCommand.ExecuteNonQuery()
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="command"></param>
-        /// <param name="build"></param>
-        /// <returns></returns>
-        T Execute<T>(ISqlCommand<T> command, Action<IContextBuilder> build = null);
-
-        /// <summary>
-        /// Execute the SQL query and return a stream of results. Maps internally to a call to 
-        /// IDbCommand.ExecuteReader(). The returned stream object must be disposed when it is finished
-        /// being used.
-        /// </summary>
-        /// <param name="query"></param>
-        /// <param name="build"></param>
-        /// <returns></returns>
-        IDataResultsStream QueryStream(ISqlQuery query, Action<IContextBuilder> build = null);
-
-        /// <summary>
-        /// Execute the SQL query and return a stream of results. Maps internally to a call to 
-        /// IDbCommand.ExecuteReader(). The returned stream object must be disposed when it is finished
-        /// being used.
-        /// </summary>
-        /// <param name="query"></param>
-        /// <param name="build"></param>
-        /// <returns></returns>
-        IDataResultsStream QueryStream(ISqlQuerySimple query, Action<IContextBuilder> build = null);
+        void Execute(Action<IExecutionContext> executor, Action<IContextBuilder> build);
     }
 
     public static class SqlRunnerExtensions
@@ -212,6 +149,181 @@ namespace CastIron.Sql
             Assert.ArgumentNotNull(table, nameof(table));
             return new SqlDataReaderResultStream(null, null, table.CreateDataReader());
 
+        }
+
+        /// <summary>
+        /// Execute all the statements in a batch
+        /// </summary>
+        /// <param name="runner"></param>
+        /// <param name="batch"></param>
+        /// <param name="build"></param>
+        public static void Execute(this ISqlRunner runner, SqlBatch batch, Action<IContextBuilder> build = null)
+        {
+            Assert.ArgumentNotNull(runner, nameof(runner));
+            Assert.ArgumentNotNull(batch, nameof(batch));
+            runner.Execute(batch.GetExecutors(), build);
+        }
+
+        /// <summary>
+        /// Execute the query object and return the result. Maps internally to a call to 
+        /// IDbCommand.ExecuteReader()
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="runner"></param>
+        /// <param name="query"></param>
+        /// <param name="build"></param>
+        /// <returns></returns>
+        public static T Query<T>(this ISqlRunner runner, ISqlQuerySimple<T> query, Action<IContextBuilder> build = null)
+        {
+            Assert.ArgumentNotNull(runner, nameof(runner));
+            Assert.ArgumentNotNull(query, nameof(query));
+            return runner.Execute(c => new SqlQuerySimpleStrategy<T>(query).Execute(c, 0), build);
+        }
+
+        /// <summary>
+        /// Execute the query object and return the result. Maps internally to a call to 
+        /// IDbCommand.ExecuteReader()
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="runner"></param>
+        /// <param name="query"></param>
+        /// <param name="build"></param>
+        /// <returns></returns>
+        public static T Query<T>(this ISqlRunner runner, ISqlQuery<T> query, Action<IContextBuilder> build = null)
+        {
+            Assert.ArgumentNotNull(runner, nameof(runner));
+            Assert.ArgumentNotNull(query, nameof(query));
+            return runner.Execute(c => new SqlQueryStrategy<T>(query, runner.InteractionFactory).Execute(c, 0), build);
+        }
+
+        /// <summary>
+        /// Execute the query object and return the result. Maps internally to a call to 
+        /// IDbCommand.ExecuteReader()
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="runner"></param>
+        /// <param name="accessor"></param>
+        /// <param name="build"></param>
+        /// <returns></returns>
+        public static T Query<T>(this ISqlRunner runner, ISqlConnectionAccessor<T> accessor, Action<IContextBuilder> build = null)
+        {
+            Assert.ArgumentNotNull(runner, nameof(runner));
+            Assert.ArgumentNotNull(accessor, nameof(accessor));
+            return runner.Execute(c => new SqlConnectionAccessorStrategy<T>(accessor).Execute(c, 0), build);
+        }
+
+        /// <summary>
+        /// Establish a connection to the provider and pass control of the connection to an accessor object 
+        /// for low-level manipulation
+        /// </summary>
+        /// <param name="runner"></param>
+        /// <param name="accessor"></param>
+        /// <param name="build"></param>
+        public static void Execute(this ISqlRunner runner, ISqlConnectionAccessor accessor, Action<IContextBuilder> build = null)
+        {
+            Assert.ArgumentNotNull(runner, nameof(runner));
+            Assert.ArgumentNotNull(accessor, nameof(accessor));
+            runner.Execute(c => new SqlConnectionAccessorStrategy(accessor).Execute(c, 0), build);
+        }
+
+        /// <summary>
+        /// Execute the command and return no result. Maps internally to a call to 
+        /// IDbCommand.ExecuteNonQuery()
+        /// </summary>
+        /// <param name="runner"></param>
+        /// <param name="command"></param>
+        /// <param name="build"></param>
+        public static void Execute(this ISqlRunner runner, ISqlCommandSimple command, Action<IContextBuilder> build = null)
+        {
+            Assert.ArgumentNotNull(runner, nameof(runner));
+            Assert.ArgumentNotNull(command, nameof(command));
+            runner.Execute(c => new SqlCommandStrategy(command).Execute(c, 0), build);
+        }
+
+        /// <summary>
+        /// Execute the command and return a result. Commands will not
+        /// generate an IDataReader or IDataResults, so results will either need to be calculated or
+        /// derived from output parameters. Maps internally to a call to IDbCommand.ExecuteNonQuery()
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="runner"></param>
+        /// <param name="command"></param>
+        /// <param name="build"></param>
+        /// <returns></returns>
+        public static T Execute<T>(this ISqlRunner runner, ISqlCommandSimple<T> command, Action<IContextBuilder> build = null)
+        {
+            Assert.ArgumentNotNull(runner, nameof(runner));
+            Assert.ArgumentNotNull(command, nameof(command));
+            return runner.Execute(c => new SqlCommandStrategy<T>(command).Execute(c, 0), build);
+        }
+
+        /// <summary>
+        /// Execute the command and return no result. Maps internally to a call to 
+        /// IDbCommand.ExecuteNonQuery()
+        /// </summary>
+        /// <param name="runner"></param>
+        /// <param name="command"></param>
+        /// <param name="build"></param>
+        public static void Execute(this ISqlRunner runner, ISqlCommand command, Action<IContextBuilder> build = null)
+        {
+            Assert.ArgumentNotNull(runner, nameof(runner));
+            Assert.ArgumentNotNull(command, nameof(command));
+            runner.Execute(c => new SqlCommandRawStrategy(command, runner.InteractionFactory).Execute(c, 0), build);
+        }
+
+        /// <summary>
+        /// Execute the command and return a result. Commands will not
+        /// generate an IDataReader or IDataResults, so results will either need to be calculated or
+        /// derived from output parameters. Maps internally to a call to IDbCommand.ExecuteNonQuery()
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="runner"></param>
+        /// <param name="command"></param>
+        /// <param name="build"></param>
+        /// <returns></returns>
+        public static T Execute<T>(this ISqlRunner runner, ISqlCommand<T> command, Action<IContextBuilder> build = null)
+        {
+            Assert.ArgumentNotNull(runner, nameof(runner));
+            Assert.ArgumentNotNull(command, nameof(command));
+            return runner.Execute(c => new SqlCommandRawStrategy<T>(command, runner.InteractionFactory).Execute(c, 0), build);
+        }
+
+        /// <summary>
+        /// Execute the SQL query and return a stream of results. Maps internally to a call to 
+        /// IDbCommand.ExecuteReader(). The returned stream object must be disposed when it is finished
+        /// being used.
+        /// </summary>
+        /// <param name="runner"></param>
+        /// <param name="query"></param>
+        /// <param name="build"></param>
+        /// <returns></returns>
+        public static IDataResultsStream QueryStream(this ISqlRunner runner, ISqlQuery query, Action<IContextBuilder> build = null)
+        {
+            Assert.ArgumentNotNull(runner, nameof(runner));
+            Assert.ArgumentNotNull(query, nameof(query));
+            var context = runner.CreateExecutionContext(build);
+            context.StartAction("Open connection");
+            context.OpenConnection();
+            return new SqlQueryStreamStrategy(query, runner.InteractionFactory).Execute(context);
+        }
+
+        /// <summary>
+        /// Execute the SQL query and return a stream of results. Maps internally to a call to 
+        /// IDbCommand.ExecuteReader(). The returned stream object must be disposed when it is finished
+        /// being used.
+        /// </summary>
+        /// <param name="runner"></param>
+        /// <param name="query"></param>
+        /// <param name="build"></param>
+        /// <returns></returns>
+        public static IDataResultsStream QueryStream(this ISqlRunner runner, ISqlQuerySimple query, Action<IContextBuilder> build = null)
+        {
+            Assert.ArgumentNotNull(runner, nameof(runner));
+            Assert.ArgumentNotNull(query, nameof(query));
+            var context = runner.CreateExecutionContext(build);
+            context.StartAction("Open connection");
+            context.OpenConnection();
+            return new SqlQuerySimpleStreamStrategy(query).Execute(context);
         }
     }
 }

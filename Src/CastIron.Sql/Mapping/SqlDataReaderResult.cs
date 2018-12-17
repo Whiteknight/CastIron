@@ -98,6 +98,7 @@ namespace CastIron.Sql.Mapping
             var value = GetOutputParameter(name);
             if (value == null)
                 return default(T);
+            // TODO: Can we call into DataRecordExpressions to try and convert the value according to conversion rules?
             if (!(value is T))
                 throw new Exception($"Cannot get value '{name}'. Expected type {typeof(T).FullName} but found {value.GetType().FullName}");
             return (T) value;
