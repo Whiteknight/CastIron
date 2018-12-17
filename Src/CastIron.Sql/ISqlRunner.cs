@@ -135,6 +135,14 @@ namespace CastIron.Sql
             return runner.QueryStream(new SqlQuery(sql), build);
         }
 
+        public static Task<IDataResultsStream> QueryStreamAsync(this ISqlRunner runner, string sql, Action<IContextBuilder> build = null)
+        {
+            Assert.ArgumentNotNull(runner, nameof(runner));
+            Assert.ArgumentNotNullOrEmpty(sql, nameof(sql));
+
+            return runner.QueryStreamAsync(new SqlQuery(sql), build);
+        }
+
         /// <summary>
         /// Wraps an existing IDataReader in an IDataResultsStream for object mapping and other capabilities.
         /// The IDataReader (and IDbCommand and IDbConnection, if any) will need to be managed and disposed
@@ -197,7 +205,7 @@ namespace CastIron.Sql
         {
             Assert.ArgumentNotNull(runner, nameof(runner));
             Assert.ArgumentNotNull(query, nameof(query));
-            return runner.ExecuteAsync<T>(c => new SqlQuerySimpleStrategy<T>(query).ExecuteAsync(c, 0), build);
+            return runner.ExecuteAsync(c => new SqlQuerySimpleStrategy<T>(query).ExecuteAsync(c, 0), build);
         }
 
         /// <summary>
@@ -239,6 +247,13 @@ namespace CastIron.Sql
             return runner.Execute(c => new SqlConnectionAccessorStrategy<T>(accessor).Execute(c, 0), build);
         }
 
+        public static Task<T> QueryAsync<T>(this ISqlRunner runner, ISqlConnectionAccessor<T> accessor, Action<IContextBuilder> build = null)
+        {
+            Assert.ArgumentNotNull(runner, nameof(runner));
+            Assert.ArgumentNotNull(accessor, nameof(accessor));
+            return runner.ExecuteAsync(c => new SqlConnectionAccessorStrategy<T>(accessor).ExecuteAsync(c, 0), build);
+        }
+
         /// <summary>
         /// Establish a connection to the provider and pass control of the connection to an accessor object 
         /// for low-level manipulation
@@ -253,6 +268,13 @@ namespace CastIron.Sql
             runner.Execute(c => new SqlConnectionAccessorStrategy(accessor).Execute(c, 0), build);
         }
 
+        public static Task ExecuteAsync(this ISqlRunner runner, ISqlConnectionAccessor accessor, Action<IContextBuilder> build = null)
+        {
+            Assert.ArgumentNotNull(runner, nameof(runner));
+            Assert.ArgumentNotNull(accessor, nameof(accessor));
+            return runner.ExecuteAsync(c => new SqlConnectionAccessorStrategy(accessor).ExecuteAsync(c, 0), build);
+        }
+
         /// <summary>
         /// Execute the command and return no result. Maps internally to a call to 
         /// IDbCommand.ExecuteNonQuery()
@@ -265,6 +287,13 @@ namespace CastIron.Sql
             Assert.ArgumentNotNull(runner, nameof(runner));
             Assert.ArgumentNotNull(command, nameof(command));
             runner.Execute(c => new SqlCommandStrategy(command).Execute(c, 0), build);
+        }
+
+        public static Task ExecuteAsync(this ISqlRunner runner, ISqlCommandSimple command, Action<IContextBuilder> build = null)
+        {
+            Assert.ArgumentNotNull(runner, nameof(runner));
+            Assert.ArgumentNotNull(command, nameof(command));
+            return runner.ExecuteAsync(c => new SqlCommandStrategy(command).ExecuteAsync(c, 0), build);
         }
 
         /// <summary>
@@ -284,6 +313,13 @@ namespace CastIron.Sql
             return runner.Execute(c => new SqlCommandStrategy<T>(command).Execute(c, 0), build);
         }
 
+        public static Task<T> ExecuteAsync<T>(this ISqlRunner runner, ISqlCommandSimple<T> command, Action<IContextBuilder> build = null)
+        {
+            Assert.ArgumentNotNull(runner, nameof(runner));
+            Assert.ArgumentNotNull(command, nameof(command));
+            return runner.ExecuteAsync(c => new SqlCommandStrategy<T>(command).ExecuteAsync(c, 0), build);
+        }
+
         /// <summary>
         /// Execute the command and return no result. Maps internally to a call to 
         /// IDbCommand.ExecuteNonQuery()
@@ -296,6 +332,13 @@ namespace CastIron.Sql
             Assert.ArgumentNotNull(runner, nameof(runner));
             Assert.ArgumentNotNull(command, nameof(command));
             runner.Execute(c => new SqlCommandRawStrategy(command, runner.InteractionFactory).Execute(c, 0), build);
+        }
+
+        public static Task ExecuteAsync(this ISqlRunner runner, ISqlCommand command, Action<IContextBuilder> build = null)
+        {
+            Assert.ArgumentNotNull(runner, nameof(runner));
+            Assert.ArgumentNotNull(command, nameof(command));
+            return runner.ExecuteAsync(c => new SqlCommandRawStrategy(command, runner.InteractionFactory).ExecuteAsync(c, 0), build);
         }
 
         /// <summary>
@@ -313,6 +356,13 @@ namespace CastIron.Sql
             Assert.ArgumentNotNull(runner, nameof(runner));
             Assert.ArgumentNotNull(command, nameof(command));
             return runner.Execute(c => new SqlCommandRawStrategy<T>(command, runner.InteractionFactory).Execute(c, 0), build);
+        }
+
+        public static Task<T> ExecuteAsync<T>(this ISqlRunner runner, ISqlCommand<T> command, Action<IContextBuilder> build = null)
+        {
+            Assert.ArgumentNotNull(runner, nameof(runner));
+            Assert.ArgumentNotNull(command, nameof(command));
+            return runner.ExecuteAsync(c => new SqlCommandRawStrategy<T>(command, runner.InteractionFactory).ExecuteAsync(c, 0), build);
         }
 
         /// <summary>
@@ -334,6 +384,16 @@ namespace CastIron.Sql
             return new SqlQueryStreamStrategy(query, runner.InteractionFactory).Execute(context);
         }
 
+        public static async Task<IDataResultsStream> QueryStreamAsync(this ISqlRunner runner, ISqlQuery query, Action<IContextBuilder> build = null)
+        {
+            Assert.ArgumentNotNull(runner, nameof(runner));
+            Assert.ArgumentNotNull(query, nameof(query));
+            var context = runner.CreateExecutionContext(build);
+            context.StartAction("Open connection");
+            await context.OpenConnectionAsync();
+            return await new SqlQueryStreamStrategy(query, runner.InteractionFactory).ExecuteAsync(context);
+        }
+
         /// <summary>
         /// Execute the SQL query and return a stream of results. Maps internally to a call to 
         /// IDbCommand.ExecuteReader(). The returned stream object must be disposed when it is finished
@@ -351,6 +411,16 @@ namespace CastIron.Sql
             context.StartAction("Open connection");
             context.OpenConnection();
             return new SqlQuerySimpleStreamStrategy(query).Execute(context);
+        }
+
+        public static async Task<IDataResultsStream> QueryStreamAsync(this ISqlRunner runner, ISqlQuerySimple query, Action<IContextBuilder> build = null)
+        {
+            Assert.ArgumentNotNull(runner, nameof(runner));
+            Assert.ArgumentNotNull(query, nameof(query));
+            var context = runner.CreateExecutionContext(build);
+            context.StartAction("Open connection");
+            await context.OpenConnectionAsync();
+            return await new SqlQuerySimpleStreamStrategy(query).ExecuteAsync(context);
         }
     }
 }

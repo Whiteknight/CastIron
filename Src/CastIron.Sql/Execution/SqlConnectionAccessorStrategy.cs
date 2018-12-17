@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading.Tasks;
 
 namespace CastIron.Sql.Execution
 {
@@ -31,6 +32,27 @@ namespace CastIron.Sql.Execution
                 throw e.WrapAsSqlProblemException(null, index);
             }
         }
+
+        public async Task<T> ExecuteAsync(IExecutionContext context, int index)
+        {
+            try
+            {
+                context.StartAction(index, "Execute");
+                return await Task.Run(() => _accessor.Query(context.Connection, context.Transaction));
+            }
+            catch (SqlProblemException)
+            {
+                context.MarkAborted();
+                throw;
+            }
+            catch (Exception e)
+            {
+                context.MarkAborted();
+                // We can't do anything fancy with error handling, because we don't know what the user
+                // is trying to do
+                throw e.WrapAsSqlProblemException(null, index);
+            }
+        }
     }
 
     public class SqlConnectionAccessorStrategy
@@ -48,6 +70,27 @@ namespace CastIron.Sql.Execution
             {
                 context.StartAction(index, "Execute");
                 _accessor.Execute(context.Connection, context.Transaction);
+            }
+            catch (SqlProblemException)
+            {
+                context.MarkAborted();
+                throw;
+            }
+            catch (Exception e)
+            {
+                context.MarkAborted();
+                // We can't do anything fancy with error handling, because we don't know what the user
+                // is trying to do
+                throw e.WrapAsSqlProblemException(null, index);
+            }
+        }
+
+        public async Task ExecuteAsync(IExecutionContext context, int index)
+        {
+            try
+            {
+                context.StartAction(index, "Execute");
+                await Task.Run(() => _accessor.Execute(context.Connection, context.Transaction));
             }
             catch (SqlProblemException)
             {
