@@ -1,4 +1,7 @@
-﻿using System.Data;
+﻿using System;
+using System.Data;
+using System.Data.SqlClient;
+using System.Threading.Tasks;
 
 namespace CastIron.Sql
 {
@@ -14,5 +17,22 @@ namespace CastIron.Sql
         /// </summary>
         /// <returns></returns>
         IDbConnection Create();
+
+        IDbConnectionAsync CreateForAsync();
+    }
+
+    public interface IDbConnectionAsync : IDisposable
+    {
+        IDbConnection Connection { get; }
+        Task OpenAsync();
+        IDbCommandAsync CreateAsyncCommand();
+
+    }
+
+    public interface IDbCommandAsync : IDisposable
+    {
+        IDbCommand Command { get; }
+        Task<IDataReader> ExecuteReaderAsync();
+        Task<int> ExecuteNonQueryAsync();
     }
 }

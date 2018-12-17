@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using CastIron.Sql.Execution;
 using CastIron.Sql.Utility;
 
@@ -12,7 +13,6 @@ namespace CastIron.Sql
     {
         // TODO: Interception mechanism so we can inspect and modify the sql code in passing
         private readonly IDbConnectionFactory _connectionFactory;
-        
 
         public SqlRunner(IDbConnectionFactory connectionFactory, ISqlStatementBuilder statementBuilder, IDataInteractionFactory interactionFactory)
         {
@@ -38,8 +38,7 @@ namespace CastIron.Sql
 
         public ExecutionContext CreateExecutionContext(Action<IContextBuilder> build)
         {
-            var connection = _connectionFactory.Create();
-            var context = new ExecutionContext(connection);
+            var context = new ExecutionContext(_connectionFactory);
             build?.Invoke(context);
             return context;
         }
@@ -68,6 +67,18 @@ namespace CastIron.Sql
             }
         }
 
+        public async Task<T> ExecuteAsync<T>(Func<IExecutionContext, Task<T>> executor, Action<IContextBuilder> build)
+        {
+            using (var context = CreateExecutionContext(build))
+            {
+                context.StartAction("Open connection");
+                await context.OpenConnectionAsync();
+                var result = await executor(context);
+                context.MarkComplete();
+                return result;
+            }
+        }
+
         public void Execute(Action<IExecutionContext> executor, Action<IContextBuilder> build)
         {
             using (var context = CreateExecutionContext(build))
@@ -75,6 +86,17 @@ namespace CastIron.Sql
                 context.StartAction("Open connection");
                 context.OpenConnection();
                 executor(context);
+                context.MarkComplete();
+            }
+        }
+
+        public async Task ExecuteAsync(Func<IExecutionContext, Task> executor, Action<IContextBuilder> build)
+        {
+            using (var context = CreateExecutionContext(build))
+            {
+                context.StartAction("Open connection");
+                await context.OpenConnectionAsync();
+                await executor(context);
                 context.MarkComplete();
             }
         }

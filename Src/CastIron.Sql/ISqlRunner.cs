@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Threading.Tasks;
 using CastIron.Sql.Execution;
 using CastIron.Sql.Mapping;
 using CastIron.Sql.Statements;
@@ -70,6 +71,10 @@ namespace CastIron.Sql
         /// <param name="executor"></param>
         /// <param name="build"></param>
         void Execute(Action<IExecutionContext> executor, Action<IContextBuilder> build);
+
+        Task<T> ExecuteAsync<T>(Func<IExecutionContext, Task<T>> executor, Action<IContextBuilder> build);
+
+        Task ExecuteAsync(Func<IExecutionContext, Task> executor, Action<IContextBuilder> build);
     }
 
     public static class SqlRunnerExtensions
@@ -104,6 +109,14 @@ namespace CastIron.Sql
             Assert.ArgumentNotNullOrEmpty(sql, nameof(sql));
 
             return runner.Query(new SqlQuery<T>(sql), build);
+        }
+
+        public static Task<IReadOnlyList<T>> QueryAsync<T>(this ISqlRunner runner, string sql, Action<IContextBuilder> build = null)
+        {
+            Assert.ArgumentNotNull(runner, nameof(runner));
+            Assert.ArgumentNotNullOrEmpty(sql, nameof(sql));
+
+            return runner.QueryAsync(new SqlQuery<T>(sql), build);
         }
 
         /// <summary>
@@ -180,6 +193,13 @@ namespace CastIron.Sql
             return runner.Execute(c => new SqlQuerySimpleStrategy<T>(query).Execute(c, 0), build);
         }
 
+        public static Task<T> QueryAsync<T>(this ISqlRunner runner, ISqlQuerySimple<T> query, Action<IContextBuilder> build = null)
+        {
+            Assert.ArgumentNotNull(runner, nameof(runner));
+            Assert.ArgumentNotNull(query, nameof(query));
+            return runner.ExecuteAsync<T>(c => new SqlQuerySimpleStrategy<T>(query).ExecuteAsync(c, 0), build);
+        }
+
         /// <summary>
         /// Execute the query object and return the result. Maps internally to a call to 
         /// IDbCommand.ExecuteReader()
@@ -194,6 +214,13 @@ namespace CastIron.Sql
             Assert.ArgumentNotNull(runner, nameof(runner));
             Assert.ArgumentNotNull(query, nameof(query));
             return runner.Execute(c => new SqlQueryStrategy<T>(query, runner.InteractionFactory).Execute(c, 0), build);
+        }
+
+        public static Task<T> QueryAsync<T>(this ISqlRunner runner, ISqlQuery<T> query, Action<IContextBuilder> build = null)
+        {
+            Assert.ArgumentNotNull(runner, nameof(runner));
+            Assert.ArgumentNotNull(query, nameof(query));
+            return runner.ExecuteAsync(c => new SqlQueryStrategy<T>(query, runner.InteractionFactory).ExecuteAsync(c, 0), build);
         }
 
         /// <summary>

@@ -1,4 +1,5 @@
 ﻿using System.Linq;
+using System.Threading.Tasks;
 using FluentAssertions;
 using NUnit.Framework;
 
@@ -93,6 +94,14 @@ namespace CastIron.Sql.Tests
             var result = stream.AsEnumerable<int>().ToList();
             result.Should().ContainInOrder(1, 2, 3);
             stream.Dispose();
+        }
+
+        [Test]
+        public async Task QueryAsync_Test([Values("MSSQL", "SQLITE")] string provider)
+        {
+            var runner = RunnerFactory.Create(provider);
+            var result = await runner.QueryAsync<string>("SELECT 'TEST'");
+            result[0].Should().Be("TEST");
         }
     }
 }

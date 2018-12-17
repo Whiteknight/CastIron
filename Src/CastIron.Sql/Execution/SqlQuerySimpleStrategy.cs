@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Data;
+using System.Threading.Tasks;
 using CastIron.Sql.Mapping;
 
 namespace CastIron.Sql.Execution
@@ -43,6 +44,40 @@ namespace CastIron.Sql.Execution
                 {
                     context.MarkAborted();
                     throw e.WrapAsSqlProblemException(dbCommand, index);
+                }
+            }
+        }
+
+        public async Task<T> ExecuteAsync(IExecutionContext context, int index)
+        {
+            context.StartAction(index, "Setup Command");
+            using (var dbCommand = context.CreateAsyncCommand())
+            {
+                if (!SetupCommand(dbCommand.Command))
+                {
+                    context.MarkAborted();
+                    return default(T);
+                }
+
+                context.StartAction(index, "Execute");
+                try
+                {
+                    using (var reader = await dbCommand.ExecuteReaderAsync())
+                    {
+                        context.StartAction(index, "Map Results");
+                        var rawResultSet = new SqlDataReaderResult(dbCommand.Command, context, reader);
+                        return Task.Run(() => _query.Read(rawResultSet)).Result;
+                    }
+                }
+                catch (SqlProblemException)
+                {
+                    context.MarkAborted();
+                    throw;
+                }
+                catch (Exception e)
+                {
+                    context.MarkAborted();
+                    throw e.WrapAsSqlProblemException(dbCommand.Command, index);
                 }
             }
         }

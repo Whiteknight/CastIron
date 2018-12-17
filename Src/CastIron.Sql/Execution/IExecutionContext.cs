@@ -15,6 +15,8 @@ namespace CastIron.Sql.Execution
 
         IDbCommand CreateCommand();
 
+        IDbCommandAsync CreateAsyncCommand();
+
         void StartAction(string actionName);
         void StartAction(int statementIndex, string actionName);
         void MarkComplete();

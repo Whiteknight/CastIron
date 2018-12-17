@@ -2,22 +2,28 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace CastIron.Sql.Execution
 {
     public class ExecutionContext : IExecutionContext, IContextBuilder
     {
+        private readonly IDbConnectionFactory _factory;
         private IsolationLevel? _isolationLevel;
         private bool _aborted;
         private int _completed;
 
-        public ExecutionContext(IDbConnection connection)
+        public ExecutionContext(IDbConnectionFactory factory)
         {
+            _factory = factory;
             _completed = 0;
-            Connection = connection;
         }
 
-        public IDbConnection Connection { get; }
+        private IDbConnection _connection;
+        public IDbConnection Connection => _connection ?? (_connection = _factory.Create());
+
+        private IDbConnectionAsync _connectionAsync;
+        public IDbConnectionAsync ConnectionAsync => _connectionAsync ?? (_connectionAsync = _factory.CreateForAsync());
         public IDbTransaction Transaction { get; private set; }
         public PerformanceMonitor Monitor { get; private set; }
         public bool IsCompleted => Interlocked.CompareExchange(ref _completed, 0, 0) != 0;
@@ -29,11 +35,26 @@ namespace CastIron.Sql.Execution
                 Transaction = Connection.BeginTransaction(_isolationLevel.Value);
         }
 
+        public async Task OpenConnectionAsync()
+        {
+            await ConnectionAsync.OpenAsync();
+            if (_isolationLevel.HasValue)
+                Transaction = ConnectionAsync.Connection.BeginTransaction(_isolationLevel.Value);
+        }
+
         public IDbCommand CreateCommand()
         {
             var command = Connection.CreateCommand();
             if (Transaction != null)
                 command.Transaction = Transaction;
+            return command;
+        }
+
+        public IDbCommandAsync CreateAsyncCommand()
+        {
+            var command = ConnectionAsync.CreateAsyncCommand();
+            if (Transaction != null)
+                command.Command.Transaction = Transaction;
             return command;
         }
 
@@ -90,7 +111,8 @@ namespace CastIron.Sql.Execution
 
         public void Dispose()
         {
-            Connection?.Dispose();   
+            _connection?.Dispose();
+            _connectionAsync?.Dispose();
         }
     }
 }
