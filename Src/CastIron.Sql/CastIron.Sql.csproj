@@ -8,7 +8,7 @@
     <Version>0.5.4</Version>
     <Authors>Andrew F. Whitworth</Authors>
     <Company />
-    <Description>Bare-metal SQL QueryObject implementation</Description>
+    <Description>Bare-metal SQL Micro-ORM with Query Object implementation</Description>
     <Copyright>Copyright 2018</Copyright>
     <PackageLicenseUrl>https://github.com/Whiteknight/CastIron/blob/master/LICENSE</PackageLicenseUrl>
     <PackageProjectUrl>https://github.com/Whiteknight/CastIron</PackageProjectUrl>
