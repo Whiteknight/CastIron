@@ -131,7 +131,7 @@ To clear the cache, which may be necessary in some situations, you can call the 
 
 ```csharp
 compiler.ClearCache();
-```
+```r
 
 The default compiler is an instance of `CachingMappingCompiler`. You can get a reference to it if, for example, you want to clear the default cache:
 

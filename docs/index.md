@@ -27,4 +27,6 @@ The `ISqlCommand` type and its variants (`ISqlCommand<T>`, `ISqlCommandSimple`, 
 ## Contents
 
 * [Quick Start](quickstart.md)
+* [Architecture Overview](architecture.md)
+* [Query Objects](queryobjects.md)
 * [Result Mapping](mapping.md)
