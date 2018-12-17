@@ -5,15 +5,15 @@
     <AssemblyName>CastIron.Sqlite</AssemblyName>
     <RootNamespace>CastIron.Sqlite</RootNamespace>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <Version>0.5.3</Version>
+    <Version>0.5.4</Version>
     <Authors>Andrew F. Whitworth</Authors>
     <Company />
     <Description>Bare-metal SQLite QueryObject implementation</Description>
     <Copyright>Copyright 2018</Copyright>
     <PackageLicenseUrl>https://github.com/Whiteknight/CastIron/blob/master/LICENSE</PackageLicenseUrl>
     <PackageProjectUrl>https://github.com/Whiteknight/CastIron</PackageProjectUrl>
-    <AssemblyVersion>0.5.3</AssemblyVersion>
-    <FileVersion>0.5.3</FileVersion>
+    <AssemblyVersion>0.5.4</AssemblyVersion>
+    <FileVersion>0.5.4</FileVersion>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -30,7 +30,7 @@
   </ItemGroup>
 
     <ItemGroup Condition="'$(Configuration)' == 'Release'">
-        <PackageReference Include="CastIron.Sql" Version="0.5.3"></PackageReference>
+        <PackageReference Include="CastIron.Sql" Version="0.5.4"></PackageReference>
     </ItemGroup>
 
     <ItemGroup Condition="'$(Configuration)' == 'Debug'">
