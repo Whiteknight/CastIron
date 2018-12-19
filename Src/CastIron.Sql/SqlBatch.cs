@@ -43,7 +43,7 @@ namespace CastIron.Sql
             var promise = new SqlResultPromise<T>();
             AddExecutor((c, i) =>
             {
-                var result = new SqlQuerySimpleStrategy<T>(query).Execute(c, i);
+                var result = new SqlQuerySimpleStrategy().Execute(query, c, i);
                 promise.SetValue(result);
             });
             return promise;
@@ -54,18 +54,18 @@ namespace CastIron.Sql
             var promise = new SqlResultPromise<T>();
             AddExecutor((c, i) =>
             {
-                var result = new SqlQueryStrategy<T>(query, _interactionFactory).Execute(c, i);
+                var result = new SqlQueryStrategy(_interactionFactory).Execute(query, c, i);
                 promise.SetValue(result);
             });
             return promise;
         }
 
-        public ISqlResultPromise<T> Add<T>(ISqlConnectionAccessor<T> query)
+        public ISqlResultPromise<T> Add<T>(ISqlConnectionAccessor<T> accessor)
         {
             var promise = new SqlResultPromise<T>();
             AddExecutor((c, i) =>
             {
-                var result = new SqlConnectionAccessorStrategy<T>(query).Execute(c, i);
+                var result = new SqlConnectionAccessorStrategy().Execute(accessor, c, i);
                 promise.SetValue(result);
             });
             return promise;
@@ -76,7 +76,7 @@ namespace CastIron.Sql
             var result = new SqlResultPromise();
             AddExecutor((c, i) =>
             {
-                new SqlCommandStrategy(command).Execute(c, i);
+                new SqlCommandSimpleStrategy().Execute(command, c, i);
                 result.SetComplete();
             });
             return result;
@@ -87,7 +87,7 @@ namespace CastIron.Sql
             var result = new SqlResultPromise();
             AddExecutor((c, i) =>
             {
-                new SqlCommandRawStrategy(command, _interactionFactory).Execute(c, i);
+                new SqlCommandStrategy(_interactionFactory).Execute(command, c, i);
                 result.SetComplete();
             });
             return result;
@@ -98,7 +98,7 @@ namespace CastIron.Sql
             var promise = new SqlResultPromise<T>();
             AddExecutor((c, i) =>
             {
-                var result = new SqlCommandRawStrategy<T>(command, _interactionFactory).Execute(c, i);
+                var result = new SqlCommandStrategy(_interactionFactory).Execute(command, c, i);
                 promise.SetValue(result);
             });
             return promise;

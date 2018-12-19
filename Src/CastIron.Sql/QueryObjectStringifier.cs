@@ -21,7 +21,7 @@ namespace CastIron.Sql
         public string Stringify<T>(ISqlQuerySimple<T> query)
         {
             var dummy = new SqlCommand();
-            new SqlQuerySimpleStrategy<T>(query).SetupCommand(dummy);
+            new SqlQuerySimpleStrategy().SetupCommand(query, dummy);
             return _stringifier.Stringify(dummy);
         }
 
@@ -33,28 +33,28 @@ namespace CastIron.Sql
         public string Stringify(ISqlCommand command)
         {
             var dummy = new SqlCommand();
-            new SqlCommandRawStrategy(command, _interactionFactory).SetupCommand(dummy);
+            new SqlCommandStrategy(_interactionFactory).SetupCommand(command, dummy);
             return _stringifier.Stringify(dummy);
         }
 
         public string Stringify<T>(ISqlCommand<T> command)
         {
             var dummy = new SqlCommand();
-            new SqlCommandRawStrategy<T>(command, _interactionFactory).SetupCommand(dummy);
+            new SqlCommandStrategy(_interactionFactory).SetupCommand(command, dummy);
             return _stringifier.Stringify(dummy);
         }
 
         public string Stringify<T>(ISqlQuery<T> query)
         {
             var dummy = new SqlCommand();
-            new SqlQueryStrategy<T>(query, _interactionFactory).SetupCommand(dummy);
+            new SqlQueryStrategy(_interactionFactory).SetupCommand(query, dummy);
             return _stringifier.Stringify(dummy);
         }
 
         public string Stringify(ISqlCommandSimple command)
         {
             var dummy = new SqlCommand();
-            new SqlCommandStrategy(command).SetupCommand(dummy);
+            new SqlCommandSimpleStrategy().SetupCommand(command, dummy);
             return _stringifier.Stringify(dummy);
         }
     }

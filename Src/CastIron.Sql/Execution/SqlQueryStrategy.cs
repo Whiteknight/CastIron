@@ -5,23 +5,21 @@ using CastIron.Sql.Mapping;
 
 namespace CastIron.Sql.Execution
 {
-    public class SqlQueryStrategy<T>
+    public class SqlQueryStrategy
     {
-        private readonly ISqlQuery<T> _query;
         private readonly IDataInteractionFactory _interactionFactory;
 
-        public SqlQueryStrategy(ISqlQuery<T> query, IDataInteractionFactory interactionFactory)
+        public SqlQueryStrategy(IDataInteractionFactory interactionFactory)
         {
-            _query = query;
             _interactionFactory = interactionFactory;
         }
 
-        public T Execute(IExecutionContext context, int index)
+        public T Execute<T>(ISqlQuery<T> query, IExecutionContext context, int index)
         {
             context.StartAction(index, "Setup Command");
             using (var command = context.CreateCommand())
             {
-                if (!SetupCommand(command))
+                if (!SetupCommand(query, command))
                 {
                     context.MarkAborted();
                     return default(T);
@@ -34,7 +32,7 @@ namespace CastIron.Sql.Execution
                     {
                         context.StartAction(index, "Map Results");
                         var resultSet = new SqlDataReaderResult(command, context, reader);
-                        return _query.GetResults(resultSet);
+                        return query.GetResults(resultSet);
                     }
                 }
                 catch (SqlProblemException)
@@ -50,12 +48,12 @@ namespace CastIron.Sql.Execution
             }
         }
 
-        public async Task<T> ExecuteAsync(IExecutionContext context, int index)
+        public async Task<T> ExecuteAsync<T>(ISqlQuery<T> query, IExecutionContext context, int index)
         {
             context.StartAction(index, "Setup Command");
             using (var command = context.CreateAsyncCommand())
             {
-                if (!SetupCommand(command.Command))
+                if (!SetupCommand(query, command.Command))
                 {
                     context.MarkAborted();
                     return default(T);
@@ -68,7 +66,7 @@ namespace CastIron.Sql.Execution
                     {
                         context.StartAction(index, "Map Results");
                         var resultSet = new SqlDataReaderResult(command.Command, context, reader);
-                        return _query.GetResults(resultSet);
+                        return query.GetResults(resultSet);
                     }
                 }
                 catch (SqlProblemException)
@@ -84,10 +82,79 @@ namespace CastIron.Sql.Execution
             }
         }
 
-        public bool SetupCommand(IDbCommand command)
+
+        public IDataResultsStream ExecuteStream(ISqlQuery query, IExecutionContext context)
+        {
+            context.StartAction(1, "Setup Command");
+            var command = context.CreateCommand();
+
+            if (!SetupCommand(query, command))
+            {
+                context.MarkAborted();
+                command.Dispose();
+                return null;
+            }
+
+            try
+            {
+                context.StartAction(1, "Execute");
+                var reader = command.ExecuteReader();
+
+                context.StartAction(1, "Map Results");
+                return new SqlDataReaderResultStream(command, context, reader);
+            }
+            catch (SqlProblemException)
+            {
+                context.MarkAborted();
+                command.Dispose();
+                throw;
+            }
+            catch (Exception e)
+            {
+                context.MarkAborted();
+                command.Dispose();
+                throw e.WrapAsSqlProblemException(command, 1);
+            }
+        }
+
+        public async Task<IDataResultsStream> ExecuteStreamAsync(ISqlQuery query, IExecutionContext context)
+        {
+            context.StartAction(1, "Setup Command");
+            var command = context.CreateAsyncCommand();
+
+            if (!SetupCommand(query, command.Command))
+            {
+                context.MarkAborted();
+                command.Dispose();
+                return null;
+            }
+
+            try
+            {
+                context.StartAction(1, "Execute");
+                var reader = await command.ExecuteReaderAsync();
+
+                context.StartAction(1, "Map Results");
+                return new SqlDataReaderResultStream(command.Command, context, reader);
+            }
+            catch (SqlProblemException)
+            {
+                context.MarkAborted();
+                command.Dispose();
+                throw;
+            }
+            catch (Exception e)
+            {
+                context.MarkAborted();
+                command.Dispose();
+                throw e.WrapAsSqlProblemException(command.Command, 1);
+            }
+        }
+
+        public bool SetupCommand(ISqlQuery query, IDbCommand command)
         {
             var interaction = _interactionFactory.Create(command);
-            return _query.SetupCommand(interaction);
+            return query.SetupCommand(interaction);
         }
     }
 }

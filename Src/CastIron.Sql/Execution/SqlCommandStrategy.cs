@@ -7,28 +7,29 @@ namespace CastIron.Sql.Execution
 {
     public class SqlCommandStrategy
     {
-        private readonly ISqlCommandSimple _command;
+        private readonly IDataInteractionFactory _interactionFactory;
 
-        public SqlCommandStrategy(ISqlCommandSimple command)
+        public SqlCommandStrategy(IDataInteractionFactory interactionFactory)
         {
-            _command = command;
+            _interactionFactory = interactionFactory;
         }
 
-        public void Execute(IExecutionContext context, int index)
+        public void Execute(ISqlCommand command, IExecutionContext context, int index)
         {
             context.StartAction(index, "Setup Command");
             using (var dbCommand = context.CreateCommand())
             {
-                if (!SetupCommand(dbCommand))
-                {
-                    context.MarkAborted();
-                    return;
-                }
-
                 try
                 {
+                    if (!SetupCommand(command, dbCommand))
+                    {
+                        context.MarkAborted();
+                        return;
+                    }
+
                     context.StartAction(index, "Execute");
                     dbCommand.ExecuteNonQuery();
+
                 }
                 catch (SqlProblemException)
                 {
@@ -43,21 +44,22 @@ namespace CastIron.Sql.Execution
             }
         }
 
-        public async Task ExecuteAsync(IExecutionContext context, int index)
+        public async Task ExecuteAsync(ISqlCommand command, IExecutionContext context, int index)
         {
             context.StartAction(index, "Setup Command");
             using (var dbCommand = context.CreateAsyncCommand())
             {
-                if (!SetupCommand(dbCommand.Command))
-                {
-                    context.MarkAborted();
-                    return;
-                }
-
                 try
                 {
+                    if (!SetupCommand(command, dbCommand.Command))
+                    {
+                        context.MarkAborted();
+                        return;
+                    }
+
                     context.StartAction(index, "Execute");
                     await dbCommand.ExecuteNonQueryAsync();
+
                 }
                 catch (SqlProblemException)
                 {
@@ -72,50 +74,25 @@ namespace CastIron.Sql.Execution
             }
         }
 
-        public bool SetupCommand(IDbCommand command)
-        {
-            var text = _command.GetSql();
-            if (string.IsNullOrEmpty(text))
-                return false;
-            command.CommandText = text;
-            command.CommandType = (_command is ISqlStoredProc) ? CommandType.StoredProcedure : CommandType.Text;
-            if (_command is ISqlParameterized parameterized)
-                parameterized.SetupParameters(command, command.Parameters);
-            return true;
-        }
-    }
-
-    public class SqlCommandStrategy<T>
-    {
-        private readonly ISqlCommandSimple<T> _command;
-
-        public SqlCommandStrategy(ISqlCommandSimple<T> command)
-        {
-            _command = command;
-        }
-
-        public T Execute(IExecutionContext context, int index)
+        public T Execute<T>(ISqlCommand<T> command, IExecutionContext context, int index)
         {
             context.StartAction(index, "Setup Command");
-            var text = _command.GetSql();
-            if (string.IsNullOrEmpty(text))
-                return default(T);
-
             using (var dbCommand = context.CreateCommand())
             {
-                dbCommand.CommandText = text;
                 try
                 {
-                    dbCommand.CommandType = (_command is ISqlStoredProc) ? CommandType.StoredProcedure : CommandType.Text;
-                    if (_command is ISqlParameterized parameterized)
-                        parameterized.SetupParameters(dbCommand, dbCommand.Parameters);
+                    if (!SetupCommand(command, dbCommand))
+                    {
+                        context.MarkAborted();
+                        return default(T);
+                    }
 
                     context.StartAction(index, "Execute");
                     dbCommand.ExecuteNonQuery();
 
                     context.StartAction(index, "Map Results");
                     var resultSet = new SqlDataReaderResult(dbCommand, context, null);
-                    return _command.ReadOutputs(resultSet);
+                    return command.ReadOutputs(resultSet);
                 }
                 catch (SqlProblemException)
                 {
@@ -130,28 +107,25 @@ namespace CastIron.Sql.Execution
             }
         }
 
-        public async Task<T> ExecuteAsync(IExecutionContext context, int index)
+        public async Task<T> ExecuteAsync<T>(ISqlCommand<T> command, IExecutionContext context, int index)
         {
             context.StartAction(index, "Setup Command");
-            var text = _command.GetSql();
-            if (string.IsNullOrEmpty(text))
-                return default(T);
-
             using (var dbCommand = context.CreateAsyncCommand())
             {
-                dbCommand.Command.CommandText = text;
                 try
                 {
-                    dbCommand.Command.CommandType = (_command is ISqlStoredProc) ? CommandType.StoredProcedure : CommandType.Text;
-                    if (_command is ISqlParameterized parameterized)
-                        parameterized.SetupParameters(dbCommand.Command, dbCommand.Command.Parameters);
+                    if (!SetupCommand(command, dbCommand.Command))
+                    {
+                        context.MarkAborted();
+                        return default(T);
+                    }
 
                     context.StartAction(index, "Execute");
                     await dbCommand.ExecuteNonQueryAsync();
 
                     context.StartAction(index, "Map Results");
                     var resultSet = new SqlDataReaderResult(dbCommand.Command, context, null);
-                    return await Task.Run(() => _command.ReadOutputs(resultSet));
+                    return command.ReadOutputs(resultSet);
                 }
                 catch (SqlProblemException)
                 {
@@ -164,6 +138,12 @@ namespace CastIron.Sql.Execution
                     throw e.WrapAsSqlProblemException(dbCommand.Command, index);
                 }
             }
+        }
+
+        public bool SetupCommand(ISqlCommand command, IDbCommand dbCommand)
+        {
+            var interaction = _interactionFactory.Create(dbCommand);
+            return command.SetupCommand(interaction);
         }
     }
 }
