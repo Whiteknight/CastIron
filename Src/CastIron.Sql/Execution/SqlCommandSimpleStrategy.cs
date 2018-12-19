@@ -31,7 +31,7 @@ namespace CastIron.Sql.Execution
                 catch (Exception e)
                 {
                     context.MarkAborted();
-                    throw e.WrapAsSqlProblemException(dbCommand, index);
+                    throw SqlProblemException.Wrap(e, dbCommand, index);
                 }
             }
         }
@@ -60,7 +60,7 @@ namespace CastIron.Sql.Execution
                 catch (Exception e)
                 {
                     context.MarkAborted();
-                    throw e.WrapAsSqlProblemException(dbCommand.Command, index);
+                    throw SqlProblemException.Wrap(e, dbCommand.Command, index);
                 }
             }
         }
@@ -93,7 +93,7 @@ namespace CastIron.Sql.Execution
                 catch (Exception e)
                 {
                     context.MarkAborted();
-                    throw e.WrapAsSqlProblemException(dbCommand, index);
+                    throw SqlProblemException.Wrap(e, dbCommand, index);
                 }
             }
         }
@@ -126,7 +126,7 @@ namespace CastIron.Sql.Execution
                 catch (Exception e)
                 {
                     context.MarkAborted();
-                    throw e.WrapAsSqlProblemException(dbCommand.Command, index);
+                    throw SqlProblemException.Wrap(e, dbCommand.Command, index);
                 }
             }
         }

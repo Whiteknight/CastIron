@@ -9,6 +9,18 @@ namespace CastIron.Sql.Execution
     // Internal class to ToString an IDbCommand
     public class DbCommandStringifier
     {
+        private static readonly DbCommandStringifier _instance;
+
+        static DbCommandStringifier()
+        {
+            _instance = new DbCommandStringifier();
+        }
+
+        public static DbCommandStringifier GetDefaultInstance()
+        {
+            return _instance;
+        }
+
         public string Stringify(IDbCommand command)
         {
             var sb = new StringBuilder();
@@ -21,9 +33,9 @@ namespace CastIron.Sql.Execution
             if (command == null)
                 return;
 
-            for (int i = 0; i < command.Parameters.Count; i++)
+            foreach (var t in command.Parameters)
             {
-                if (!(command.Parameters[i] is SqlParameter param))
+                if (!(t is SqlParameter param))
                     continue;
                 sb.Append("--DECLARE ");
                 sb.Append(param.ParameterName);
@@ -50,7 +62,7 @@ namespace CastIron.Sql.Execution
                 case CommandType.StoredProcedure:
                     sb.Append("EXECUTE ");
                     sb.Append(command.CommandText);
-                    for (int i = 0; i < command.Parameters.Count; i++)
+                    for (var i = 0; i < command.Parameters.Count; i++)
                     {
                         if (!(command.Parameters[i] is SqlParameter param))
                             continue;

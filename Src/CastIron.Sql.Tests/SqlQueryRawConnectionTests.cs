@@ -8,7 +8,7 @@ namespace CastIron.Sql.Tests
     [TestFixture]
     public class SqlQueryRawConnectionTests
     {
-        public class Query1 : ISqlConnectionAccessor<string>
+        public class Accessor1 : ISqlConnectionAccessor<string>
         {
             
             public string Read(IDataResults result)
@@ -34,7 +34,7 @@ namespace CastIron.Sql.Tests
         public void SqlQuery_Tests([Values("MSSQL", "SQLITE")] string provider)
         {
             var runner = RunnerFactory.Create(provider);
-            var result = runner.Query(new Query1());
+            var result = runner.Access(new Accessor1());
             result.Should().Be("TEST");
         }
     }

@@ -15,7 +15,7 @@ namespace CastIron.Sql
         public QueryObjectStringifier(IDataInteractionFactory interactionFactory)
         {
             _interactionFactory = interactionFactory;
-            _stringifier = new DbCommandStringifier();
+            _stringifier = DbCommandStringifier.GetDefaultInstance();
         }
 
         public string Stringify<T>(ISqlQuerySimple<T> query)

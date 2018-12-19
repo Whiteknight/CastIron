@@ -240,18 +240,11 @@ namespace CastIron.Sql
         /// <param name="accessor"></param>
         /// <param name="build"></param>
         /// <returns></returns>
-        public static T Query<T>(this ISqlRunner runner, ISqlConnectionAccessor<T> accessor, Action<IContextBuilder> build = null)
+        public static T Access<T>(this ISqlRunner runner, ISqlConnectionAccessor<T> accessor, Action<IContextBuilder> build = null)
         {
             Assert.ArgumentNotNull(runner, nameof(runner));
             Assert.ArgumentNotNull(accessor, nameof(accessor));
             return runner.Execute(c => new SqlConnectionAccessorStrategy().Execute(accessor, c, 0), build);
-        }
-
-        public static Task<T> QueryAsync<T>(this ISqlRunner runner, ISqlConnectionAccessor<T> accessor, Action<IContextBuilder> build = null)
-        {
-            Assert.ArgumentNotNull(runner, nameof(runner));
-            Assert.ArgumentNotNull(accessor, nameof(accessor));
-            return runner.ExecuteAsync(c => new SqlConnectionAccessorStrategy().ExecuteAsync(accessor, c, 0), build);
         }
 
         /// <summary>
@@ -261,18 +254,11 @@ namespace CastIron.Sql
         /// <param name="runner"></param>
         /// <param name="accessor"></param>
         /// <param name="build"></param>
-        public static void Execute(this ISqlRunner runner, ISqlConnectionAccessor accessor, Action<IContextBuilder> build = null)
+        public static void Access(this ISqlRunner runner, ISqlConnectionAccessor accessor, Action<IContextBuilder> build = null)
         {
             Assert.ArgumentNotNull(runner, nameof(runner));
             Assert.ArgumentNotNull(accessor, nameof(accessor));
             runner.Execute(c => new SqlConnectionAccessorStrategy().Execute(accessor, c, 0), build);
-        }
-
-        public static Task ExecuteAsync(this ISqlRunner runner, ISqlConnectionAccessor accessor, Action<IContextBuilder> build = null)
-        {
-            Assert.ArgumentNotNull(runner, nameof(runner));
-            Assert.ArgumentNotNull(accessor, nameof(accessor));
-            return runner.ExecuteAsync(c => new SqlConnectionAccessorStrategy().ExecuteAsync(accessor, c, 0), build);
         }
 
         /// <summary>

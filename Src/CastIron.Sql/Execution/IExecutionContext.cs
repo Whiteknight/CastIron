@@ -9,7 +9,7 @@ namespace CastIron.Sql.Execution
     /// </summary>
     public interface IExecutionContext : IDisposable
     {
-        IDbConnection Connection { get; }
+        IDbConnectionAsync Connection { get; }
 
         IDbTransaction Transaction { get; }
 

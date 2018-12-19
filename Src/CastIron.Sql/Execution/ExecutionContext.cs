@@ -8,43 +8,51 @@ namespace CastIron.Sql.Execution
 {
     public class ExecutionContext : IExecutionContext, IContextBuilder
     {
-        private readonly IDbConnectionFactory _factory;
         private IsolationLevel? _isolationLevel;
         private bool _aborted;
         private int _completed;
+        private int _opened;
 
         public ExecutionContext(IDbConnectionFactory factory)
         {
-            _factory = factory;
             _completed = 0;
+            _opened = 0;
+            Connection = factory.CreateForAsync();
         }
 
-        private IDbConnection _connection;
-        public IDbConnection Connection => _connection ?? (_connection = _factory.Create());
-
-        private IDbConnectionAsync _connectionAsync;
-        public IDbConnectionAsync ConnectionAsync => _connectionAsync ?? (_connectionAsync = _factory.CreateForAsync());
+        public IDbConnectionAsync Connection { get; }
         public IDbTransaction Transaction { get; private set; }
         public PerformanceMonitor Monitor { get; private set; }
         public bool IsCompleted => Interlocked.CompareExchange(ref _completed, 0, 0) != 0;
+        public bool IsOpen => Interlocked.CompareExchange(ref _opened, 0, 0) != 0;
+
+        private void MarkOpened()
+        {
+            if (Interlocked.CompareExchange(ref _opened, 1, 0) != 0)
+                throw new Exception("Connection is already open and cannot be opened again");
+        }
         
         public void OpenConnection()
         {
-            Connection.Open();
+            MarkOpened();
+            Connection.Connection.Open();
             if (_isolationLevel.HasValue)
-                Transaction = Connection.BeginTransaction(_isolationLevel.Value);
+                Transaction = Connection.Connection.BeginTransaction(_isolationLevel.Value);
         }
 
         public async Task OpenConnectionAsync()
         {
-            await ConnectionAsync.OpenAsync();
+            MarkOpened();
+            await Connection.OpenAsync();
             if (_isolationLevel.HasValue)
-                Transaction = ConnectionAsync.Connection.BeginTransaction(_isolationLevel.Value);
+                Transaction = Connection.Connection.BeginTransaction(_isolationLevel.Value);
         }
 
         public IDbCommand CreateCommand()
         {
-            var command = Connection.CreateCommand();
+            if (!IsOpen)
+                throw new Exception("Cannot create a command when the connection is not open");
+            var command = Connection.Connection.CreateCommand();
             if (Transaction != null)
                 command.Transaction = Transaction;
             return command;
@@ -52,7 +60,9 @@ namespace CastIron.Sql.Execution
 
         public IDbCommandAsync CreateAsyncCommand()
         {
-            var command = ConnectionAsync.CreateAsyncCommand();
+            if (!IsOpen)
+                throw new Exception("Cannot create a command when the connection is not open");
+            var command = Connection.CreateAsyncCommand();
             if (Transaction != null)
                 command.Command.Transaction = Transaction;
             return command;
@@ -60,6 +70,8 @@ namespace CastIron.Sql.Execution
 
         public IContextBuilder UseTransaction(IsolationLevel il)
         {
+            if (IsOpen)
+                throw new Exception("Cannot set transaction or isolation level when the connection is already opened");
             _isolationLevel = il;
             return this;
         }
@@ -102,6 +114,9 @@ namespace CastIron.Sql.Execution
                     Transaction.Commit();
                 Transaction.Dispose();
             }
+
+            Connection?.Connection?.Close();
+            Interlocked.CompareExchange(ref _opened, 0, 1);
         }
 
         public void MarkAborted()
@@ -111,8 +126,7 @@ namespace CastIron.Sql.Execution
 
         public void Dispose()
         {
-            _connection?.Dispose();
-            _connectionAsync?.Dispose();
+            Connection?.Dispose();
         }
     }
 }

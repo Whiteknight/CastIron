@@ -50,13 +50,13 @@ namespace CastIron.Sql.Execution
 
         public void Stop()
         {
-            if (_stopwatch.IsRunning)
-            {
-                _stopwatch.Stop();
-                if (_current != null)
-                    _current.TimeMs = _stopwatch.Elapsed.TotalMilliseconds;
-                _stopwatch.Reset();
-            }
+            if (!_stopwatch.IsRunning)
+                return;
+
+            _stopwatch.Stop();
+            if (_current != null)
+                _current.TimeMs = _stopwatch.Elapsed.TotalMilliseconds;
+            _stopwatch.Reset();
         }
 
         public string GetReport()
