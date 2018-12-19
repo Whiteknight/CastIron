@@ -45,6 +45,7 @@ namespace CastIron.Sql
 
         public void Execute(IReadOnlyList<Action<IExecutionContext, int>> executors, Action<IContextBuilder> build)
         {
+            Assert.ArgumentNotNull(executors, nameof(executors));
             using (var context = CreateExecutionContext(build))
             {
                 context.StartAction("Open connection");
@@ -57,6 +58,7 @@ namespace CastIron.Sql
 
         public T Execute<T>(Func<IExecutionContext, T> executor, Action<IContextBuilder> build)
         {
+            Assert.ArgumentNotNull(executor, nameof(executor));
             using (var context = CreateExecutionContext(build))
             {
                 context.StartAction("Open connection");
@@ -69,6 +71,7 @@ namespace CastIron.Sql
 
         public async Task<T> ExecuteAsync<T>(Func<IExecutionContext, Task<T>> executor, Action<IContextBuilder> build)
         {
+            Assert.ArgumentNotNull(executor, nameof(executor));
             using (var context = CreateExecutionContext(build))
             {
                 context.StartAction("Open connection");
@@ -81,6 +84,7 @@ namespace CastIron.Sql
 
         public void Execute(Action<IExecutionContext> executor, Action<IContextBuilder> build)
         {
+            Assert.ArgumentNotNull(executor, nameof(executor));
             using (var context = CreateExecutionContext(build))
             {
                 context.StartAction("Open connection");
@@ -92,6 +96,7 @@ namespace CastIron.Sql
 
         public async Task ExecuteAsync(Func<IExecutionContext, Task> executor, Action<IContextBuilder> build)
         {
+            Assert.ArgumentNotNull(executor, nameof(executor));
             using (var context = CreateExecutionContext(build))
             {
                 context.StartAction("Open connection");

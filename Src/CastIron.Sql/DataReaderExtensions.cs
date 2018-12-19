@@ -3,123 +3,123 @@ using System.Data;
 
 namespace CastIron.Sql
 {
-    // Helper methods to interact with IDataReader
+    // Helper methods to interact with IDatarecord
     // Some of these methods are inefficient for repeat use, and some kind of
     // compiled mapper would be better
     public static class DataReaderExtensions
     {
-        public static string GetDataTypeName(this IDataRecord reader, string columnName)
+        public static string GetDataTypeName(this IDataRecord record, string columnName)
         {
-            var index = reader.GetOrdinal(columnName);
-            return reader.GetDataTypeName(index);
+            var index = record.GetOrdinal(columnName);
+            return record.GetDataTypeName(index);
         }
 
-        public static Type GetFieldtype(this IDataRecord reader, string columnName)
+        public static Type GetFieldtype(this IDataRecord record, string columnName)
         {
-            var index = reader.GetOrdinal(columnName);
-            return reader.GetFieldType(index);
+            var index = record.GetOrdinal(columnName);
+            return record.GetFieldType(index);
         }
 
-        public static object GetValue(this IDataRecord reader, string columnName)
+        public static object GetValue(this IDataRecord record, string columnName)
         {
-            var index = reader.GetOrdinal(columnName);
-            return reader.GetValue(index);
+            var index = record.GetOrdinal(columnName);
+            return record.GetValue(index);
         }
 
-        public static bool GetBoolean(this IDataRecord reader, string columnName)
+        public static bool GetBoolean(this IDataRecord record, string columnName)
         {
-            var index = reader.GetOrdinal(columnName);
-            return reader.GetBoolean(index);
+            var index = record.GetOrdinal(columnName);
+            return record.GetBoolean(index);
         }
 
-        public static byte GetByte(this IDataRecord reader, string columnName)
+        public static byte GetByte(this IDataRecord record, string columnName)
         {
-            var index = reader.GetOrdinal(columnName);
-            return reader.GetByte(index);
+            var index = record.GetOrdinal(columnName);
+            return record.GetByte(index);
         }
 
-        public static long GetBytes(this IDataRecord reader, string columnName, long fieldOffset, byte[] buffer, int bufferoffset, int length)
+        public static long GetBytes(this IDataRecord record, string columnName, long fieldOffset, byte[] buffer, int bufferoffset, int length)
         {
-            var index = reader.GetOrdinal(columnName);
-            return reader.GetBytes(index, fieldOffset, buffer, bufferoffset, length);
+            var index = record.GetOrdinal(columnName);
+            return record.GetBytes(index, fieldOffset, buffer, bufferoffset, length);
         }
 
-        public static char GetChar(this IDataRecord reader, string columnName)
+        public static char GetChar(this IDataRecord record, string columnName)
         {
-            var index = reader.GetOrdinal(columnName);
-            return reader.GetChar(index);
+            var index = record.GetOrdinal(columnName);
+            return record.GetChar(index);
         }
 
-        public static long GetChars(this IDataRecord reader, string columnName, long fieldoffset, char[] buffer, int bufferoffset, int length)
+        public static long GetChars(this IDataRecord record, string columnName, long fieldoffset, char[] buffer, int bufferoffset, int length)
         {
-            var index = reader.GetOrdinal(columnName);
-            return reader.GetChars(index, fieldoffset, buffer, bufferoffset, length);
+            var index = record.GetOrdinal(columnName);
+            return record.GetChars(index, fieldoffset, buffer, bufferoffset, length);
         }
 
-        public static Guid GetGuid(this IDataRecord reader, string columnName)
+        public static Guid GetGuid(this IDataRecord record, string columnName)
         {
-            var index = reader.GetOrdinal(columnName);
-            return reader.GetGuid(index);
+            var index = record.GetOrdinal(columnName);
+            return record.GetGuid(index);
         }
 
-        public static short GetInt16(this IDataRecord reader, string columnName)
+        public static short GetInt16(this IDataRecord record, string columnName)
         {
-            var index = reader.GetOrdinal(columnName);
-            return reader.GetInt16(index);
+            var index = record.GetOrdinal(columnName);
+            return record.GetInt16(index);
         }
 
-        public static int GetInt32(this IDataRecord reader, string columnName)
+        public static int GetInt32(this IDataRecord record, string columnName)
         {
-            var index = reader.GetOrdinal(columnName);
-            return reader.GetInt32(index);
+            var index = record.GetOrdinal(columnName);
+            return record.GetInt32(index);
         }
 
-        public static long GetInt64(this IDataRecord reader, string columnName)
+        public static long GetInt64(this IDataRecord record, string columnName)
         {
-            var index = reader.GetOrdinal(columnName);
-            return reader.GetInt64(index);
+            var index = record.GetOrdinal(columnName);
+            return record.GetInt64(index);
         }
 
-        public static float GetFloat(this IDataRecord reader, string columnName)
+        public static float GetFloat(this IDataRecord record, string columnName)
         {
-            var index = reader.GetOrdinal(columnName);
-            return reader.GetFloat(index);
+            var index = record.GetOrdinal(columnName);
+            return record.GetFloat(index);
         }
 
-        public static double GetDouble(this IDataRecord reader, string columnName)
+        public static double GetDouble(this IDataRecord record, string columnName)
         {
-            var index = reader.GetOrdinal(columnName);
-            return reader.GetDouble(index);
+            var index = record.GetOrdinal(columnName);
+            return record.GetDouble(index);
         }
 
-        public static string GetString(this IDataRecord reader, string columnName)
+        public static string GetString(this IDataRecord record, string columnName)
         {
-            var index = reader.GetOrdinal(columnName);
-            return reader.GetString(index);
+            var index = record.GetOrdinal(columnName);
+            return record.GetString(index);
         }
 
-        public static decimal GetDecimal(this IDataRecord reader, string columnName)
+        public static decimal GetDecimal(this IDataRecord record, string columnName)
         {
-            var index = reader.GetOrdinal(columnName);
-            return reader.GetDecimal(index);
+            var index = record.GetOrdinal(columnName);
+            return record.GetDecimal(index);
         }
 
-        public static DateTime GetDateTime(this IDataRecord reader, string columnName)
+        public static DateTime GetDateTime(this IDataRecord record, string columnName)
         {
-            var index = reader.GetOrdinal(columnName);
-            return reader.GetDateTime(index);
+            var index = record.GetOrdinal(columnName);
+            return record.GetDateTime(index);
         }
 
-        public static bool IsDBNull(this IDataRecord reader, string columnName)
+        public static bool IsDBNull(this IDataRecord record, string columnName)
         {
-            var index = reader.GetOrdinal(columnName);
-            return reader.IsDBNull(index);
+            var index = record.GetOrdinal(columnName);
+            return record.IsDBNull(index);
         }
 
-        public static IDataReader GetData(this IDataRecord reader, string columnName)
+        public static IDataReader GetData(this IDataRecord record, string columnName)
         {
-            var index = reader.GetOrdinal(columnName);
-            return reader.GetData(index);
+            var index = record.GetOrdinal(columnName);
+            return record.GetData(index);
         }
     }
 }

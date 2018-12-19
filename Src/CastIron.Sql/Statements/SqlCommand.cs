@@ -1,4 +1,6 @@
-﻿namespace CastIron.Sql.Statements
+﻿using CastIron.Sql.Utility;
+
+namespace CastIron.Sql.Statements
 {
     public class SqlCommand : ISqlCommandSimple
     {
@@ -6,6 +8,7 @@
 
         public SqlCommand(string sql)
         {
+            Assert.ArgumentNotNullOrEmpty(sql, nameof(sql));
             _sql = sql;
         }
 

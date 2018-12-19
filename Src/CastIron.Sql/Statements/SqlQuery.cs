@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using CastIron.Sql.Utility;
 
 namespace CastIron.Sql.Statements
 {
@@ -9,6 +10,7 @@ namespace CastIron.Sql.Statements
 
         public SqlQuery(string sql)
         {
+            Assert.ArgumentNotNullOrEmpty(sql, nameof(sql));
             _sql = sql;
         }
 
@@ -24,6 +26,7 @@ namespace CastIron.Sql.Statements
 
         public SqlQuery(string sql)
         {
+            Assert.ArgumentNotNullOrEmpty(sql, nameof(sql));
             _sql = sql;
         }
 
