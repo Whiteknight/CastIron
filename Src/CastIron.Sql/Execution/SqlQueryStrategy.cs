@@ -31,7 +31,7 @@ namespace CastIron.Sql.Execution
                     using (var reader = command.ExecuteReader())
                     {
                         context.StartAction(index, "Map Results");
-                        var resultSet = new SqlDataReaderResult(command, context, reader);
+                        var resultSet = new SqlDataReaderResults(command, context, reader);
                         return query.GetResults(resultSet);
                     }
                 }
@@ -65,7 +65,7 @@ namespace CastIron.Sql.Execution
                     using (var reader = await command.ExecuteReaderAsync())
                     {
                         context.StartAction(index, "Map Results");
-                        var resultSet = new SqlDataReaderResult(command.Command, context, reader);
+                        var resultSet = new SqlDataReaderResults(command.Command, context, reader);
                         return query.GetResults(resultSet);
                     }
                 }
@@ -101,7 +101,7 @@ namespace CastIron.Sql.Execution
                 var reader = command.ExecuteReader();
 
                 context.StartAction(1, "Map Results");
-                return new SqlDataReaderResultStream(command, context, reader);
+                return new SqlDataReaderResultsStream(command, context, reader);
             }
             catch (SqlProblemException)
             {
@@ -135,7 +135,7 @@ namespace CastIron.Sql.Execution
                 var reader = await command.ExecuteReaderAsync();
 
                 context.StartAction(1, "Map Results");
-                return new SqlDataReaderResultStream(command.Command, context, reader);
+                return new SqlDataReaderResultsStream(command.Command, context, reader);
             }
             catch (SqlProblemException)
             {

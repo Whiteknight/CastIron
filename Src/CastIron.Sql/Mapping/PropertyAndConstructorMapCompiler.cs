@@ -23,7 +23,7 @@ namespace CastIron.Sql.Mapping
             context.PopulateColumnLookups(context.Reader);
 
             // Prepare the list of expressions
-            WriteInstantiationExpressionForObjectInstance<T>(context);
+            WriteInstantiationExpressionForObjectInstance(context);
             WritePropertyAssignmentExpressions(context);
 
             // Add return statement to return the converted instance
@@ -32,7 +32,7 @@ namespace CastIron.Sql.Mapping
             return context.CompileLambda<T>();
         }
 
-        private void WriteInstantiationExpressionForObjectInstance<T>(MapCompileContext<T> context)
+        private static void WriteInstantiationExpressionForObjectInstance<T>(MapCompileContext<T> context)
         {
             if (context.Factory != null)
             {

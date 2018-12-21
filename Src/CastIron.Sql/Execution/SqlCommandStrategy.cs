@@ -91,7 +91,7 @@ namespace CastIron.Sql.Execution
                     dbCommand.ExecuteNonQuery();
 
                     context.StartAction(index, "Map Results");
-                    var resultSet = new SqlDataReaderResult(dbCommand, context, null);
+                    var resultSet = new SqlDataReaderResults(dbCommand, context, null);
                     return command.ReadOutputs(resultSet);
                 }
                 catch (SqlProblemException)
@@ -124,7 +124,7 @@ namespace CastIron.Sql.Execution
                     await dbCommand.ExecuteNonQueryAsync();
 
                     context.StartAction(index, "Map Results");
-                    var resultSet = new SqlDataReaderResult(dbCommand.Command, context, null);
+                    var resultSet = new SqlDataReaderResults(dbCommand.Command, context, null);
                     return command.ReadOutputs(resultSet);
                 }
                 catch (SqlProblemException)

@@ -13,7 +13,7 @@ namespace CastIron.Sql.Mapping
     /// Encapsulates both the IDataReader and the IDbCommand to give unified access to all result
     /// sets and output parameters from the command
     /// </summary>
-    public class SqlDataReaderResult : IDataResults
+    public class SqlDataReaderResults : IDataResults
     {
         private readonly IDbCommand _command;
         private readonly IExecutionContext _context;
@@ -23,7 +23,7 @@ namespace CastIron.Sql.Mapping
         private bool _isConsuming;
         public int CurrentSet { get; private set; }
 
-        public SqlDataReaderResult(IDbCommand command, IExecutionContext context, IDataReader reader)
+        public SqlDataReaderResults(IDbCommand command, IExecutionContext context, IDataReader reader)
         {
             _command = command;
             _context = context;
@@ -212,9 +212,9 @@ namespace CastIron.Sql.Mapping
         }
     }
 
-    public class SqlDataReaderResultStream : SqlDataReaderResult, IDataResultsStream
+    public class SqlDataReaderResultsStream : SqlDataReaderResults, IDataResultsStream
     {
-        public SqlDataReaderResultStream(IDbCommand command, IExecutionContext context, IDataReader reader)
+        public SqlDataReaderResultsStream(IDbCommand command, IExecutionContext context, IDataReader reader)
             : base(command, context, reader)
         {
         }
