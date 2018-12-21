@@ -43,7 +43,7 @@ namespace CastIron.Sql.Mapping
             if (context.Factory != null)
                 return _inner.CompileExpression(context);
 
-            var key = CreateKey(context);
+            var key = CreateKey<T>(context);
             if (_cache.TryGetValue(key, out var cached) && cached is Func<IDataRecord, T> func)
                 return func;
 
@@ -52,7 +52,7 @@ namespace CastIron.Sql.Mapping
             return compiled;
         }
 
-        private static string CreateKey<T>(MapCompileContext<T> context)
+        private static string CreateKey<T>(MapCompileContext context)
         {
             var sb = new StringBuilder();
             sb.AppendLine("P:" + typeof(T).FullName);

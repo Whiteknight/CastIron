@@ -15,10 +15,10 @@ namespace CastIron.Sql.Mapping
         {
             public Type Type { get; set; }
             public Func<IDataRecord, bool> Predicate { get; set; }
-            public IMapCompiler Compiler { get; set; }
-            public IConstructorFinder ConstructorFinder { get; set; }
-            public Func<T> Factory { get; set; }
-            public ConstructorInfo Constructor { get; set; }
+            public IMapCompiler Compiler { get; private set; }
+            public IConstructorFinder ConstructorFinder { get; private set; }
+            public Func<T> Factory { get; private set; }
+            public ConstructorInfo Constructor { get; private set; }
             public Func<IDataRecord, T> Mapper { get; set; }
 
             public void SetMap(Func<IDataRecord, T> map)
@@ -46,7 +46,7 @@ namespace CastIron.Sql.Mapping
                 if (Constructor != null)
                     throw new Exception("Cannot specify a second constructor");
                 if (Factory != null)
-                    throw new Exception($"May not specify a constructor if a factory method is being used.");
+                    throw new Exception("May not specify a constructor if a factory method is being used.");
                 var type = Type ?? typeof(T);
                 if (!type.IsAssignableFrom(constructor.DeclaringType))
                     throw new Exception("The specified constructor does not create the correct type of object");
@@ -188,7 +188,7 @@ namespace CastIron.Sql.Mapping
             return this;
         }
 
-        private static Func<IDataRecord, T> CreateThunkExpression(List<SubclassPredicate> subclasses)
+        private static Func<IDataRecord, T> CreateThunkExpression(IReadOnlyList<SubclassPredicate> subclasses)
         {
             if (subclasses.Count == 0)
                 return r => default(T);
