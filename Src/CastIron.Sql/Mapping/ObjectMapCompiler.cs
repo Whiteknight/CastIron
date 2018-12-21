@@ -2,20 +2,19 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Data;
-using System.Reflection;
 
 namespace CastIron.Sql.Mapping
 {
-    public class ObjectRecordMapperCompiler : IRecordMapperCompiler
+    public class ObjectMapCompiler : IMapCompiler
     {
-        public Func<IDataRecord, T> CompileExpression<T>(Type specific, IDataReader reader, Func<T> factory, ConstructorInfo preferredConstructor)
+        public Func<IDataRecord, T> CompileExpression<T>(MapCompileContext<T> context)
         {
             if (!IsMatchingType(typeof(T)))
                 return r => default(T);
-            if (!IsMatchingType(specific))
+            if (!IsMatchingType(context.Specific))
                 return r => default(T);
-            var columns = reader.FieldCount;
-            if (columns == 1 && typeof(T) == typeof(object) && specific == typeof(object))
+            var columns = context.Reader.FieldCount;
+            if (columns == 1 && typeof(T) == typeof(object) && context.Specific == typeof(object))
                 return CreateObjectMap() as Func<IDataRecord, T>;
             return CreateObjectArrayMap(columns) as Func<IDataRecord, T>;
         }

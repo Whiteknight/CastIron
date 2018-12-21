@@ -7,16 +7,13 @@ using CastIron.Sql.Utility;
 
 namespace CastIron.Sql.Mapping
 {
-    public class TupleRecordMapperCompiler : IRecordMapperCompiler
+    public class TupleMapCompiler : IMapCompiler
     {
-        public Func<IDataRecord, T> CompileExpression<T>(Type specific, IDataReader reader, Func<T> factory, ConstructorInfo preferredConstructor)
+        public Func<IDataRecord, T> CompileExpression<T>(MapCompileContext<T> context)
         {
-            Assert.ArgumentNotNull(reader, nameof(reader));
+            Assert.ArgumentNotNull(context, nameof(context));
 
             var tupleType = typeof(T);
-            var recordParam = Expression.Parameter(typeof(IDataRecord), "record");
-            var instance = Expression.Variable(tupleType, "instance");
-            var context = new DataRecordMapperCompileContext(reader, recordParam, instance, typeof(T), tupleType);
 
             var typeParams = tupleType.GenericTypeArguments;
             if (typeParams.Length == 0 || typeParams.Length > 7)
@@ -31,14 +28,14 @@ namespace CastIron.Sql.Mapping
             for (var i = 0; i < typeParams.Length; i++)
                 args[i] = DataRecordExpressions.GetConversionExpression(i, context, typeParams[i]);
 
-            context.AddStatement(Expression.Assign(instance, Expression.Call(null, factoryMethod, args)));
-            context.AddStatement(Expression.Convert(instance, typeof(T)));
+            context.AddStatement(Expression.Assign(context.Instance, Expression.Call(null, factoryMethod, args)));
+            context.AddStatement(Expression.Convert(context.Instance, typeof(T)));
             return context.CompileLambda<T>();
         }
 
-        public static bool IsMatchingType(Type parentType, object factory, object preferredConstructor)
+        public static bool IsMatchingType(Type parentType, object factory)
         {
-            return parentType.Namespace == "System" && parentType.Name.StartsWith("Tuple") && factory == null && preferredConstructor == null;
+            return parentType.Namespace == "System" && parentType.Name.StartsWith("Tuple") && factory == null;
         }
     }
 }

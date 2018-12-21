@@ -47,32 +47,16 @@ namespace CastIron.Sql.Mapping
             return new DataReaderWithBetterErrorMessages(_reader);
         }
 
-        public IEnumerable<T> AsEnumerable<T>(Func<IDataRecord, T> map = null)
+        public IEnumerable<T> AsEnumerable<T>(Action<IMapCompilerBuilder<T>> setup = null)
         {
             AssertHasReader();
             MarkForInPlaceConsuming();
             if (CurrentSet == 0)
                 CurrentSet = 1;
-            map = map ?? CachingMappingCompiler.GetDefaultInstance().CompileExpression<T>(_reader);
+            var context = new MapCompilerBuilder<T>();
+            setup?.Invoke(context);
+            var map = context.Compile(_reader);
             return new DataRecordMappingEnumerable<T>(_reader, _context, map);
-        }
-
-        public IEnumerable<T> AsEnumerable<T>(IRecordMapperCompiler compiler, Func<T> factory = null, ConstructorInfo preferredConstructor = null)
-        {
-            AssertHasReader();
-            MarkForInPlaceConsuming();
-            if (CurrentSet == 0)
-                CurrentSet = 1;
-            var map = (compiler ?? CachingMappingCompiler.GetDefaultInstance()).CompileExpression(typeof(T), _reader, factory, preferredConstructor);
-            return new DataRecordMappingEnumerable<T>(_reader, _context, map);
-        }
-
-        public IEnumerable<T> AsEnumerable<T>(Func<ISubclassMapping<T>, ISubclassMapping<T>> setup)
-        {
-            AssertHasReader();
-            var mapping = new SubclassMapping<T>();
-            setup(mapping);
-            return AsEnumerable(mapping.BuildThunk(_reader));
         }
 
         // TODO: Method to .AsEnumerable the next N consecutive result sets

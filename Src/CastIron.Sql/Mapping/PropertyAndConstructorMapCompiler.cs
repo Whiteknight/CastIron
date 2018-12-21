@@ -9,30 +9,21 @@ using CastIron.Sql.Utility;
 
 namespace CastIron.Sql.Mapping
 {
-    public class PropertyAndConstructorRecordMapperCompiler : IRecordMapperCompiler
+    public class PropertyAndConstructorMapCompiler : IMapCompiler
     {
         // TODO: Nested objects. Columns starting with <NAME>_* will be used to populate the fields of property <NAME>
 
         private static readonly ConstructorInfo _exceptionConstructor = typeof(Exception).GetConstructor(new[] { typeof(string) });
-        private readonly IConstructorFinder _constructorFinder;
-
-        public PropertyAndConstructorRecordMapperCompiler(IConstructorFinder constructorFinder = null)
-        {
-            _constructorFinder = constructorFinder ?? new ConstructorFinder();
-        }
 
         // TODO: Ability to take the IDataRecord in the factory and consume some columns for constructor params so they aren't used later for properties?
-        public Func<IDataRecord, T> CompileExpression<T>(Type specific, IDataReader reader, Func<T> factory, ConstructorInfo preferredConstructor)
+        public Func<IDataRecord, T> CompileExpression<T>(MapCompileContext<T> context)
         {
-            Assert.ArgumentNotNull(reader, nameof(reader));
-            specific = specific ?? typeof(T);
-            if (factory != null && preferredConstructor != null)
-                throw new Exception($"May specify at most one of {nameof(factory)} or {nameof(preferredConstructor)}");
+            Assert.ArgumentNotNull(context, nameof(context));
 
-            var context = CreateCompileContextForObjectInstance<T>(specific, reader);
+            context.PopulateColumnLookups(context.Reader);
 
             // Prepare the list of expressions
-            WriteInstantiationExpressionForObjectInstance(factory, preferredConstructor, context);
+            WriteInstantiationExpressionForObjectInstance<T>(context);
             WritePropertyAssignmentExpressions(context);
 
             // Add return statement to return the converted instance
@@ -41,29 +32,19 @@ namespace CastIron.Sql.Mapping
             return context.CompileLambda<T>();
         }
 
-        private static DataRecordMapperCompileContext CreateCompileContextForObjectInstance<T>(Type specific, IDataReader reader)
+        private void WriteInstantiationExpressionForObjectInstance<T>(MapCompileContext<T> context)
         {
-            var recordParam = Expression.Parameter(typeof(IDataRecord), "record");
-            var instance = Expression.Variable(specific, "instance");
-            var context = new DataRecordMapperCompileContext(reader, recordParam, instance, typeof(T), specific);
-            context.PopulateColumnLookups(reader);
-            return context;
-        }
-
-        private void WriteInstantiationExpressionForObjectInstance<T>(Func<T> factory, ConstructorInfo preferredConstructor, DataRecordMapperCompileContext context)
-        {
-            if (factory != null)
+            if (context.Factory != null)
             {
-                WriteFactoryMethodCallExpression(factory, context);
+                WriteFactoryMethodCallExpression(context.Factory, context);
                 return;
             }
 
-            var constructor = _constructorFinder.FindBestMatch(preferredConstructor, context.Specific, context.GetColumnNameCounts());
-            var constructorCall = WriteConstructorCallExpression(constructor, context);
+            var constructorCall = WriteConstructorCallExpression(context);
             context.AddStatement(Expression.Assign(context.Instance, constructorCall));
         }
 
-        private static void WriteFactoryMethodCallExpression<T>(Func<T> factory, DataRecordMapperCompileContext context)
+        private static void WriteFactoryMethodCallExpression<T>(Func<T> factory, MapCompileContext context)
         {
             context.AddStatement(Expression.Assign(
                 context.Instance, 
@@ -76,8 +57,9 @@ namespace CastIron.Sql.Mapping
                         Expression.Constant($"Provided factory method returned a null value for type {typeof(T).FullName}")))));
         }
 
-        private static NewExpression WriteConstructorCallExpression(ConstructorInfo constructor, DataRecordMapperCompileContext context)
+        private static NewExpression WriteConstructorCallExpression( MapCompileContext context)
         {
+            var constructor = context.GetConstructor();
             var parameters = constructor.GetParameters();
             if (parameters.Length == 0)
                 return Expression.New(constructor);
@@ -109,14 +91,14 @@ namespace CastIron.Sql.Mapping
             return Expression.New(constructor, args);
         }
 
-        private static void WritePropertyAssignmentExpressions(DataRecordMapperCompileContext context)
+        private static void WritePropertyAssignmentExpressions(MapCompileContext context)
         {
             var properties = GetMappableProperties(context.Specific, context);
             foreach (var property in properties)
                 WritePropertyAssignmentExpression(context, property);
         }
 
-        private static void WritePropertyAssignmentExpression(DataRecordMapperCompileContext context, PropertyInfo property)
+        private static void WritePropertyAssignmentExpression(MapCompileContext context, PropertyInfo property)
         {
             // Look for a column name matching the property name
             var columnName = property.Name.ToLowerInvariant();
@@ -147,7 +129,7 @@ namespace CastIron.Sql.Mapping
             }
         }
 
-        private static IEnumerable<PropertyInfo> GetMappableProperties(Type specific, DataRecordMapperCompileContext context)
+        private static IEnumerable<PropertyInfo> GetMappableProperties(Type specific, MapCompileContext context)
         {
             return specific.GetProperties(BindingFlags.Public | BindingFlags.Instance)
                 .Where(p => p.SetMethod != null && p.GetMethod != null)

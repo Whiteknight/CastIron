@@ -29,32 +29,12 @@ namespace CastIron.Sql
         IDataReader AsRawReaderWithBetterErrorMessages();
 
         /// <summary>
-        /// Map the current result set to an enumerable of objects, using the specified mapping callback
+        /// Map the result set to objects
         /// </summary>
         /// <typeparam name="T"></typeparam>
-        /// <param name="map"></param>
+        /// <param name="setup">Setup the mapper or mapper compiler using a fluent interface</param>
         /// <returns></returns>
-        IEnumerable<T> AsEnumerable<T>(Func<IDataRecord, T> map = null);
-
-        /// <summary>
-        /// Map the current result set to an enumerable of objects, using the specified mapping compiler and 
-        /// constructor information
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="compiler"></param>
-        /// <param name="factory"></param>
-        /// <param name="preferredConstructor"></param>
-        /// <returns></returns>
-        IEnumerable<T> AsEnumerable<T>(IRecordMapperCompiler compiler, Func<T> factory = null, ConstructorInfo preferredConstructor = null);
-
-        /// <summary>
-        /// Map the current result set to an enumerable of objects, where different subclasses may be
-        /// instantiated depending on the data in the record.
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="setup"></param>
-        /// <returns></returns>
-        IEnumerable<T> AsEnumerable<T>(Func<ISubclassMapping<T>, ISubclassMapping<T>> setup);
+        IEnumerable<T> AsEnumerable<T>(Action<IMapCompilerBuilder<T>> setup = null);
 
         /// <summary>
         /// Get the value of the output parameter by name
@@ -133,7 +113,7 @@ namespace CastIron.Sql
         public static IEnumerable<T> AsEnumerable<T>(this IDataResults results, Func<T> factory)
         {
             Assert.ArgumentNotNull(results, nameof(results));
-            return results.AsEnumerable<T>(null, factory, null);
+            return results.AsEnumerable<T>(b => b.UseFactoryMethod(factory));
         }
 
         /// <summary>
@@ -147,21 +127,7 @@ namespace CastIron.Sql
         public static IEnumerable<T> AsEnumerable<T>(this IDataResults results, ConstructorInfo preferredConstructor)
         {
             Assert.ArgumentNotNull(results, nameof(results));
-            return results.AsEnumerable<T>(null, null, preferredConstructor);
-        }
-
-        /// <summary>
-        /// Advance to the next result set and map it to an enumerable of objects using the given mapping
-        /// callback.
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="results"></param>
-        /// <param name="map"></param>
-        /// <returns></returns>
-        public static IEnumerable<T> GetNextEnumerable<T>(this IDataResults results, Func<IDataRecord, T> map = null)
-        {
-            Assert.ArgumentNotNull(results, nameof(results));
-            return results.AdvanceToNextResultSet().AsEnumerable<T>(map);
+            return results.AsEnumerable<T>(b => b.UseConstructor(preferredConstructor));
         }
 
         /// <summary>
@@ -174,7 +140,7 @@ namespace CastIron.Sql
         /// <returns></returns>
         public static IEnumerable<T> GetNextEnumerable<T>(this IDataResults results, Func<T> factory)
         {
-            return GetNextEnumerable<T>(results, null, factory, null);
+            return GetNextEnumerable<T>(results, b => b.UseFactoryMethod(factory));
         }
 
         /// <summary>
@@ -186,7 +152,7 @@ namespace CastIron.Sql
         /// <returns></returns>
         public static IEnumerable<T> GetNextEnumerable<T>(this IDataResults results, ConstructorInfo preferredConstructor)
         {
-            return GetNextEnumerable<T>(results, null, null, preferredConstructor);
+            return GetNextEnumerable<T>(results, b => b.UseConstructor(preferredConstructor));
         }
 
         /// <summary>
@@ -195,25 +161,9 @@ namespace CastIron.Sql
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="results"></param>
-        /// <param name="compiler"></param>
-        /// <param name="factory"></param>
-        /// <param name="preferredConstructor"></param>
-        /// <returns></returns>
-        public static IEnumerable<T> GetNextEnumerable<T>(this IDataResults results, IRecordMapperCompiler compiler, Func<T> factory = null, ConstructorInfo preferredConstructor = null)
-        {
-            Assert.ArgumentNotNull(results, nameof(results));
-            return results.AdvanceToNextResultSet().AsEnumerable<T>(compiler, factory, preferredConstructor);
-        }
-
-        /// <summary>
-        /// Advance to the next result set and map it to an enumerable of objects where different subclasses
-        /// may be selected depending on the data in the record.
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="results"></param>
         /// <param name="setup"></param>
         /// <returns></returns>
-        public static IEnumerable<T> GetNextEnumerable<T>(this IDataResults results, Func<ISubclassMapping<T>, ISubclassMapping<T>> setup)
+        public static IEnumerable<T> GetNextEnumerable<T>(this IDataResults results, Action<IMapCompilerBuilder<T>> setup = null)
         {
             Assert.ArgumentNotNull(results, nameof(results));
             return results.AdvanceToNextResultSet().AsEnumerable<T>(setup);

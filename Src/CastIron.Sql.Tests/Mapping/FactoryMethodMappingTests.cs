@@ -23,7 +23,7 @@ namespace CastIron.Sql.Tests.Mapping
 
             public ResultRecord Read(IDataResults reader)
             {
-                return reader.AsEnumerable<ResultRecord>(null, () => null, null).FirstOrDefault();
+                return reader.AsEnumerable<ResultRecord>(b => b.UseFactoryMethod(() => null)).FirstOrDefault();
             }
         }
 
@@ -47,7 +47,7 @@ namespace CastIron.Sql.Tests.Mapping
 
             public ResultRecord Read(IDataResults reader)
             {
-                return reader.AsEnumerable(null, () => new ResultRecord(), null).FirstOrDefault();
+                return reader.AsEnumerable<ResultRecord>(b => b.UseFactoryMethod(() => new ResultRecord())).FirstOrDefault();
             }
         }
 

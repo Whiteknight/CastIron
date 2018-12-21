@@ -1,21 +1,20 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Data;
-using System.Reflection;
 using System.Text;
 using System.Threading;
 using CastIron.Sql.Utility;
 
 namespace CastIron.Sql.Mapping
 {
-    public class CachingMappingCompiler : IRecordMapperCompiler
+    public class CachingMappingCompiler : IMapCompiler
     {
-        private readonly IRecordMapperCompiler _inner;
+        private readonly IMapCompiler _inner;
         private readonly ConcurrentDictionary<string, object> _cache;
 
         private static CachingMappingCompiler _defaultInstance;
 
-        public CachingMappingCompiler(IRecordMapperCompiler inner)
+        public CachingMappingCompiler(IMapCompiler inner)
         {
             _inner = inner;
             _cache = new ConcurrentDictionary<string, object>();
@@ -26,7 +25,7 @@ namespace CastIron.Sql.Mapping
             if (_defaultInstance != null)
                 return _defaultInstance;
 
-            var newInstance = new CachingMappingCompiler(new RecordMapperCompiler());
+            var newInstance = new CachingMappingCompiler(new MapCompiler());
             var oldValue = Interlocked.CompareExchange(ref _defaultInstance, newInstance, null);
             return oldValue ?? newInstance;
         }
@@ -36,46 +35,32 @@ namespace CastIron.Sql.Mapping
             _cache.Clear();
         }
 
-        public Func<IDataRecord, T> CompileExpression<T>(IDataReader reader)
+        public Func<IDataRecord, T> CompileExpression<T>(MapCompileContext<T> context)
         {
-            Assert.ArgumentNotNull(reader, nameof(reader));
-
-            var key = CreateKey<T>(typeof(T), reader, null);
-            if (_cache.TryGetValue(key, out var cached) && cached is Func<IDataRecord, T> func)
-                return func;
-
-            var compiled = _inner.CompileExpression<T>(reader);
-            _cache.TryAdd(key, compiled);
-            return compiled;
-        }
-
-        public Func<IDataRecord, T> CompileExpression<T>(Type specific, IDataReader reader, Func<T> factory, ConstructorInfo preferredConstructor)
-        {
-            Assert.ArgumentNotNull(specific, nameof(specific));
-            Assert.ArgumentNotNull(reader, nameof(reader));
+            Assert.ArgumentNotNull(context, nameof(context));
 
             // We cannot cache if a custom factory is provided. The internals of the factory can change
-            if (factory != null)
-                return _inner.CompileExpression(specific, reader, factory, preferredConstructor);
+            if (context.Factory != null)
+                return _inner.CompileExpression(context);
 
-            var key = CreateKey<T>(specific, reader, preferredConstructor);
+            var key = CreateKey(context);
             if (_cache.TryGetValue(key, out var cached) && cached is Func<IDataRecord, T> func)
                 return func;
 
-            var compiled = _inner.CompileExpression<T>(specific, reader, null, preferredConstructor);
+            var compiled = _inner.CompileExpression(context);
             _cache.TryAdd(key, compiled);
             return compiled;
         }
 
-        private static string CreateKey<T>(Type specific, IDataReader reader, ConstructorInfo preferredConstructor)
+        private static string CreateKey<T>(MapCompileContext<T> context)
         {
             var sb = new StringBuilder();
             sb.AppendLine("P:" + typeof(T).FullName);
-            sb.AppendLine("S:" + specific.FullName);
-            if (preferredConstructor != null)
+            sb.AppendLine("S:" + context.Specific.FullName);
+            if (context.PreferredConstructor != null)
             {
                 sb.Append("C:");
-                foreach (var param in preferredConstructor.GetParameters())
+                foreach (var param in context.PreferredConstructor.GetParameters())
                 {
                     sb.Append(param.Name);
                     sb.Append(":");
@@ -85,11 +70,11 @@ namespace CastIron.Sql.Mapping
 
                 sb.AppendLine();
             }
-            for (var i = 0; i < reader.FieldCount; i++)
+            for (var i = 0; i < context.Reader.FieldCount; i++)
             {
                 sb.Append(i);
                 sb.Append(":");
-                sb.AppendLine(reader.GetFieldType(i).FullName);
+                sb.AppendLine(context.Reader.GetFieldType(i).FullName);
             }
             
             return sb.ToString();

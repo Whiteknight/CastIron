@@ -9,8 +9,20 @@ using CastIron.Sql.Utility;
 
 namespace CastIron.Sql.Mapping
 {
-    public class DataRecordMapperCompileContext
+    public class MapCompileContext<T> : MapCompileContext
     {
+        public Func<T> Factory { get; }
+
+        public MapCompileContext(IDataReader reader, Type specific, Func<T> factory, ConstructorInfo preferredConstructor, IConstructorFinder constructorFinder) 
+            : base(reader, typeof(T), specific, preferredConstructor, constructorFinder)
+        {
+            Factory = factory;
+        }
+    }
+
+    public class MapCompileContext
+    {
+        private readonly IConstructorFinder _constructorFinder;
         private readonly Dictionary<string, List<ColumnInfo>> _columnNames;
         private readonly List<ParameterExpression> _variables;
         private readonly List<Expression> _statements;
@@ -29,20 +41,24 @@ namespace CastIron.Sql.Mapping
             public bool Mapped { get; set; }
         }
 
-        public DataRecordMapperCompileContext(IDataReader reader, ParameterExpression recordParam, ParameterExpression instance, Type parent, Type specific)
+        public MapCompileContext(IDataReader reader, Type parent, Type specific, ConstructorInfo preferredConstructor, IConstructorFinder constructorFinder)
         {
             Assert.ArgumentNotNull(reader, nameof(reader));
-            Assert.ArgumentNotNull(recordParam, nameof(recordParam));
+            Assert.ArgumentNotNull(parent, nameof(parent));
 
-            Reader = reader;
-            RecordParam = recordParam;
-            Instance = instance;
             Parent = parent;
             Specific = specific ?? parent;
 
-            _variables = new List<ParameterExpression>();
-            if (instance != null)
-                _variables.Add(instance);
+            Reader = reader;
+            RecordParam = Expression.Parameter(typeof(IDataRecord), "record");
+            Instance = Expression.Variable(Specific, "instance");
+            PreferredConstructor = preferredConstructor;
+            _constructorFinder = constructorFinder;
+
+            _variables = new List<ParameterExpression>
+            {
+                Instance
+            };
             _statements = new List<Expression>();
             _columnNames = new Dictionary<string, List<ColumnInfo>>();
             _varNumber = 0;
@@ -57,6 +73,13 @@ namespace CastIron.Sql.Mapping
 
         //public List<ParameterExpression> Variables { get; }
         //public List<Expression> Statements { get; }
+
+        public ConstructorInfo PreferredConstructor { get; set; }
+
+        public ConstructorInfo GetConstructor()
+        {   
+            return (_constructorFinder ?? ConstructorFinder.GetDefaultInstance()).FindBestMatch(PreferredConstructor, Specific, GetColumnNameCounts());
+        }
 
         public void PopulateColumnLookups(IDataReader reader)
         {

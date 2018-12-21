@@ -35,8 +35,8 @@ namespace CastIron.Sql.Tests.Mapping
             {
                 return result
                     .AsEnumerable<TestNumber>(c => c
-                        .UseSubclass<TestBigNumber>(r => r.GetInt32(0) > 3)
-                        .Otherwise<TestSmallNumber>())
+                        .UseClass<TestSmallNumber>()
+                        .UseSubclass<TestBigNumber>(r => r.GetInt32(0) > 3))
                     .ToList();
             }
         }
@@ -79,8 +79,8 @@ namespace CastIron.Sql.Tests.Mapping
             {
                 return result
                     .AsEnumerable<TestNumber>(c => c
-                        .UseSubclass<TestBigNumber>(r => r.GetInt32(0) > 3)
-                        .Otherwise<TestSmallNumber>())
+                        .UseClass<TestSmallNumber>()
+                        .UseSubclass<TestBigNumber>(r => r.GetInt32(0) > 3))
                     .ToList();
             }
         }

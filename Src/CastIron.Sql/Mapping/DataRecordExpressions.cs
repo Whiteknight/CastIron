@@ -105,7 +105,7 @@ namespace CastIron.Sql.Mapping
 
         // TODO: Map to a dictionary types, if we have a key derivation function
 
-        public static Expression GetConversionExpression(DataRecordMapperCompileContext context, Type targetType)
+        public static Expression GetConversionExpression(MapCompileContext context, Type targetType)
         {
             if (targetType.IsArray && targetType.HasElementType)
             {
@@ -125,7 +125,7 @@ namespace CastIron.Sql.Mapping
             return GetScalarConversionExpression(0, context, context.Reader.GetFieldType(0), targetType);
         }
 
-        public static Expression GetConversionExpression(string columnName, DataRecordMapperCompileContext context, Type targetType)
+        public static Expression GetConversionExpression(string columnName, MapCompileContext context, Type targetType)
         {
             if (targetType.IsArray && targetType.HasElementType)
             {
@@ -146,13 +146,13 @@ namespace CastIron.Sql.Mapping
             return GetScalarConversionExpression(firstIndex, context, context.Reader.GetFieldType(firstIndex), targetType);
         }
 
-        public static Expression GetConversionExpression(int columnIdx, DataRecordMapperCompileContext context, Type targetType)
+        public static Expression GetConversionExpression(int columnIdx, MapCompileContext context, Type targetType)
         {
             var columnType = context.Reader.GetFieldType(columnIdx);
             return GetScalarConversionExpression(columnIdx, context, columnType, targetType);
         }
 
-        private static Expression GetScalarConversionExpression(int columnIdx, DataRecordMapperCompileContext context, Type columnType, Type targetType)
+        private static Expression GetScalarConversionExpression(int columnIdx, MapCompileContext context, Type columnType, Type targetType)
         { 
             // TODO: targetType == typeof(dynamic)
             // Pull the value out of the reader into the rawVar
@@ -232,7 +232,7 @@ namespace CastIron.Sql.Mapping
             return t.IsValueType ? Activator.CreateInstance(t) : null;
         }
 
-        private static Expression GetInterfaceCollectionConversionExpression(DataRecordMapperCompileContext context, Type targetType, IReadOnlyList<int> indices)
+        private static Expression GetInterfaceCollectionConversionExpression(MapCompileContext context, Type targetType, IReadOnlyList<int> indices)
         {
             if (targetType.GenericTypeArguments.Length != 1)
                 throw new Exception($"Cannot map to object of type {targetType.FullName}");
@@ -258,7 +258,7 @@ namespace CastIron.Sql.Mapping
             return Expression.Convert(listVar, targetType);
         }
 
-        private static Expression GetArrayConversionExpression(DataRecordMapperCompileContext context, Type targetType, IReadOnlyList<int> indices)
+        private static Expression GetArrayConversionExpression(MapCompileContext context, Type targetType, IReadOnlyList<int> indices)
         {
             var elementType = targetType.GetElementType();
 
@@ -279,7 +279,7 @@ namespace CastIron.Sql.Mapping
             return arrayVar;
         }
 
-        private static Expression GetConcreteCollectionConversionExpression(DataRecordMapperCompileContext context, Type targetType, IReadOnlyList<int> indices)
+        private static Expression GetConcreteCollectionConversionExpression(MapCompileContext context, Type targetType, IReadOnlyList<int> indices)
         {
             if (targetType.GenericTypeArguments.Length != 1)
                 throw new Exception($"Cannot map to object of type {targetType.FullName}");

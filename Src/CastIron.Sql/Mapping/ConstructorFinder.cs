@@ -8,6 +8,18 @@ namespace CastIron.Sql.Mapping
 {
     public class ConstructorFinder : IConstructorFinder
     {
+        private static readonly ConstructorFinder _defaultInstance;
+
+        static ConstructorFinder()
+        {
+            _defaultInstance = new ConstructorFinder();
+        }
+
+        public static ConstructorFinder GetDefaultInstance()
+        {
+            return _defaultInstance;
+        }
+
         public ConstructorInfo FindBestMatch(ConstructorInfo preferredConstructor, Type type, IReadOnlyDictionary<string, int> columnNames)
         {
             Assert.ArgumentNotNull(type, nameof(type));

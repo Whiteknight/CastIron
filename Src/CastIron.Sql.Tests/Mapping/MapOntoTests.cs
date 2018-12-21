@@ -33,6 +33,7 @@ namespace CastIron.Sql.Tests.Mapping
 
         class MapOntoQuery_RawRecord : ISqlQuerySimple<ResultRecord>
         {
+
             public string GetSql()
             {
                 return @"
@@ -43,12 +44,7 @@ namespace CastIron.Sql.Tests.Mapping
             public ResultRecord Read(IDataResults reader)
             {
                 var records = reader.GetNextEnumerable<ResultRecord>().ToDictionary(r => r.Id);
-                reader
-                    .GetNextEnumerable(r => new
-                    {
-                        Id = r.GetInt32(0),
-                        Value = r.GetString(1)
-                    })
+                reader.GetNextEnumerable<PartialRecordValue>()
                     .MapOnto(x => records[x.Id], (x, r) => r.Value = x.Value);
                 return records.Values.Single();
             }

@@ -1,29 +1,24 @@
 ﻿using System;
 using System.Data;
-using System.Linq.Expressions;
-using System.Reflection;
 using CastIron.Sql.Utility;
 
 namespace CastIron.Sql.Mapping
 {
-    public class PrimitiveRecordMapperCompiler : IRecordMapperCompiler
+    public class PrimitiveMapCompiler : IMapCompiler
     {
         private readonly int _columnIndex;
 
-        public PrimitiveRecordMapperCompiler(int columnIndex = 0)
+        public PrimitiveMapCompiler(int columnIndex = 0)
         {
             _columnIndex = columnIndex;
         }
 
-        public Func<IDataRecord, T> CompileExpression<T>(Type specific, IDataReader reader, Func<T> factory, ConstructorInfo preferredConstructor)
+        public Func<IDataRecord, T> CompileExpression<T>(MapCompileContext<T> context)
         {
-            Assert.ArgumentNotNull(reader, nameof(reader));
+            Assert.ArgumentNotNull(context, nameof(context));
             var t = typeof(T);
             if (DataRecordExpressions.IsSupportedPrimitiveType(t))
             {
-                var recordParam = Expression.Parameter(typeof(IDataRecord), "record");
-                var context = new DataRecordMapperCompileContext(reader, recordParam, null, typeof(T), typeof(T));
-
                 var expr = DataRecordExpressions.GetConversionExpression(_columnIndex, context, context.Parent);
                 context.AddStatement(expr);
                 return context.CompileLambda<T>();
@@ -31,9 +26,6 @@ namespace CastIron.Sql.Mapping
 
             if (DataRecordExpressions.IsSupportedCollectionType(t))
             {
-                var recordParam = Expression.Parameter(typeof(IDataRecord), "record");
-                var context = new DataRecordMapperCompileContext(reader, recordParam, null, typeof(T), typeof(T));
-
                 var expr = DataRecordExpressions.GetConversionExpression(context, context.Parent);
                 context.AddStatement(expr);
                 return context.CompileLambda<T>();

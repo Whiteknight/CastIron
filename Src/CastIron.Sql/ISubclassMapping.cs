@@ -36,7 +36,7 @@ namespace CastIron.Sql
         /// <param name="factory"></param>
         /// <param name="preferredConstructor"></param>
         /// <returns></returns>
-        ISubclassMapping<TParent> UseSubclass<T>(Func<IDataRecord, bool> determine, IRecordMapperCompiler compiler, Func<TParent> factory = null, ConstructorInfo preferredConstructor = null)
+        ISubclassMapping<TParent> UseSubclass<T>(Func<IDataRecord, bool> determine, IMapCompiler compiler, Func<TParent> factory = null, ConstructorInfo preferredConstructor = null)
             where T : TParent;
 
         /// <summary>
@@ -58,7 +58,7 @@ namespace CastIron.Sql
         /// <param name="factory"></param>
         /// <param name="preferredConstructor"></param>
         /// <returns></returns>
-        ISubclassMapping<TParent> Otherwise<T>(IRecordMapperCompiler compiler, Func<TParent> factory = null, ConstructorInfo preferredConstructor = null)
+        ISubclassMapping<TParent> Otherwise<T>(IMapCompiler compiler, Func<TParent> factory = null, ConstructorInfo preferredConstructor = null)
             where T : TParent;
 
         /// <summary>
