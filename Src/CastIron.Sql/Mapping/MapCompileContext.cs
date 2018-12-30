@@ -20,13 +20,30 @@ namespace CastIron.Sql.Mapping
         }
     }
 
+    public class VariableNumberSource
+    {
+        private int _varNumber;
+
+        public VariableNumberSource()
+        {
+            _varNumber = 0;
+        }
+
+        public int GetNext()
+        {
+            return _varNumber++;
+        }
+
+    }
+
     public class MapCompileContext
     {
         private readonly IConstructorFinder _constructorFinder;
+        private readonly string _prefix;
         private readonly Dictionary<string, List<ColumnInfo>> _columnNames;
         private readonly List<ParameterExpression> _variables;
         private readonly List<Expression> _statements;
-        private int _varNumber;
+        private readonly VariableNumberSource _variableNumbers;
         private readonly int _numColumns;
 
         private class ColumnInfo
@@ -41,7 +58,7 @@ namespace CastIron.Sql.Mapping
             public bool Mapped { get; set; }
         }
 
-        public MapCompileContext(IDataReader reader, Type parent, Type specific, ConstructorInfo preferredConstructor, IConstructorFinder constructorFinder)
+        public MapCompileContext(IDataReader reader, Type parent, Type specific, ConstructorInfo preferredConstructor, IConstructorFinder constructorFinder, VariableNumberSource numberSource = null)
         {
             Assert.ArgumentNotNull(reader, nameof(reader));
             Assert.ArgumentNotNull(parent, nameof(parent));
@@ -51,18 +68,53 @@ namespace CastIron.Sql.Mapping
 
             Reader = reader;
             RecordParam = Expression.Parameter(typeof(IDataRecord), "record");
-            Instance = Expression.Variable(Specific, "instance");
+            
             PreferredConstructor = preferredConstructor;
             _constructorFinder = constructorFinder;
-
-            _variables = new List<ParameterExpression>
-            {
-                Instance
-            };
+            
+            _variableNumbers = numberSource ?? new VariableNumberSource();
+            _variables = new List<ParameterExpression>();
             _statements = new List<Expression>();
             _columnNames = new Dictionary<string, List<ColumnInfo>>();
-            _varNumber = 0;
             _numColumns = reader.FieldCount;
+
+            var name = $"instance_{GetNextVarNumber()}";
+            Instance = Expression.Variable(Specific, name);
+            _variables.Add(Instance);
+        }
+
+        public MapCompileContext(MapCompileContext parent, Type type, string prefix)
+        {
+            Assert.ArgumentNotNull(parent, nameof(parent));
+            Assert.ArgumentNotNullOrEmpty(prefix, nameof(prefix));
+            Assert.ArgumentNotNull(type, nameof(type));
+
+            Parent = type;
+            Specific = type;
+
+            Reader = parent.Reader;
+            RecordParam = parent.RecordParam;
+            
+            _constructorFinder = parent._constructorFinder;
+
+            _variableNumbers = parent._variableNumbers;
+            _variables = parent._variables;
+            _statements = parent._statements;
+            _columnNames = new Dictionary<string, List<ColumnInfo>>();
+            foreach (var columnName in parent._columnNames)
+            {
+                if (columnName.Key.HasNonTrivialPrefix(prefix))
+                {
+                    var newName = columnName.Key.Substring(prefix.Length);
+                    _columnNames.Add(newName, columnName.Value);
+                }
+            }
+            //_numColumns = reader.FieldCount;
+
+            var name = $"instance_{GetNextVarNumber()}";
+            Instance = Expression.Variable(Specific, name);
+            _variables.Add(Instance);
+            _prefix = prefix;
         }
         
         public IDataReader Reader { get; }
@@ -73,6 +125,11 @@ namespace CastIron.Sql.Mapping
 
         //public List<ParameterExpression> Variables { get; }
         //public List<Expression> Statements { get; }
+
+        public MapCompileContext CreateSubcontext(Type t, string prefix)
+        {
+            return new MapCompileContext(this, t, prefix);
+        }
 
         public ConstructorInfo PreferredConstructor { get; set; }
 
@@ -86,6 +143,13 @@ namespace CastIron.Sql.Mapping
             for (var i = 0; i < reader.FieldCount; i++)
             {
                 var name = (reader.GetName(i) ?? "").ToLowerInvariant();
+                if (!string.IsNullOrEmpty(_prefix))
+                {
+                    if (!name.HasNonTrivialPrefix(_prefix))
+                        continue;
+                    name = name.Substring(_prefix.Length);
+                }
+
                 if (!_columnNames.ContainsKey(name))
                     _columnNames.Add(name, new List<ColumnInfo>());
                 _columnNames[name].Add(new ColumnInfo(i));
@@ -115,7 +179,19 @@ namespace CastIron.Sql.Mapping
 
         public IReadOnlyList<int> GetAllColumnIndices()
         {
+            // TODO: Need to fix this, subcontexts won't be able to use this.
             return Enumerable.Range(0, _numColumns).ToList();
+        }
+
+        public IReadOnlyDictionary<string, IReadOnlyList<int>> GetColumnIndicesByPrefix(string prefix)
+        {
+            return _columnNames.Where(kvp => kvp.Key.HasNonTrivialPrefix(prefix))
+                .ToDictionary(
+                    kvp => kvp.Key, 
+                    kvp => (IReadOnlyList<int>)kvp.Value
+                        .Where(c => !c.Mapped)
+                        .Select(c => c.Index)
+                        .ToList());
         }
 
         public void MarkMapped(string name, int count = 1)
@@ -131,6 +207,11 @@ namespace CastIron.Sql.Mapping
                 if (count <= 0)
                     break;
             }
+        }
+
+        public void MarkMapped(string prefix, string name, int count = 1)
+        {
+            MarkMapped(prefix + name, count);
         }
 
         public bool IsMapped(string name)
@@ -179,8 +260,9 @@ namespace CastIron.Sql.Mapping
 
         public int GetNextVarNumber()
         {
-            return _varNumber++;
+            return _variableNumbers.GetNext();
         }
+
 
         public IReadOnlyDictionary<string, int> GetColumnNameCounts()
         {

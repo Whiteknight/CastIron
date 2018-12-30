@@ -130,5 +130,26 @@ namespace CastIron.Sql.Tests.Mapping
             var result = target.Query(new SqlQuery<DateTime>("SELECT '2018-12-11 17:01:02'")).First();
             result.Should().Be(new DateTime(2018, 12, 11, 17, 1, 2));
         }
+
+        public class TestObject_WithChild
+        {
+            public int Id { get; set; }
+
+            public class TestChild
+            {
+                public string Name { get; set; }
+            }
+
+            public TestChild Child { get; set; }
+        }
+
+        [Test]
+        public void TestQuery_ObjectWithChild([Values("MSSQL", "SQLITE")] string provider)
+        {
+            var target = RunnerFactory.Create(provider);
+            var result = target.Query(new SqlQuery<TestObject_WithChild>("SELECT 5 AS Id, 'TEST' AS Child_Name;")).First();
+            result.Id.Should().Be(5);
+            result.Child.Name.Should().Be("TEST");
+        }
     }
 }

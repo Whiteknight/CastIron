@@ -20,16 +20,21 @@ namespace CastIron.Sql.Mapping
         {
             Assert.ArgumentNotNull(context, nameof(context));
 
-            context.PopulateColumnLookups(context.Reader);
-
-            // Prepare the list of expressions
-            WriteInstantiationExpressionForObjectInstance(context);
-            WritePropertyAssignmentExpressions(context);
+            WriteMappingStatements(context);
 
             // Add return statement to return the converted instance
             context.AddStatement(Expression.Convert(context.Instance, typeof(T)));
 
             return context.CompileLambda<T>();
+        }
+
+        private static void WriteMappingStatements<T>(MapCompileContext<T> context)
+        {
+            context.PopulateColumnLookups(context.Reader);
+
+            // Prepare the list of expressions
+            WriteInstantiationExpressionForObjectInstance(context);
+            WritePropertyAssignmentExpressions(context);
         }
 
         private static void WriteInstantiationExpressionForObjectInstance<T>(MapCompileContext<T> context)
@@ -43,6 +48,13 @@ namespace CastIron.Sql.Mapping
             var constructorCall = WriteConstructorCallExpression(context);
             context.AddStatement(Expression.Assign(context.Instance, constructorCall));
         }
+
+        private static void WriteInstantiationExpressionForObjectInstance(MapCompileContext context)
+        {
+            var constructorCall = WriteConstructorCallExpression(context);
+            context.AddStatement(Expression.Assign(context.Instance, constructorCall));
+        }
+
 
         private static void WriteFactoryMethodCallExpression<T>(Func<T> factory, MapCompileContext context)
         {
@@ -73,14 +85,14 @@ namespace CastIron.Sql.Mapping
                 if (context.HasColumn(name))
                 {
                     context.MarkMapped(name);
-                    args[i] = DataRecordExpressions.GetConversionExpression(name, context, parameter.ParameterType);
+                    args[i] = GetConversionExpression(name, context, parameter.ParameterType);
                     continue;
                 }
 
                 if (parameter.GetCustomAttributes<UnnamedColumnsAttribute>().Any())
                 {
                     context.MarkMapped("");
-                    args[i] = DataRecordExpressions.GetConversionExpression("", context, parameter.ParameterType);
+                    args[i] = GetConversionExpression("", context, parameter.ParameterType);
                     continue;
                 }
 
@@ -100,22 +112,39 @@ namespace CastIron.Sql.Mapping
 
         private static void WritePropertyAssignmentExpression(MapCompileContext context, PropertyInfo property)
         {
-            // Look for a column name matching the property name
-            var columnName = property.Name.ToLowerInvariant();
-            if (context.HasColumn(columnName))
+            var propertyName = property.Name.ToLowerInvariant();
+            if (property.PropertyType.IsClass 
+                && !property.PropertyType.IsInterface
+                && !property.PropertyType.IsAbstract 
+                && !property.PropertyType.IsArray
+                && property.PropertyType != typeof(string) 
+                && !property.PropertyType.Namespace.StartsWith("System.Collections"))
             {
-                var conversion = DataRecordExpressions.GetConversionExpression(columnName, context, property.PropertyType);
+                var subcontext = context.CreateSubcontext(property.PropertyType, propertyName + "_");
+                context.PopulateColumnLookups(subcontext.Reader);
+
+                // Prepare the list of expressions
+                WriteInstantiationExpressionForObjectInstance(subcontext);
+                WritePropertyAssignmentExpressions(subcontext);
+                context.AddStatement(Expression.Call(context.Instance, property.GetSetMethod(), Expression.Convert(subcontext.Instance, property.PropertyType)));
+                return;
+            }
+            
+            // Look for a column name matching the property name
+            if (context.HasColumn(propertyName))
+            {
+                var conversion = GetConversionExpression(propertyName, context, property.PropertyType);
                 context.AddStatement(Expression.Call(context.Instance, property.GetSetMethod(), conversion));
                 return;
             }
 
             // Look for a column name matching the ColumnNameAttribute.Name value
-            columnName = property.GetTypedAttributes<ColumnAttribute>()
+            var columnName = property.GetTypedAttributes<ColumnAttribute>()
                 .Select(c => c.Name.ToLowerInvariant())
                 .FirstOrDefault();
             if (context.HasColumn(columnName))
             {
-                var conversion = DataRecordExpressions.GetConversionExpression(columnName, context, property.PropertyType);
+                var conversion = GetConversionExpression(columnName, context, property.PropertyType);
                 context.AddStatement(Expression.Call(context.Instance, property.GetSetMethod(), conversion));
                 return;
             }
@@ -124,7 +153,7 @@ namespace CastIron.Sql.Mapping
             var acceptsUnnamed = property.GetTypedAttributes<UnnamedColumnsAttribute>().Any();
             if (acceptsUnnamed)
             {
-                var conversion = DataRecordExpressions.GetConversionExpression("", context, property.PropertyType);
+                var conversion = GetConversionExpression("", context, property.PropertyType);
                 context.AddStatement(Expression.Call(context.Instance, property.GetSetMethod(), conversion));
             }
         }
@@ -136,6 +165,27 @@ namespace CastIron.Sql.Mapping
                 .Where(p => p.CanRead && p.CanWrite)
                 .Where(p => !p.GetMethod.IsPrivate && !p.SetMethod.IsPrivate)
                 .Where(p => !context.IsMapped(p.Name.ToLowerInvariant()));
+        }
+
+        public static Expression GetConversionExpression(string columnName, MapCompileContext context, Type targetType)
+        {
+            if (targetType.IsArray && targetType.HasElementType)
+            {
+                var indices = context.GetColumnIndices(columnName);
+                return DataRecordExpressions.GetArrayConversionExpression(context, targetType, indices);
+            }
+
+            if (targetType.IsGenericType && (targetType.Namespace == "System.Collections.Generic" || targetType.Namespace == "System.Collections"))
+            {
+                var indices = context.GetColumnIndices(columnName);
+                if (targetType.IsInterface)
+                    return DataRecordExpressions.GetInterfaceCollectionConversionExpression(context, targetType, indices);
+
+                return DataRecordExpressions.GetConcreteCollectionConversionExpression(context, targetType, indices);
+            }
+
+            var firstIndex = context.GetColumnIndex(columnName);
+            return DataRecordExpressions.GetScalarConversionExpression(firstIndex, context, context.Reader.GetFieldType(firstIndex), targetType);
         }
     }
 }
