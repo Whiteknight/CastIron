@@ -122,7 +122,7 @@ namespace CastIron.Sql.Mapping
         { 
             // TODO: targetType == typeof(dynamic)
             // Pull the value out of the reader into the rawVar
-            var rawVar = context.AddVariable<object>("raw_" + context.GetNextVarNumber());
+            var rawVar = context.AddVariable<object>("raw");
             var getRawStmt = Expression.Assign(rawVar, Expression.Call(context.RecordParam, GetValueMethod, Expression.Constant(columnIdx)));
             context.AddStatement(getRawStmt);
 

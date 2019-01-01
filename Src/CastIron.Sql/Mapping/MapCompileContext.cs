@@ -246,7 +246,6 @@ namespace CastIron.Sql.Mapping
             return _variableNumbers.GetNext();
         }
 
-
         public IReadOnlyDictionary<string, int> GetColumnNameCounts()
         {
             return _columnNames.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.Count);

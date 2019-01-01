@@ -25,7 +25,7 @@ namespace CastIron.Sql.Mapping
                 return MapObjectArray<T>;
 
             if (IsTupleType(targetType, context.Factory))
-                return CompileTupleExpression<T>(context, context.Specific);
+                return CompileTupleExpression(context, context.Specific);
 
             if (IsMappableCustomObjectType(context.Specific))
             {
@@ -42,13 +42,6 @@ namespace CastIron.Sql.Mapping
             context.AddStatement(Expression.Convert(expression, targetType));
 
             return context.CompileLambda<T>();
-        }
-
-        private static T MapObjectArray<T>(IDataRecord r)
-        {
-            var buffer = new object[r.FieldCount];
-            r.GetValues(buffer);
-            return (T)(object)buffer;
         }
 
         public Func<IDataRecord, T> CompileTupleExpression<T>(MapCompileContext<T> context, Type tupleType)
@@ -71,18 +64,24 @@ namespace CastIron.Sql.Mapping
             return context.CompileLambda<T>();
         }
 
-        public static bool IsTupleType(Type parentType, object factory)
+        private static T MapObjectArray<T>(IDataRecord r)
+        {
+            var buffer = new object[r.FieldCount];
+            r.GetValues(buffer);
+            return (T)(object)buffer;
+        }
+
+        private static bool IsTupleType(Type parentType, object factory)
         {
             return parentType.Namespace == "System" && parentType.Name.StartsWith("Tuple") && factory == null;
         }
 
-        public static bool IsObjectOrObjectArrayType(Type t)
+        private static bool IsObjectOrObjectArrayType(Type t)
         {
             return t == null
                    || t == typeof(object) || t == typeof(object[])
                    || t == typeof(IEnumerable<object>) || t == typeof(IList<object>) || t == typeof(IReadOnlyList<object>) || t == typeof(ICollection<object>)
                    || t == typeof(IEnumerable) || t == typeof(IList) || t == typeof(ICollection);
-
         }
 
         private static void WriteInstantiationExpressionForObjectInstance<T>(MapCompileContext<T> context)
@@ -102,7 +101,6 @@ namespace CastIron.Sql.Mapping
             var constructorCall = WriteConstructorCallExpression(context);
             context.AddStatement(Expression.Assign(context.Instance, constructorCall));
         }
-
 
         private static void WriteFactoryMethodCallExpression<T>(Func<T> factory, MapCompileContext context)
         {
@@ -170,7 +168,7 @@ namespace CastIron.Sql.Mapping
                 .Where(p => !context.IsMapped(p.Name.ToLowerInvariant()));
         }
 
-        public static Expression GetConversionExpression(MapCompileContext context, string name, Type targetType, ICustomAttributeProvider attrs)
+        private static Expression GetConversionExpression(MapCompileContext context, string name, Type targetType, ICustomAttributeProvider attrs)
         {
             if (targetType == typeof(object))
                 return GetArrayConversionExpression(context, null, typeof(object[]), attrs);
@@ -219,7 +217,7 @@ namespace CastIron.Sql.Mapping
                    && !(t.Namespace ?? string.Empty).StartsWith("System.Collections");
         }
 
-        public static Expression GetConcreteCollectionConversionExpression(MapCompileContext context, string name, Type targetType, ICustomAttributeProvider attrs)
+        private static Expression GetConcreteCollectionConversionExpression(MapCompileContext context, string name, Type targetType, ICustomAttributeProvider attrs)
         {
             if (targetType.GenericTypeArguments.Length != 1)
                 throw new Exception($"Cannot map to object of type {targetType.FullName}");
@@ -237,7 +235,7 @@ namespace CastIron.Sql.Mapping
             if (addMethod == null)
                 throw new Exception($".{nameof(ICollection<object>.Add)}() Method missing from collection type {targetType.FullName}");
 
-            var listVar = context.AddVariable(targetType, "list_" + context.GetNextVarNumber());
+            var listVar = context.AddVariable(targetType, "list");
             context.AddStatement(Expression.Assign(listVar, Expression.New(constructor)));
 
             if (DataRecordExpressions.IsMappableScalarType(elementType))
@@ -270,7 +268,7 @@ namespace CastIron.Sql.Mapping
             throw new Exception($"Cannot map collection of type {targetType.Name}");
         }
 
-        public static Expression GetInterfaceCollectionConversionExpression(MapCompileContext context, string name, Type targetType, ICustomAttributeProvider attrs)
+        private static Expression GetInterfaceCollectionConversionExpression(MapCompileContext context, string name, Type targetType, ICustomAttributeProvider attrs)
         {
             if (targetType.GenericTypeArguments.Length != 1)
                 throw new Exception($"Cannot map to object of type {targetType.FullName}");
@@ -347,7 +345,7 @@ namespace CastIron.Sql.Mapping
             return context.GetColumnIndices(columnName);
         }
 
-        public static Expression GetArrayConversionExpression(MapCompileContext context, string name, Type targetType, ICustomAttributeProvider attrs)
+        private static Expression GetArrayConversionExpression(MapCompileContext context, string name, Type targetType, ICustomAttributeProvider attrs)
         {
             var elementType = targetType.GetElementType();
             if (elementType == null)
@@ -389,10 +387,5 @@ namespace CastIron.Sql.Mapping
 
             throw new Exception($"Cannot map array of type {elementType.Name}[]");
         }
-
-        //public static Expression GetPrimitiveScalarMappingStatement(MapCompileContext context, PropertyInfo property, int columnIdx)
-        //{
-        //    return DataRecordExpressions.GetScalarConversionExpression(columnIdx, context, context.Reader.GetFieldType(columnIdx), property.PropertyType);
-        //}
     }
 }
