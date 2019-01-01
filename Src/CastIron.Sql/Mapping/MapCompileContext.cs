@@ -44,7 +44,6 @@ namespace CastIron.Sql.Mapping
         private readonly List<ParameterExpression> _variables;
         private readonly List<Expression> _statements;
         private readonly VariableNumberSource _variableNumbers;
-        private readonly int _numColumns;
 
         private class ColumnInfo
         {
@@ -76,7 +75,6 @@ namespace CastIron.Sql.Mapping
             _variables = new List<ParameterExpression>();
             _statements = new List<Expression>();
             _columnNames = new Dictionary<string, List<ColumnInfo>>();
-            _numColumns = reader.FieldCount;
 
             var name = $"instance_{GetNextVarNumber()}";
             Instance = Expression.Variable(Specific, name);
@@ -109,7 +107,6 @@ namespace CastIron.Sql.Mapping
                     _columnNames.Add(newName, columnName.Value);
                 }
             }
-            //_numColumns = reader.FieldCount;
 
             var name = $"instance_{GetNextVarNumber()}";
             Instance = Expression.Variable(Specific, name);
@@ -165,7 +162,9 @@ namespace CastIron.Sql.Mapping
 
         public int GetColumnIndex(string name)
         {
-            if (name == null || !_columnNames.ContainsKey(name))
+            if (name == null)
+                return _columnNames.SelectMany(kvp => kvp.Value).FirstOrDefault(c => !c.Mapped)?.Index ?? -1;
+            if (!_columnNames.ContainsKey(name))
                 return -1;
             return _columnNames[name].Select(c => c.Index).First();
         }
@@ -173,25 +172,8 @@ namespace CastIron.Sql.Mapping
         public IReadOnlyList<int> GetColumnIndices(string name)
         {
             if (name == null)
-                return new List<int>();
+                return _columnNames.SelectMany(kvp => kvp.Value).Select(c => c.Index).ToList();
             return _columnNames.ContainsKey(name) ? _columnNames[name].Select(c => c.Index).ToList() : new List<int>();
-        }
-
-        public IReadOnlyList<int> GetAllColumnIndices()
-        {
-            // TODO: Need to fix this, subcontexts won't be able to use this.
-            return Enumerable.Range(0, _numColumns).ToList();
-        }
-
-        public IReadOnlyDictionary<string, IReadOnlyList<int>> GetColumnIndicesByPrefix(string prefix)
-        {
-            return _columnNames.Where(kvp => kvp.Key.HasNonTrivialPrefix(prefix))
-                .ToDictionary(
-                    kvp => kvp.Key, 
-                    kvp => (IReadOnlyList<int>)kvp.Value
-                        .Where(c => !c.Mapped)
-                        .Select(c => c.Index)
-                        .ToList());
         }
 
         public void MarkMapped(string name, int count = 1)
@@ -228,6 +210,7 @@ namespace CastIron.Sql.Mapping
 
         public ParameterExpression AddVariable(Type t, string name)
         {
+            name = name + "_" + GetNextVarNumber();
             var variable = Expression.Variable(t, name);
             _variables.Add(variable);
             return variable;

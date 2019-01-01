@@ -1,48 +1,398 @@
 ﻿using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Data;
+using System.Linq;
+using System.Linq.Expressions;
+using System.Reflection;
 using CastIron.Sql.Utility;
 
 namespace CastIron.Sql.Mapping
 {
     public class MapCompiler : IMapCompiler
     {
-        private readonly TupleMapCompiler _tuples;
-        private readonly PropertyAndConstructorMapCompiler _constructors;
-        private readonly ObjectMapCompiler _objects;
-        private readonly PrimitiveMapCompiler _primitives;
+        private static readonly ConstructorInfo _exceptionConstructor = typeof(Exception).GetConstructor(new[] { typeof(string) });
 
-        public MapCompiler()
-        {
-            _tuples = new TupleMapCompiler();
-            _constructors = new PropertyAndConstructorMapCompiler();
-            _objects = new ObjectMapCompiler();
-            _primitives = new PrimitiveMapCompiler();
-        }
-
+        // TODO: Ability to take the IDataRecord in the factory and consume some columns for constructor params so they aren't used later for properties?
         public Func<IDataRecord, T> CompileExpression<T>(MapCompileContext<T> context)
         {
             Assert.ArgumentNotNull(context, nameof(context));
 
-            var strategy = GetStrategy(context.Parent, context.Specific, context.Factory);
-            return strategy.CompileExpression(context);
+            var targetType = context.Specific;
+            context.PopulateColumnLookups(context.Reader);
+            if (IsObjectOrObjectArrayType(targetType))
+                return MapObjectArray<T>;
+
+            if (IsTupleType(targetType, context.Factory))
+                return CompileTupleExpression<T>(context, context.Specific);
+
+            if (IsMappableCustomObjectType(context.Specific))
+            {
+                // Prepare the list of expressions
+                WriteInstantiationExpressionForObjectInstance(context);
+                WritePropertyAssignmentExpressions(context);
+
+                context.AddStatement(Expression.Convert(context.Instance, typeof(T)));
+
+                return context.CompileLambda<T>();
+            }
+
+            var expression = GetConversionExpression(context, null, targetType, null);
+            context.AddStatement(Expression.Convert(expression, targetType));
+
+            return context.CompileLambda<T>();
         }
 
-        private IMapCompiler GetStrategy(Type parentType, Type specific, object factory)
+        private static T MapObjectArray<T>(IDataRecord r)
         {
-            if (PrimitiveMapCompiler.IsMatchingType(parentType))
-                return _primitives;
-            
-            // If asked for an object array, or just an object, return those as object arrays and don't do any fancy mapping
-            if (ObjectMapCompiler.IsMatchingType(parentType) && ObjectMapCompiler.IsMatchingType(specific))
-                return _objects;
-
-            if (TupleMapCompiler.IsMatchingType(parentType, factory))
-                return _tuples;
-
-            if (parentType.IsAssignableFrom(specific))
-                return _constructors;
-
-            throw new Exception($"Could not find mapper for Type=({(specific ?? parentType).Name} is {parentType.Name})");
+            var buffer = new object[r.FieldCount];
+            r.GetValues(buffer);
+            return (T)(object)buffer;
         }
+
+        public Func<IDataRecord, T> CompileTupleExpression<T>(MapCompileContext<T> context, Type tupleType)
+        {
+            var typeParams = tupleType.GenericTypeArguments;
+            if (typeParams.Length == 0 || typeParams.Length > 7)
+                throw new Exception($"Cannot create a tuple with {typeParams.Length} parameters. Must be between 1 and 7");
+            var factoryMethod = typeof(Tuple).GetMethods(BindingFlags.Public | BindingFlags.Static)
+                .Where(m => m.Name == nameof(Tuple.Create) && m.GetParameters().Length == typeParams.Length)
+                .Select(m => m.MakeGenericMethod(typeParams))
+                .FirstOrDefault();
+            if (factoryMethod == null)
+                throw new Exception($"Cannot find factory method for type {tupleType.Name}");
+            var args = new Expression[typeParams.Length];
+            for (var i = 0; i < typeParams.Length; i++)
+                args[i] = DataRecordExpressions.GetConversionExpression(i, context, typeParams[i]);
+
+            context.AddStatement(Expression.Assign(context.Instance, Expression.Call(null, factoryMethod, args)));
+            context.AddStatement(Expression.Convert(context.Instance, typeof(T)));
+            return context.CompileLambda<T>();
+        }
+
+        public static bool IsTupleType(Type parentType, object factory)
+        {
+            return parentType.Namespace == "System" && parentType.Name.StartsWith("Tuple") && factory == null;
+        }
+
+        public static bool IsObjectOrObjectArrayType(Type t)
+        {
+            return t == null
+                   || t == typeof(object) || t == typeof(object[])
+                   || t == typeof(IEnumerable<object>) || t == typeof(IList<object>) || t == typeof(IReadOnlyList<object>) || t == typeof(ICollection<object>)
+                   || t == typeof(IEnumerable) || t == typeof(IList) || t == typeof(ICollection);
+
+        }
+
+        private static void WriteInstantiationExpressionForObjectInstance<T>(MapCompileContext<T> context)
+        {
+            if (context.Factory != null)
+            {
+                WriteFactoryMethodCallExpression(context.Factory, context);
+                return;
+            }
+
+            var constructorCall = WriteConstructorCallExpression(context);
+            context.AddStatement(Expression.Assign(context.Instance, constructorCall));
+        }
+
+        private static void WriteInstantiationExpressionForObjectInstance(MapCompileContext context)
+        {
+            var constructorCall = WriteConstructorCallExpression(context);
+            context.AddStatement(Expression.Assign(context.Instance, constructorCall));
+        }
+
+
+        private static void WriteFactoryMethodCallExpression<T>(Func<T> factory, MapCompileContext context)
+        {
+            context.AddStatement(Expression.Assign(
+                context.Instance, 
+                Expression.Call(Expression.Constant(factory.Target), factory.Method)));            
+            context.AddStatement(Expression.IfThen(
+                Expression.Equal(context.Instance, Expression.Constant(null)),
+                Expression.Throw(
+                    Expression.New(
+                        _exceptionConstructor, 
+                        Expression.Constant($"Provided factory method returned a null value for type {typeof(T).FullName}")))));
+        }
+
+        private static NewExpression WriteConstructorCallExpression( MapCompileContext context)
+        {
+            var constructor = context.GetConstructor();
+            var parameters = constructor.GetParameters();
+            if (parameters.Length == 0)
+                return Expression.New(constructor);
+
+            // Map columns to constructor parameters by name, marking the columns consumed so they aren't used again later
+            var args = new Expression[parameters.Length];
+            for (var i = 0; i < parameters.Length; i++)
+            {
+                var parameter = parameters[i];
+                var name = parameter.Name.ToLowerInvariant();
+                if (context.HasColumn(name))
+                {
+                    context.MarkMapped(name);
+                    args[i] = GetConversionExpression(context, parameter.Name.ToLowerInvariant(), parameter.ParameterType, parameter);
+                    continue;
+                }
+
+                if (parameter.GetCustomAttributes<UnnamedColumnsAttribute>().Any())
+                {
+                    context.MarkMapped("");
+                    args[i] = GetConversionExpression(context, parameter.Name.ToLowerInvariant(), parameter.ParameterType, parameter);
+                    continue;
+                }
+
+                // No matching column name, fill in the default value
+                args[i] = Expression.Convert(Expression.Constant(DataRecordExpressions.GetDefaultValue(parameter.ParameterType)), parameter.ParameterType);
+            }
+
+            return Expression.New(constructor, args);
+        }
+
+        private static void WritePropertyAssignmentExpressions(MapCompileContext context)
+        {
+            var properties = GetMappableProperties(context.Specific, context);
+            foreach (var property in properties)
+            {
+                var expression = GetConversionExpression(context, property.Name.ToLowerInvariant(), property.PropertyType, property);
+                context.AddStatement(Expression.Call(context.Instance, property.GetSetMethod(), Expression.Convert(expression, property.PropertyType)));
+            }
+        }
+
+        private static IEnumerable<PropertyInfo> GetMappableProperties(Type specific, MapCompileContext context)
+        {
+            return specific.GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                .Where(p => p.SetMethod != null && p.GetMethod != null)
+                .Where(p => p.CanRead && p.CanWrite)
+                .Where(p => !p.GetMethod.IsPrivate && !p.SetMethod.IsPrivate)
+                .Where(p => !context.IsMapped(p.Name.ToLowerInvariant()));
+        }
+
+        public static Expression GetConversionExpression(MapCompileContext context, string name, Type targetType, ICustomAttributeProvider attrs)
+        {
+            if (targetType == typeof(object))
+                return GetArrayConversionExpression(context, null, typeof(object[]), attrs);
+
+            if (DataRecordExpressions.IsMappableScalarType(targetType))
+            {
+                var firstIndex = context.GetColumnIndex(name);
+                if (firstIndex < 0)
+                    return Expression.Constant(DataRecordExpressions.GetDefaultValue(targetType));
+                return DataRecordExpressions.GetScalarConversionExpression(firstIndex, context, context.Reader.GetFieldType(firstIndex), targetType);
+            }
+
+            if (targetType.IsArray && targetType.HasElementType)
+                return GetArrayConversionExpression(context, name, targetType, attrs);
+
+            if (targetType.IsGenericType && targetType.IsInterface && (targetType.Namespace ?? string.Empty).StartsWith("System.Collections"))
+                return GetInterfaceCollectionConversionExpression(context, name, targetType, attrs);
+
+            if (IsConcreteCollectionType(targetType))
+                return GetConcreteCollectionConversionExpression(context, name, targetType, attrs);
+        
+            if (IsMappableCustomObjectType(targetType))
+            {
+                var subcontext = context.CreateSubcontext(targetType, name + "_");
+                WriteInstantiationExpressionForObjectInstance(subcontext);
+                WritePropertyAssignmentExpressions(subcontext);
+
+                return Expression.Convert(subcontext.Instance, targetType);
+            }
+
+            throw new Exception($"Cannot find conversion rule for type {targetType.Name}");
+        }
+
+        private static bool IsConcreteCollectionType(Type t)
+        {
+            return !t.IsInterface && !t.IsAbstract && t.GetInterfaces().Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(ICollection<>));
+        }
+
+        private static bool IsMappableCustomObjectType(Type t)
+        {
+            return t.IsClass
+                   && !t.IsInterface
+                   && !t.IsAbstract
+                   && !t.IsArray
+                   && t != typeof(string)
+                   && !(t.Namespace ?? string.Empty).StartsWith("System.Collections");
+        }
+
+        public static Expression GetConcreteCollectionConversionExpression(MapCompileContext context, string name, Type targetType, ICustomAttributeProvider attrs)
+        {
+            if (targetType.GenericTypeArguments.Length != 1)
+                throw new Exception($"Cannot map to object of type {targetType.FullName}");
+            var elementType = targetType.GenericTypeArguments[0];
+
+            var collectionType = typeof(ICollection<>).MakeGenericType(elementType);
+            if (!collectionType.IsAssignableFrom(targetType))
+                throw new Exception($"Cannot map to object of type {targetType.FullName}. Expected ICollection<{elementType.Name}>.");
+
+            var constructor = targetType.GetConstructor(new Type[0]);
+            if (constructor == null)
+                throw new Exception($"Collection type {targetType.FullName} must have a default parameterless constructor");
+
+            var addMethod = collectionType.GetMethod(nameof(ICollection<object>.Add));
+            if (addMethod == null)
+                throw new Exception($".{nameof(ICollection<object>.Add)}() Method missing from collection type {targetType.FullName}");
+
+            var listVar = context.AddVariable(targetType, "list_" + context.GetNextVarNumber());
+            context.AddStatement(Expression.Assign(listVar, Expression.New(constructor)));
+
+            if (DataRecordExpressions.IsMappableScalarType(elementType))
+            {
+                var indices = GetIndicesForProperty(context, name, attrs);
+                foreach (var index in indices)
+                {
+                    var getScalarExpression = DataRecordExpressions.GetScalarConversionExpression(index, context, context.Reader.GetFieldType(index), elementType);
+                    context.AddStatement(Expression.Call(listVar, addMethod, getScalarExpression));
+                }
+                return listVar;
+            }
+
+            if (IsMappableCustomObjectType(elementType))
+            {
+                var columnName = GetColumnNameFromProperty(context, name, attrs);
+                if (columnName == null)
+                    return Expression.Constant(null);
+                var subcontext = context.CreateSubcontext(elementType, columnName + "_");
+                var arrayVar = context.AddVariable(targetType, "array");
+                context.AddStatement(Expression.Assign(arrayVar, Expression.New(constructor, Expression.Constant(1))));
+
+                WriteInstantiationExpressionForObjectInstance(subcontext);
+                WritePropertyAssignmentExpressions(subcontext);
+
+                context.AddStatement(Expression.Call(listVar, addMethod, subcontext.Instance));
+                return Expression.Convert(listVar, targetType);
+            }
+
+            throw new Exception($"Cannot map collection of type {targetType.Name}");
+        }
+
+        public static Expression GetInterfaceCollectionConversionExpression(MapCompileContext context, string name, Type targetType, ICustomAttributeProvider attrs)
+        {
+            if (targetType.GenericTypeArguments.Length != 1)
+                throw new Exception($"Cannot map to object of type {targetType.FullName}");
+
+            var elementType = targetType.GenericTypeArguments[0];
+            var listType = typeof(List<>).MakeGenericType(elementType);
+            if (!targetType.IsAssignableFrom(listType))
+                throw new Exception($"Cannot map to object of type {targetType.FullName}. Must be compatible with List<{elementType.Name}>.");
+
+            var constructor = listType.GetConstructor(new Type[0]);
+            if (constructor == null)
+                throw new Exception($"Collection type {listType.FullName} must have a default parameterless constructor");
+
+            var addMethod = listType.GetMethod(nameof(List<object>.Add));
+            if (addMethod == null)
+                throw new Exception($".{nameof(List<object>.Add)}() Method missing from collection type {listType.FullName}");
+
+            var listVar = context.AddVariable(listType, "list");
+            context.AddStatement(Expression.Assign(listVar, Expression.New(constructor)));
+
+            if (DataRecordExpressions.IsMappableScalarType(elementType))
+            {
+                var indices = GetIndicesForProperty(context, name, attrs);
+                foreach (var index in indices)
+                {
+                    var getScalarExpression = DataRecordExpressions.GetScalarConversionExpression(index, context, context.Reader.GetFieldType(index), elementType);
+                    context.AddStatement(Expression.Call(listVar, addMethod, getScalarExpression));
+                }
+                return Expression.Convert(listVar, targetType);
+            }
+
+            if (IsMappableCustomObjectType(elementType))
+            {
+                var columnName = GetColumnNameFromProperty(context, name, attrs);
+                if (columnName == null)
+                    return Expression.Constant(null);
+                var subcontext = context.CreateSubcontext(elementType, columnName + "_");
+                var arrayVar = subcontext.AddVariable(targetType, "array");
+                context.AddStatement(Expression.Assign(arrayVar, Expression.New(constructor, Expression.Constant(1))));
+
+                WriteInstantiationExpressionForObjectInstance(subcontext);
+                WritePropertyAssignmentExpressions(subcontext);
+
+                context.AddStatement(Expression.Call(listVar, addMethod, subcontext.Instance));
+                return Expression.Convert(listVar, targetType);
+            }
+
+            throw new Exception($"Cannot map Property '{name}' with type {targetType.Name}");
+        }
+
+        private static string GetColumnNameFromProperty(MapCompileContext context, string name, ICustomAttributeProvider attrs)
+        {
+            var propertyName = name.ToLowerInvariant();
+            if (context.HasColumn(propertyName))
+                return propertyName;
+            var columnName = attrs.GetTypedAttributes<ColumnAttribute>()
+                .Select(c => c.Name.ToLowerInvariant())
+                .FirstOrDefault();
+            if (context.HasColumn(columnName))
+                return columnName;
+            var acceptsUnnamed = attrs.GetTypedAttributes<UnnamedColumnsAttribute>().Any();
+            if (acceptsUnnamed)
+                return string.Empty;
+            return null;
+        }
+
+        private static IReadOnlyList<int> GetIndicesForProperty(MapCompileContext context, string name, ICustomAttributeProvider attrs)
+        {
+            if (name == null)
+                return context.GetColumnIndices(null);
+            var columnName = GetColumnNameFromProperty(context, name, attrs);
+            if (columnName == null)
+                return new int[0];
+            return context.GetColumnIndices(columnName);
+        }
+
+        public static Expression GetArrayConversionExpression(MapCompileContext context, string name, Type targetType, ICustomAttributeProvider attrs)
+        {
+            var elementType = targetType.GetElementType();
+            if (elementType == null)
+                throw new Exception($"Cannot find element type for arraytype {targetType.Name}");
+
+            var constructor = targetType.GetConstructor(new[] { typeof(int) });
+            if (constructor == null)
+                throw new Exception($"Array type {targetType.FullName} must have a standard array constructor");
+
+            if (DataRecordExpressions.IsMappableScalarType(elementType))
+            {
+                var indices = GetIndicesForProperty(context, name, attrs);
+                var arrayVar = context.AddVariable(targetType, "array_" + context.GetNextVarNumber());
+                context.AddStatement(Expression.Assign(arrayVar, Expression.New(constructor, Expression.Constant(indices.Count))));
+                for (int i = 0; i < indices.Count; i++)
+                {
+                    var columnIndex = indices[i];
+                    var getScalarExpression = DataRecordExpressions.GetScalarConversionExpression(columnIndex, context, context.Reader.GetFieldType(columnIndex), elementType);
+                    context.AddStatement(Expression.Assign(Expression.ArrayAccess(arrayVar, Expression.Constant(i)), getScalarExpression));
+                }
+                return arrayVar;
+            }
+
+            if (IsMappableCustomObjectType(elementType))
+            {
+                var columnName = GetColumnNameFromProperty(context, name, attrs);
+                if (columnName == null)
+                    return Expression.Constant(null);
+                var subcontext = context.CreateSubcontext(elementType, columnName + "_");
+                var arrayVar = subcontext.AddVariable(targetType, "array");
+                context.AddStatement(Expression.Assign(arrayVar, Expression.New(constructor, Expression.Constant(1))));
+
+                WriteInstantiationExpressionForObjectInstance(subcontext);
+                WritePropertyAssignmentExpressions(subcontext);
+                context.AddStatement(Expression.Assign(Expression.ArrayAccess(arrayVar, Expression.Constant(0)), Expression.Convert(subcontext.Instance, elementType)));
+
+                return arrayVar;
+            }
+
+            throw new Exception($"Cannot map array of type {elementType.Name}[]");
+        }
+
+        //public static Expression GetPrimitiveScalarMappingStatement(MapCompileContext context, PropertyInfo property, int columnIdx)
+        //{
+        //    return DataRecordExpressions.GetScalarConversionExpression(columnIdx, context, context.Reader.GetFieldType(columnIdx), property.PropertyType);
+        //}
     }
 }
