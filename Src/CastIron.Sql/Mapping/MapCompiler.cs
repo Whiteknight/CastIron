@@ -84,6 +84,16 @@ namespace CastIron.Sql.Mapping
                    || t == typeof(IEnumerable) || t == typeof(IList) || t == typeof(ICollection);
         }
 
+        private static bool IsDictionaryType(Type t)
+        {
+            if (!t.IsGenericType)
+                return false;
+            var genericDef = t.GetGenericTypeDefinition();
+            if (genericDef != typeof(IDictionary<,>) && genericDef != typeof(IReadOnlyDictionary<,>) && genericDef != typeof(Dictionary<,>))
+                return false;
+            return t.GetGenericArguments()[0] == typeof(string);
+        }
+
         private static void WriteInstantiationExpressionForObjectInstance<T>(MapCompileContext<T> context)
         {
             if (context.Factory != null)
@@ -130,14 +140,12 @@ namespace CastIron.Sql.Mapping
                 var name = parameter.Name.ToLowerInvariant();
                 if (context.HasColumn(name))
                 {
-                    context.MarkMapped(name);
                     args[i] = GetConversionExpression(context, parameter.Name.ToLowerInvariant(), parameter.ParameterType, parameter);
                     continue;
                 }
 
                 if (parameter.GetCustomAttributes<UnnamedColumnsAttribute>().Any())
                 {
-                    context.MarkMapped("");
                     args[i] = GetConversionExpression(context, parameter.Name.ToLowerInvariant(), parameter.ParameterType, parameter);
                     continue;
                 }
@@ -151,7 +159,7 @@ namespace CastIron.Sql.Mapping
 
         private static void WritePropertyAssignmentExpressions(MapCompileContext context)
         {
-            var properties = GetMappableProperties(context.Specific, context);
+            var properties = GetMappableProperties(context.Specific);
             foreach (var property in properties)
             {
                 var expression = GetConversionExpression(context, property.Name.ToLowerInvariant(), property.PropertyType, property);
@@ -159,13 +167,12 @@ namespace CastIron.Sql.Mapping
             }
         }
 
-        private static IEnumerable<PropertyInfo> GetMappableProperties(Type specific, MapCompileContext context)
+        private static IEnumerable<PropertyInfo> GetMappableProperties(Type specific)
         {
             return specific.GetProperties(BindingFlags.Public | BindingFlags.Instance)
                 .Where(p => p.SetMethod != null && p.GetMethod != null)
                 .Where(p => p.CanRead && p.CanWrite)
-                .Where(p => !p.GetMethod.IsPrivate && !p.SetMethod.IsPrivate)
-                .Where(p => !context.IsMapped(p.Name.ToLowerInvariant()));
+                .Where(p => !p.GetMethod.IsPrivate && !p.SetMethod.IsPrivate);
         }
 
         private static Expression GetConversionExpression(MapCompileContext context, string name, Type targetType, ICustomAttributeProvider attrs)
@@ -175,14 +182,18 @@ namespace CastIron.Sql.Mapping
 
             if (DataRecordExpressions.IsMappableScalarType(targetType))
             {
-                var firstIndex = context.GetColumnIndex(name);
-                if (firstIndex < 0)
+                var firstColumn = context.GetColumn(name);
+                if (firstColumn == null)
                     return Expression.Constant(DataRecordExpressions.GetDefaultValue(targetType));
-                return DataRecordExpressions.GetScalarConversionExpression(firstIndex, context, context.Reader.GetFieldType(firstIndex), targetType);
+                firstColumn.MarkMapped();
+                return DataRecordExpressions.GetScalarConversionExpression(firstColumn.Index, context, context.Reader.GetFieldType(firstColumn.Index), targetType);
             }
 
             if (targetType.IsArray && targetType.HasElementType)
                 return GetArrayConversionExpression(context, name, targetType, attrs);
+
+            if (IsDictionaryType(targetType))
+                return GetDictionaryConversionExpression(context, name, targetType);
 
             if (targetType.IsGenericType && targetType.IsInterface && (targetType.Namespace ?? string.Empty).StartsWith("System.Collections"))
                 return GetInterfaceCollectionConversionExpression(context, name, targetType, attrs);
@@ -217,6 +228,51 @@ namespace CastIron.Sql.Mapping
                    && !(t.Namespace ?? string.Empty).StartsWith("System.Collections");
         }
 
+        private static Expression GetDictionaryConversionExpression(MapCompileContext context, string name, Type targetType)
+        {
+            var elementType = targetType.GetGenericArguments()[1];
+
+            var dictType = typeof(Dictionary<,>).MakeGenericType(typeof(string), elementType);
+            if (!targetType.IsAssignableFrom(dictType))
+                throw new Exception($"Cannot map to object of type {targetType.FullName}. Expected Dictionary<string, {elementType.Name}>.");
+
+            var constructor = dictType.GetConstructor(Type.EmptyTypes);
+            if (constructor == null)
+                throw new Exception($"Collection type {dictType.FullName} must have a default parameterless constructor");
+
+            var addMethod = dictType.GetMethod(nameof(Dictionary<string, object>.Add));
+            if (addMethod == null)
+                throw new Exception($".{nameof(Dictionary<string, object>.Add)}() Method missing from dictionary type {targetType.FullName}");
+
+            var dictVar = context.AddVariable(dictType, "dict");
+            context.AddStatement(Expression.Assign(dictVar, Expression.New(constructor)));
+
+            if (name == null)
+            {
+                var columns = context.GetFirstIndexForEachColumnName();
+                foreach (var column in columns)
+                {
+                    var getScalarExpression = DataRecordExpressions.GetScalarConversionExpression(column.Index, context, column.ColumnType, elementType);
+                    context.AddStatement(Expression.Call(dictVar, addMethod, Expression.Constant(column.OriginalName), getScalarExpression));
+                    column.MarkMapped();
+                }
+            }
+            else
+            {
+                var subcontext = context.CreateSubcontext(null, name);
+                var columns = subcontext.GetColumns(null).ToList();
+                foreach (var column in columns)
+                {
+                    var childName = column.OriginalName.Substring(name.Length + 1);
+                    var getScalarExpression = DataRecordExpressions.GetScalarConversionExpression(column.Index, context, column.ColumnType, elementType);
+                    context.AddStatement(Expression.Call(dictVar, addMethod, Expression.Constant(childName), getScalarExpression));
+                    column.MarkMapped();
+                }
+            }
+
+            return targetType == dictType ? (Expression)dictVar : Expression.Convert(dictVar, targetType);
+        }
+
         private static Expression GetConcreteCollectionConversionExpression(MapCompileContext context, string name, Type targetType, ICustomAttributeProvider attrs)
         {
             if (targetType.GenericTypeArguments.Length != 1)
@@ -227,7 +283,7 @@ namespace CastIron.Sql.Mapping
             if (!collectionType.IsAssignableFrom(targetType))
                 throw new Exception($"Cannot map to object of type {targetType.FullName}. Expected ICollection<{elementType.Name}>.");
 
-            var constructor = targetType.GetConstructor(new Type[0]);
+            var constructor = targetType.GetConstructor(Type.EmptyTypes);
             if (constructor == null)
                 throw new Exception($"Collection type {targetType.FullName} must have a default parameterless constructor");
 
@@ -240,11 +296,12 @@ namespace CastIron.Sql.Mapping
 
             if (DataRecordExpressions.IsMappableScalarType(elementType))
             {
-                var indices = GetIndicesForProperty(context, name, attrs);
-                foreach (var index in indices)
+                var columns = GetColumnsForProperty(context, name, attrs);
+                foreach (var column in columns)
                 {
-                    var getScalarExpression = DataRecordExpressions.GetScalarConversionExpression(index, context, context.Reader.GetFieldType(index), elementType);
+                    var getScalarExpression = DataRecordExpressions.GetScalarConversionExpression(column.Index, context, column.ColumnType, elementType);
                     context.AddStatement(Expression.Call(listVar, addMethod, getScalarExpression));
+                    column.MarkMapped();
                 }
                 return listVar;
             }
@@ -257,7 +314,7 @@ namespace CastIron.Sql.Mapping
                 WritePropertyAssignmentExpressions(subcontext);
 
                 context.AddStatement(Expression.Call(listVar, addMethod, subcontext.Instance));
-                return Expression.Convert(listVar, targetType);
+                return listVar;
             }
 
             throw new Exception($"Cannot map collection of type {targetType.Name}");
@@ -286,11 +343,12 @@ namespace CastIron.Sql.Mapping
 
             if (DataRecordExpressions.IsMappableScalarType(elementType))
             {
-                var indices = GetIndicesForProperty(context, name, attrs);
-                foreach (var index in indices)
+                var columns = GetColumnsForProperty(context, name, attrs);
+                foreach (var column in columns)
                 {
-                    var getScalarExpression = DataRecordExpressions.GetScalarConversionExpression(index, context, context.Reader.GetFieldType(index), elementType);
+                    var getScalarExpression = DataRecordExpressions.GetScalarConversionExpression(column.Index, context, column.ColumnType, elementType);
                     context.AddStatement(Expression.Call(listVar, addMethod, getScalarExpression));
+                    column.MarkMapped();
                 }
                 return Expression.Convert(listVar, targetType);
             }
@@ -325,14 +383,14 @@ namespace CastIron.Sql.Mapping
             return null;
         }
 
-        private static IReadOnlyList<int> GetIndicesForProperty(MapCompileContext context, string name, ICustomAttributeProvider attrs)
+        private static IEnumerable<ColumnInfo> GetColumnsForProperty(MapCompileContext context, string name, ICustomAttributeProvider attrs)
         {
             if (name == null)
-                return context.GetColumnIndices(null);
+                return context.GetColumns(null);
             var columnName = GetColumnNameFromProperty(context, name, attrs);
             if (columnName == null)
-                return new int[0];
-            return context.GetColumnIndices(columnName);
+                return Enumerable.Empty<ColumnInfo>();
+            return context.GetColumns(columnName);
         }
 
         private static Expression GetArrayConversionExpression(MapCompileContext context, string name, Type targetType, ICustomAttributeProvider attrs)
@@ -347,14 +405,15 @@ namespace CastIron.Sql.Mapping
 
             if (DataRecordExpressions.IsMappableScalarType(elementType))
             {
-                var indices = GetIndicesForProperty(context, name, attrs);
+                var columns = GetColumnsForProperty(context, name, attrs).ToList();
                 var arrayVar = context.AddVariable(targetType, "array_" + context.GetNextVarNumber());
-                context.AddStatement(Expression.Assign(arrayVar, Expression.New(constructor, Expression.Constant(indices.Count))));
-                for (var i = 0; i < indices.Count; i++)
+                context.AddStatement(Expression.Assign(arrayVar, Expression.New(constructor, Expression.Constant(columns.Count))));
+                for (var i = 0; i < columns.Count; i++)
                 {
-                    var columnIndex = indices[i];
-                    var getScalarExpression = DataRecordExpressions.GetScalarConversionExpression(columnIndex, context, context.Reader.GetFieldType(columnIndex), elementType);
+                    var column = columns[i];
+                    var getScalarExpression = DataRecordExpressions.GetScalarConversionExpression(column.Index, context, column.ColumnType, elementType);
                     context.AddStatement(Expression.Assign(Expression.ArrayAccess(arrayVar, Expression.Constant(i)), getScalarExpression));
+                    column.MarkMapped();
                 }
                 return arrayVar;
             }

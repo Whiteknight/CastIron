@@ -33,29 +33,39 @@ namespace CastIron.Sql.Mapping
         {
             return _varNumber++;
         }
+    }
 
+    public class ColumnInfo
+    {
+        public ColumnInfo(int index, string originalName, Type columnType)
+        {
+            Index = index;
+            OriginalName = originalName;
+            ColumnType = columnType;
+            Mapped = false;
+            CanonicalName = originalName.ToLowerInvariant();
+        }
+
+        public int Index { get; }
+        public string OriginalName { get; }
+        public string CanonicalName { get; }
+        public Type ColumnType { get; }
+
+        public bool Mapped { get; private set; }
+
+        public void MarkMapped()
+        {
+            Mapped = true;
+        }
     }
 
     public class MapCompileContext
     {
         private readonly IConstructorFinder _constructorFinder;
-        private readonly string _prefix;
         private readonly Dictionary<string, List<ColumnInfo>> _columnNames;
         private readonly List<ParameterExpression> _variables;
         private readonly List<Expression> _statements;
         private readonly VariableNumberSource _variableNumbers;
-
-        private class ColumnInfo
-        {
-            public int Index { get; }
-
-            public ColumnInfo(int index)
-            {
-                Index = index;
-            }
-
-            public bool Mapped { get; set; }
-        }
 
         public MapCompileContext(IDataReader reader, Type parent, Type specific, ConstructorInfo preferredConstructor, IConstructorFinder constructorFinder, VariableNumberSource numberSource = null)
         {
@@ -84,7 +94,6 @@ namespace CastIron.Sql.Mapping
         public MapCompileContext(MapCompileContext parent, Type type, string prefix)
         {
             Assert.ArgumentNotNull(parent, nameof(parent));
-            Assert.ArgumentNotNull(type, nameof(type));
 
             Parent = type;
             Specific = type;
@@ -112,10 +121,12 @@ namespace CastIron.Sql.Mapping
                 }
             }
 
-            var name = $"instance_{GetNextVarNumber()}";
-            Instance = Expression.Variable(Specific, name);
-            _variables.Add(Instance);
-            _prefix = prefix ?? string.Empty;
+            if (type != null)
+            {
+                var name = $"instance_{GetNextVarNumber()}";
+                Instance = Expression.Variable(Specific, name);
+                _variables.Add(Instance);
+            }
         }
         
         public IDataReader Reader { get; }
@@ -145,17 +156,11 @@ namespace CastIron.Sql.Mapping
         {
             for (var i = 0; i < reader.FieldCount; i++)
             {
-                var name = (reader.GetName(i) ?? "").ToLowerInvariant();
-                if (!string.IsNullOrEmpty(_prefix))
-                {
-                    if (!name.HasNonTrivialPrefix(_prefix))
-                        continue;
-                    name = name.Substring(_prefix.Length);
-                }
-
-                if (!_columnNames.ContainsKey(name))
-                    _columnNames.Add(name, new List<ColumnInfo>());
-                _columnNames[name].Add(new ColumnInfo(i));
+                var name = (reader.GetName(i) ?? "");
+                var info = new ColumnInfo(i, name, reader.GetFieldType(i));
+                if (!_columnNames.ContainsKey(info.CanonicalName))
+                    _columnNames.Add(info.CanonicalName, new List<ColumnInfo>());
+                _columnNames[info.CanonicalName].Add(info);
             }
         }
 
@@ -166,47 +171,32 @@ namespace CastIron.Sql.Mapping
             return _columnNames.ContainsKey(name);
         }
 
-        public int GetColumnIndex(string name)
+        public ColumnInfo GetColumn(string name)
         {
             if (name == null)
-                return _columnNames.SelectMany(kvp => kvp.Value).FirstOrDefault(c => !c.Mapped)?.Index ?? -1;
+                return _columnNames.SelectMany(kvp => kvp.Value).FirstOrDefault(c => !c.Mapped);
             if (!_columnNames.ContainsKey(name))
-                return -1;
-            return _columnNames[name].Select(c => c.Index).First();
+                return null;
+            return _columnNames[name].FirstOrDefault(c => !c.Mapped);
         }
 
-        public IReadOnlyList<int> GetColumnIndices(string name)
+        public IEnumerable<ColumnInfo> GetColumns(string name)
         {
             if (name == null)
-                return _columnNames.SelectMany(kvp => kvp.Value).Select(c => c.Index).ToList();
-            return _columnNames.ContainsKey(name) ? _columnNames[name].Select(c => c.Index).ToList() : new List<int>();
+                return _columnNames.SelectMany(kvp => kvp.Value).Where(c => !c.Mapped);
+            return _columnNames.ContainsKey(name) ? _columnNames[name].Where(c => !c.Mapped) : Enumerable.Empty<ColumnInfo>();
         }
 
-        public void MarkMapped(string name, int count = 1)
+        public IEnumerable<ColumnInfo> GetFirstIndexForEachColumnName()
         {
-            if (!_columnNames.ContainsKey(name))
-                return;
-            foreach (var column in _columnNames[name])
-            {
-                if (column.Mapped)
-                    continue;
-                column.Mapped = true;
-                count--;
-                if (count <= 0)
-                    break;
-            }
+            return _columnNames
+                .Select(kvp => kvp.Value.FirstOrDefault(c => !c.Mapped))
+                .Where(c => c != null);
         }
 
-        public void MarkMapped(string prefix, string name, int count = 1)
+        public bool HasUnmappedColumn(string name)
         {
-            MarkMapped(prefix + name, count);
-        }
-
-        public bool IsMapped(string name)
-        {
-            if (!_columnNames.ContainsKey(name))
-                return false;
-            return _columnNames[name].Select(c => c.Mapped).FirstOrDefault();
+            return GetColumn(name) != null;
         }
 
         public ParameterExpression AddVariable<T>(string name)
