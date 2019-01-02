@@ -57,7 +57,7 @@ namespace CastIron.Sql.Mapping
                 throw new Exception($"Cannot find factory method for type {tupleType.Name}");
             var args = new Expression[typeParams.Length];
             for (var i = 0; i < typeParams.Length; i++)
-                args[i] = DataRecordExpressions.GetConversionExpression(i, context, typeParams[i]);
+                args[i] = DataRecordExpressions.GetScalarConversionExpression(i, context, context.Reader.GetFieldType(i), typeParams[i]);
 
             context.AddStatement(Expression.Assign(context.Instance, Expression.Call(null, factoryMethod, args)));
             context.AddStatement(Expression.Convert(context.Instance, typeof(T)));

@@ -6,6 +6,31 @@ using CastIron.Sql.Utility;
 
 namespace CastIron.Sql.Mapping
 {
+    public class DefaultOnlyConstructorFinder : IConstructorFinder
+    {
+        public ConstructorInfo FindBestMatch(ConstructorInfo preferredConstructor, Type type, IReadOnlyDictionary<string, int> columnNames)
+        {
+            Assert.ArgumentNotNull(type, nameof(type));
+
+            // If the user has specified a preferred constructor, use that.
+            if (preferredConstructor != null)
+            {
+                if (!preferredConstructor.IsPublic || preferredConstructor.IsStatic)
+                    throw new Exception("Specified constructor is static or non-public and cannot be used");
+                if (preferredConstructor.DeclaringType != type)
+                    throw new Exception($"Specified constructor is for type {preferredConstructor.DeclaringType?.FullName} instead of the expected {type.FullName}");
+
+                return preferredConstructor;
+            }
+
+            var defaultConstructor = type.GetConstructor(Type.EmptyTypes);
+            if (defaultConstructor != null && defaultConstructor.IsPublic)
+                return defaultConstructor;
+
+            throw new Exception($"Cannot find default constructor on type {type.Name}");
+        }
+    }
+
     public class ConstructorFinder : IConstructorFinder
     {
         private static readonly ConstructorFinder _defaultInstance;

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Dynamic;
 using System.Linq.Expressions;
 using System.Reflection;
 
@@ -89,34 +90,21 @@ namespace CastIron.Sql.Mapping
             if (t.IsArray && t.HasElementType)
                 return _primitiveTypes.Contains(t.GetElementType());
 
-            if (t.IsGenericType)
-            {
-                if (t.GenericTypeArguments.Length != 1)
-                    return false;
+            if (!t.IsGenericType || t.GenericTypeArguments.Length != 1)
+                return false;
 
-                var elementType = t.GenericTypeArguments[0];
-                if (!_primitiveTypes.Contains(elementType))
-                    return false;
+            var elementType = t.GenericTypeArguments[0];
+            if (!_primitiveTypes.Contains(elementType))
+                return false;
 
-                var collectionType = typeof(ICollection<>).MakeGenericType(elementType);
-                if (!collectionType.IsAssignableFrom(t))
-                    return false;
+            var collectionType = typeof(ICollection<>).MakeGenericType(elementType);
+            if (!collectionType.IsAssignableFrom(t))
+                return false;
 
-                return true;
-            }
-
-            return false;
+            return true;
         }
 
         // TODO: Map to a dictionary types, if we have a key derivation function
-
-        
-
-        public static Expression GetConversionExpression(int columnIdx, MapCompileContext context, Type targetType)
-        {
-            var columnType = context.Reader.GetFieldType(columnIdx);
-            return GetScalarConversionExpression(columnIdx, context, columnType, targetType);
-        }
 
         public static Expression GetScalarConversionExpression(int columnIdx, MapCompileContext context, Type columnType, Type targetType)
         { 
@@ -197,12 +185,6 @@ namespace CastIron.Sql.Mapping
         {
             return t.IsValueType ? Activator.CreateInstance(t) : null;
         }
-
-        
-
-       
-
-        
 
         private static bool IsConvertible(Type t)
         {
