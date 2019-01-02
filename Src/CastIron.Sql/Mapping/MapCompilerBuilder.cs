@@ -77,7 +77,7 @@ namespace CastIron.Sql.Mapping
             {
                 if (t.IsAbstract || t.IsInterface)
                     throw new Exception("Type must be concrete");
-                if (Type != null)
+                if (Type != null && Type != typeof(T))
                     throw new Exception("Cannot specify more than one specific class");
                 if (Factory != null)
                     throw new Exception("May not specify a specific subclass and a factory method at the same time");
@@ -93,7 +93,7 @@ namespace CastIron.Sql.Mapping
             _defaultCase = new SubclassPredicate
             {
                 Predicate = r => true,
-                Type = !typeof(T).IsAbstract ? typeof(T) : null
+                Type = typeof(T)
             };
         }
 
@@ -155,10 +155,6 @@ namespace CastIron.Sql.Mapping
 
         public Func<IDataRecord, T> Compile(IDataReader reader)
         {
-            var fallback = _defaultCase.Type ?? typeof(T);
-            if (fallback.IsAbstract || fallback.IsInterface)
-                throw new Exception("Fallback class must be instantiable");
-
             var defaultCompiler = _defaultCase.Compiler ?? CachingMappingCompiler.GetDefaultInstance();
 
             // 1. Compile a mapper for every possible subclass and creation options combo

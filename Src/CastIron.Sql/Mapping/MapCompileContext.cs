@@ -84,7 +84,6 @@ namespace CastIron.Sql.Mapping
         public MapCompileContext(MapCompileContext parent, Type type, string prefix)
         {
             Assert.ArgumentNotNull(parent, nameof(parent));
-            Assert.ArgumentNotNullOrEmpty(prefix, nameof(prefix));
             Assert.ArgumentNotNull(type, nameof(type));
 
             Parent = type;
@@ -99,19 +98,24 @@ namespace CastIron.Sql.Mapping
             _variables = parent._variables;
             _statements = parent._statements;
             _columnNames = new Dictionary<string, List<ColumnInfo>>();
-            foreach (var columnName in parent._columnNames)
+            if (prefix == null)
+                _columnNames = parent._columnNames;
+            else
             {
-                if (columnName.Key.HasNonTrivialPrefix(prefix))
+                foreach (var columnName in parent._columnNames)
                 {
-                    var newName = columnName.Key.Substring(prefix.Length);
-                    _columnNames.Add(newName, columnName.Value);
+                    if (columnName.Key.HasNonTrivialPrefix(prefix))
+                    {
+                        var newName = columnName.Key.Substring(prefix.Length);
+                        _columnNames.Add(newName, columnName.Value);
+                    }
                 }
             }
 
             var name = $"instance_{GetNextVarNumber()}";
             Instance = Expression.Variable(Specific, name);
             _variables.Add(Instance);
-            _prefix = prefix;
+            _prefix = prefix ?? string.Empty;
         }
         
         public IDataReader Reader { get; }
@@ -125,6 +129,8 @@ namespace CastIron.Sql.Mapping
 
         public MapCompileContext CreateSubcontext(Type t, string prefix)
         {
+            if (!string.IsNullOrEmpty(prefix))
+                prefix = prefix + "_";
             return new MapCompileContext(this, t, prefix);
         }
 

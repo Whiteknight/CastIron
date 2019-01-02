@@ -192,7 +192,7 @@ namespace CastIron.Sql.Mapping
         
             if (IsMappableCustomObjectType(targetType))
             {
-                var subcontext = context.CreateSubcontext(targetType, name + "_");
+                var subcontext = context.CreateSubcontext(targetType, name);
                 WriteInstantiationExpressionForObjectInstance(subcontext);
                 WritePropertyAssignmentExpressions(subcontext);
 
@@ -251,12 +251,7 @@ namespace CastIron.Sql.Mapping
 
             if (IsMappableCustomObjectType(elementType))
             {
-                var columnName = GetColumnNameFromProperty(context, name, attrs);
-                if (columnName == null)
-                    return Expression.Constant(null);
-                var subcontext = context.CreateSubcontext(elementType, columnName + "_");
-                var arrayVar = context.AddVariable(targetType, "array");
-                context.AddStatement(Expression.Assign(arrayVar, Expression.New(constructor, Expression.Constant(1))));
+                var subcontext = context.CreateSubcontext(elementType, name);
 
                 WriteInstantiationExpressionForObjectInstance(subcontext);
                 WritePropertyAssignmentExpressions(subcontext);
@@ -302,12 +297,7 @@ namespace CastIron.Sql.Mapping
 
             if (IsMappableCustomObjectType(elementType))
             {
-                var columnName = GetColumnNameFromProperty(context, name, attrs);
-                if (columnName == null)
-                    return Expression.Constant(null);
-                var subcontext = context.CreateSubcontext(elementType, columnName + "_");
-                var arrayVar = subcontext.AddVariable(targetType, "array");
-                context.AddStatement(Expression.Assign(arrayVar, Expression.New(constructor, Expression.Constant(1))));
+                var subcontext = context.CreateSubcontext(elementType, name);
 
                 WriteInstantiationExpressionForObjectInstance(subcontext);
                 WritePropertyAssignmentExpressions(subcontext);
@@ -360,7 +350,7 @@ namespace CastIron.Sql.Mapping
                 var indices = GetIndicesForProperty(context, name, attrs);
                 var arrayVar = context.AddVariable(targetType, "array_" + context.GetNextVarNumber());
                 context.AddStatement(Expression.Assign(arrayVar, Expression.New(constructor, Expression.Constant(indices.Count))));
-                for (int i = 0; i < indices.Count; i++)
+                for (var i = 0; i < indices.Count; i++)
                 {
                     var columnIndex = indices[i];
                     var getScalarExpression = DataRecordExpressions.GetScalarConversionExpression(columnIndex, context, context.Reader.GetFieldType(columnIndex), elementType);
@@ -371,10 +361,7 @@ namespace CastIron.Sql.Mapping
 
             if (IsMappableCustomObjectType(elementType))
             {
-                var columnName = GetColumnNameFromProperty(context, name, attrs);
-                if (columnName == null)
-                    return Expression.Constant(null);
-                var subcontext = context.CreateSubcontext(elementType, columnName + "_");
+                var subcontext = context.CreateSubcontext(elementType, name);
                 var arrayVar = subcontext.AddVariable(targetType, "array");
                 context.AddStatement(Expression.Assign(arrayVar, Expression.New(constructor, Expression.Constant(1))));
 

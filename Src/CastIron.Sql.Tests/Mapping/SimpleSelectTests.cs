@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using CastIron.Sql.Statements;
 using FluentAssertions;
@@ -150,6 +151,40 @@ namespace CastIron.Sql.Tests.Mapping
             var result = target.Query(new SqlQuery<TestObject_WithChild>("SELECT 5 AS Id, 'TEST' AS Child_Name;")).First();
             result.Id.Should().Be(5);
             result.Child.Name.Should().Be("TEST");
+        }
+
+     
+        [Test]
+        public void TestQuery_ListOfCustomObject([Values("MSSQL", "SQLITE")] string provider)
+        {
+            var target = RunnerFactory.Create(provider);
+            var result = target.Query(new SqlQuery<List<TestObject1>>("SELECT 5 AS TestInt, 'TEST' AS TestString, CAST(1 AS BIT) AS TestBool;")).First();
+            result.Count.Should().Be(1);
+            result[0].TestString.Should().Be("TEST");
+            result[0].TestInt.Should().Be(5);
+            result[0].TestBool.Should().Be(true);
+        }
+
+        [Test]
+        public void TestQuery_IListOfCustomObject([Values("MSSQL", "SQLITE")] string provider)
+        {
+            var target = RunnerFactory.Create(provider);
+            var result = target.Query(new SqlQuery<IList<TestObject1>>("SELECT 5 AS TestInt, 'TEST' AS TestString, CAST(1 AS BIT) AS TestBool;")).First();
+            result.Count.Should().Be(1);
+            result[0].TestString.Should().Be("TEST");
+            result[0].TestInt.Should().Be(5);
+            result[0].TestBool.Should().Be(true);
+        }
+
+        [Test]
+        public void TestQuery_ArrayOfCustomObject([Values("MSSQL", "SQLITE")] string provider)
+        {
+            var target = RunnerFactory.Create(provider);
+            var result = target.Query(new SqlQuery<TestObject1[]>("SELECT 5 AS TestInt, 'TEST' AS TestString, CAST(1 AS BIT) AS TestBool;")).First();
+            result.Length.Should().Be(1);
+            result[0].TestString.Should().Be("TEST");
+            result[0].TestInt.Should().Be(5);
+            result[0].TestBool.Should().Be(true);
         }
     }
 }
