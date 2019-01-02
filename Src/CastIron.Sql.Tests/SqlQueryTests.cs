@@ -1,10 +1,15 @@
-﻿using System.Linq;
+﻿using System.Data;
+using System.Linq;
 using System.Threading.Tasks;
 using FluentAssertions;
 using NUnit.Framework;
 
 namespace CastIron.Sql.Tests
 {
+    /// <summary>
+    /// Basic tests for SELECT queries returning values. More depth in mapping logic
+    /// is included in the Mapping tests.
+    /// </summary>
     [TestFixture]
     public class SqlQueryTests
     {
@@ -102,6 +107,79 @@ namespace CastIron.Sql.Tests
             var runner = RunnerFactory.Create(provider);
             var result = await runner.QueryAsync<string>("SELECT 'TEST'");
             result[0].Should().Be("TEST");
+        }
+
+        public class CommandExecuted : ISqlQuery<string>
+        {
+            public bool SetupCommand(IDataInteraction command)
+            {
+                command.ExecuteText("SELECT 'TEST';");
+                return true;
+            }
+
+            public string GetResults(IDataResults result)
+            {
+                return result.AsEnumerable<string>().FirstOrDefault();
+            }
+        }
+
+        [Test]
+        public void SqlQueryRawCommand_Executed([Values("MSSQL", "SQLITE")] string provider)
+        {
+            var runner = RunnerFactory.Create(provider);
+            var result = runner.Query(new CommandExecuted());
+            result.Should().Be("TEST");
+        }
+
+        public class CommandNotExecuted : ISqlQuery<string>
+        {
+            public bool SetupCommand(IDataInteraction command)
+            {
+                command.ExecuteText("SELECT 'TEST';");
+                return false;
+            }
+
+            public string GetResults(IDataResults result)
+            {
+                return result.AsEnumerable<string>().FirstOrDefault();
+            }
+        }
+
+        [Test]
+        public void SqlQueryRawCommand_NotExecuted([Values("MSSQL", "SQLITE")] string provider)
+        {
+            var runner = RunnerFactory.Create(provider);
+            var result = runner.Query(new CommandNotExecuted());
+            result.Should().BeNullOrEmpty();
+        }
+
+        public class ParameterResult
+        {
+            public string Value { get; set; }
+        }
+
+        public class CommandWithParameter : ISqlQuery<ParameterResult>
+        {
+            public bool SetupCommand(IDataInteraction command)
+            {
+                command.ExecuteText("SELECT @value = 'TEST';");
+                command.AddOutputParameter("@value", DbType.AnsiString, 4);
+                return true;
+            }
+
+            public ParameterResult GetResults(IDataResults result)
+            {
+                return result.GetOutputParameters<ParameterResult>();
+            }
+        }
+
+        [Test]
+        public void SqlQueryRawCommand_GetParameters()
+        {
+            var runner = RunnerFactory.Create();
+            var result = runner.Query(new CommandWithParameter());
+            result.Should().NotBeNull();
+            result.Value.Should().Be("TEST");
         }
     }
 }

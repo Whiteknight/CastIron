@@ -9,7 +9,7 @@ namespace CastIron.Sql.Tests.Examples
     [TestFixture]
     public class TfIdfQueryTests
     {
-        class CreateTfIdfTableCommand : ISqlCommandSimple
+        private class CreateTfIdfTableCommand : ISqlCommandSimple
         {
             public string GetSql()
             {
@@ -24,7 +24,7 @@ CREATE TABLE #DocumentTerms (
             }
         }
 
-        class PopulateTermsTableCommand : ISqlCommandSimple
+        private class PopulateTermsTableCommand : ISqlCommandSimple
         {
             private readonly IReadOnlyList<string> _documents;
 
@@ -48,7 +48,7 @@ CREATE TABLE #DocumentTerms (
             }
         }
 
-        class TfIdfResult
+        private class TfIdfResult
         {
             public int DocumentId { get; set; }
             public float TfIdfScore { get; set; }

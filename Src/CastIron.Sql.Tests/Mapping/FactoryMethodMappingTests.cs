@@ -8,13 +8,13 @@ namespace CastIron.Sql.Tests.Mapping
     [TestFixture]
     public class FactoryMethodMappingTests
     {
-        class ResultRecord
+        private class ResultRecord
         {
             public int Id { get; set; }
             public string Name { get; set; }
         }
 
-        class FactoryMethodReturnsNullQuery : ISqlQuerySimple<ResultRecord>
+        private class FactoryMethodReturnsNullQuery : ISqlQuerySimple<ResultRecord>
         {
             public string GetSql()
             {
@@ -38,7 +38,7 @@ namespace CastIron.Sql.Tests.Mapping
             func.Should().Throw<Exception>();
         }
 
-        class FactoryMethodReturnsNonNullQuery : ISqlQuerySimple<ResultRecord>
+        private class FactoryMethodReturnsNonNullQuery : ISqlQuerySimple<ResultRecord>
         {
             public string GetSql()
             {

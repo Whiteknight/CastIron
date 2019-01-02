@@ -6,7 +6,7 @@ using NUnit.Framework;
 namespace CastIron.Sql.Tests
 {
     [TestFixture]
-    public class SqlQueryRawConnectionTests
+    public class SqlConnectionAccessorTests
     {
         public class Accessor1 : ISqlConnectionAccessor<string>
         {

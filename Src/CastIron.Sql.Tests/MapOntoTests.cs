@@ -7,7 +7,7 @@ namespace CastIron.Sql.Tests.Mapping
     [TestFixture]
     public class MapOntoTests
     {
-        class ResultRecord
+        private class ResultRecord
         {
             public ResultRecord(int id)
             {
@@ -19,7 +19,7 @@ namespace CastIron.Sql.Tests.Mapping
             public string Value { get; set; }
         }
 
-        class PartialRecordValue
+        private class PartialRecordValue
         {
             public PartialRecordValue(int id, string value)
             {
@@ -31,7 +31,7 @@ namespace CastIron.Sql.Tests.Mapping
             public string Value { get; }
         }
 
-        class MapOntoQuery_RawRecord : ISqlQuerySimple<ResultRecord>
+        private class MapOntoQuery_RawRecord : ISqlQuerySimple<ResultRecord>
         {
 
             public string GetSql()
@@ -60,7 +60,7 @@ namespace CastIron.Sql.Tests.Mapping
             result.Value.Should().Be("VALUE");
         }
 
-        class MapOntoQuery_MappedRecord : ISqlQuerySimple<ResultRecord>
+        private class MapOntoQuery_MappedRecord : ISqlQuerySimple<ResultRecord>
         {
             public string GetSql()
             {

@@ -15,10 +15,10 @@ namespace CastIron.Sql.Tests
             public string GetSql()
             {
                 return @"
-CREATE TABLE #castiron_test (
-    [Value] INT NOT NULL
-);
-INSERT INTO #castiron_test ([Value]) VALUES (1),(3),(5),(7);
+                    CREATE TABLE #castiron_test (
+                        [Value] INT NOT NULL
+                    );
+                    INSERT INTO #castiron_test ([Value]) VALUES (1),(3),(5),(7);
 ";
             }
         }

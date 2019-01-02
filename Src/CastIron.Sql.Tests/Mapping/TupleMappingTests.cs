@@ -6,7 +6,7 @@ using NUnit.Framework;
 namespace CastIron.Sql.Tests.Mapping
 {
     [TestFixture]
-    public class MapTupleTests
+    public class TupleMappingTests
     {
         public class GetValuesQuery : ISqlQuerySimple<Tuple<int, string, bool>>
         {
