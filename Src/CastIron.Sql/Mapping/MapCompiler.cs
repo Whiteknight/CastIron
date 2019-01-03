@@ -22,21 +22,23 @@ namespace CastIron.Sql.Mapping
             var targetType = context.Specific;
             context.PopulateColumnLookups(context.Reader);
 
+            // Top-level object mapping currently works differently from nested object mapping. Here it produces
+            // a Dictionary to preserve column name information. Elsewhere it maps a scalar column value
             if (targetType == typeof(object))
             {
                 var expr = GetConcreteDictionaryConversionExpression(context, null, typeof(Dictionary<string, object>));
                 context.AddStatement(Expression.Convert(expr, typeof(T)));
                 return context.CompileLambda<T>();
             }
-            if (IsObjectArrayType(targetType))
-                return MapObjectArray<T>;
 
+            // Tuple mapping only makes sense at the top-level. Below that we don't have enough information about
+            // which columns to use in which order to populate the tuple.
             if (IsTupleType(targetType, context.Factory))
                 return CompileTupleExpression<T>(context, context.Specific);
 
+            // For all other cases, fall back to normal recursive conversion routines.
             var expression = GetConversionExpression(context, null, targetType, null);
             context.AddStatement(Expression.Convert(expression, targetType));
-
             return context.CompileLambda<T>();
         }
 
@@ -60,24 +62,9 @@ namespace CastIron.Sql.Mapping
             return context.CompileLambda<T>();
         }
 
-        private static T MapObjectArray<T>(IDataRecord r)
-        {
-            var buffer = new object[r.FieldCount];
-            r.GetValues(buffer);
-            return (T)(object)buffer;
-        }
-
         private static bool IsTupleType(Type parentType, object factory)
         {
             return parentType.Namespace == "System" && parentType.Name.StartsWith("Tuple") && factory == null;
-        }
-
-        private static bool IsObjectArrayType(Type t)
-        {
-            return t == null
-                   || t == typeof(object[])
-                   || t == typeof(IEnumerable<object>) || t == typeof(IList<object>) || t == typeof(IReadOnlyList<object>) || t == typeof(ICollection<object>)
-                   || t == typeof(IEnumerable) || t == typeof(IList) || t == typeof(ICollection);
         }
 
         private static void WriteInstantiationExpressionForObjectInstance(MapCompileContext context)
@@ -172,6 +159,8 @@ namespace CastIron.Sql.Mapping
 
             if (targetType.IsArray && targetType.HasElementType)
                 return GetArrayConversionExpression(context, name, targetType, attrs);
+            if (targetType == typeof(IEnumerable) || targetType == typeof(IList) || targetType == typeof(ICollection))
+                return GetArrayConversionExpression(context, name, typeof(object[]), attrs);
 
             if (IsConcreteDictionaryType(targetType))
                 return GetConcreteDictionaryConversionExpression(context, name, targetType);
