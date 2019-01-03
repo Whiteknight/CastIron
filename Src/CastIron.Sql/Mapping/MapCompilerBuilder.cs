@@ -216,8 +216,8 @@ namespace CastIron.Sql.Mapping
                 throw new Exception($"Type {subclass.Type.FullName} is not assignable to {typeof(T).FullName}");
             if (subclass.Mapper == null)
             {
-                var context = new MapCompileContext<T>(reader, subclass.Type, subclass.Factory, subclass.Constructor, subclass.ConstructorFinder);
-                subclass.Mapper = (subclass.Compiler ?? defaultCompiler).CompileExpression(context);
+                var context = new MapCompileContext(reader, subclass.Type, subclass.Type, subclass.Factory as Func<object>, subclass.Constructor, subclass.ConstructorFinder);
+                subclass.Mapper = (subclass.Compiler ?? defaultCompiler).CompileExpression<T>(context);
             }
 
             newSubclasses.Add(subclass);

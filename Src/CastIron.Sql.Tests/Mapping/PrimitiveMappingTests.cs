@@ -213,15 +213,5 @@ namespace CastIron.Sql.Tests.Mapping
             result = target.Query(new TestQuery<Guid?>("SELECT NULL AS TestId;"));
             result.Should().BeNull();
         }
-
-        //[Test]
-        //public void TestQuery_dynamic([Values("MSSQL", "SQLITE")] string provider)
-        //{
-        //    var target = RunnerFactory.Create(provider);
-        //    var result = target.Query(new SqlQuery<dynamic>("SELECT 5 AS TestInt, 'TEST' AS TestString, CAST(1 AS BIT) AS TestBool;")).First();
-        //    result.TestString.Should().Be("TEST");
-        //    result.TestInt.Should().Be(5);
-        //    result.TestBool.Should().Be(true);
-        //}
     }
 }

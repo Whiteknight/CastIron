@@ -35,19 +35,19 @@ namespace CastIron.Sql.Mapping
             _cache.Clear();
         }
 
-        public Func<IDataRecord, T> CompileExpression<T>(MapCompileContext<T> context)
+        public Func<IDataRecord, T> CompileExpression<T>(MapCompileContext context)
         {
             Assert.ArgumentNotNull(context, nameof(context));
 
             // We cannot cache if a custom factory is provided. The internals of the factory can change
             if (context.Factory != null)
-                return _inner.CompileExpression(context);
+                return _inner.CompileExpression<T>(context);
 
             var key = CreateKey<T>(context);
             if (_cache.TryGetValue(key, out var cached) && cached is Func<IDataRecord, T> func)
                 return func;
 
-            var compiled = _inner.CompileExpression(context);
+            var compiled = _inner.CompileExpression<T>(context);
             _cache.TryAdd(key, compiled);
             return compiled;
         }

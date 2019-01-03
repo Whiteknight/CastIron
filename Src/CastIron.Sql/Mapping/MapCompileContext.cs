@@ -9,17 +9,6 @@ using CastIron.Sql.Utility;
 
 namespace CastIron.Sql.Mapping
 {
-    public class MapCompileContext<T> : MapCompileContext
-    {
-        public Func<T> Factory { get; }
-
-        public MapCompileContext(IDataReader reader, Type specific, Func<T> factory, ConstructorInfo preferredConstructor, IConstructorFinder constructorFinder) 
-            : base(reader, typeof(T), specific, preferredConstructor, constructorFinder)
-        {
-            Factory = factory;
-        }
-    }
-
     public class VariableNumberSource
     {
         private int _varNumber;
@@ -67,13 +56,15 @@ namespace CastIron.Sql.Mapping
         private readonly List<Expression> _statements;
         private readonly VariableNumberSource _variableNumbers;
 
-        public MapCompileContext(IDataReader reader, Type parent, Type specific, ConstructorInfo preferredConstructor, IConstructorFinder constructorFinder, VariableNumberSource numberSource = null)
+        public MapCompileContext(IDataReader reader, Type parent, Type specific, Func<object> factory, ConstructorInfo preferredConstructor, IConstructorFinder constructorFinder, VariableNumberSource numberSource = null)
         {
             Assert.ArgumentNotNull(reader, nameof(reader));
             Assert.ArgumentNotNull(parent, nameof(parent));
 
             Parent = parent;
             Specific = specific ?? parent;
+
+            Factory = factory;
 
             Reader = reader;
             RecordParam = Expression.Parameter(typeof(IDataRecord), "record");
@@ -128,7 +119,8 @@ namespace CastIron.Sql.Mapping
                 _variables.Add(Instance);
             }
         }
-        
+
+        public Func<object> Factory { get; }
         public IDataReader Reader { get; }
         public ParameterExpression RecordParam { get; }
         public ParameterExpression Instance { get; }

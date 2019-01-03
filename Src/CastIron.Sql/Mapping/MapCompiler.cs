@@ -15,28 +15,24 @@ namespace CastIron.Sql.Mapping
         private static readonly ConstructorInfo _exceptionConstructor = typeof(Exception).GetConstructor(new[] { typeof(string) });
 
         // TODO: Ability to take the IDataRecord in the factory and consume some columns for constructor params so they aren't used later for properties?
-        public Func<IDataRecord, T> CompileExpression<T>(MapCompileContext<T> context)
+        public Func<IDataRecord, T> CompileExpression<T>(MapCompileContext context)
         {
             Assert.ArgumentNotNull(context, nameof(context));
 
             var targetType = context.Specific;
             context.PopulateColumnLookups(context.Reader);
-            if (IsObjectOrObjectArrayType(targetType))
+
+            if (targetType == typeof(object))
+            {
+                var expr = GetConcreteDictionaryConversionExpression(context, null, typeof(Dictionary<string, object>));
+                context.AddStatement(Expression.Convert(expr, typeof(T)));
+                return context.CompileLambda<T>();
+            }
+            if (IsObjectArrayType(targetType))
                 return MapObjectArray<T>;
 
             if (IsTupleType(targetType, context.Factory))
-                return CompileTupleExpression(context, context.Specific);
-
-            if (IsMappableCustomObjectType(context.Specific))
-            {
-                // Prepare the list of expressions
-                WriteInstantiationExpressionForObjectInstance(context);
-                WritePropertyAssignmentExpressions(context);
-
-                context.AddStatement(Expression.Convert(context.Instance, typeof(T)));
-
-                return context.CompileLambda<T>();
-            }
+                return CompileTupleExpression<T>(context, context.Specific);
 
             var expression = GetConversionExpression(context, null, targetType, null);
             context.AddStatement(Expression.Convert(expression, targetType));
@@ -44,7 +40,7 @@ namespace CastIron.Sql.Mapping
             return context.CompileLambda<T>();
         }
 
-        public Func<IDataRecord, T> CompileTupleExpression<T>(MapCompileContext<T> context, Type tupleType)
+        public Func<IDataRecord, T> CompileTupleExpression<T>(MapCompileContext context, Type tupleType)
         {
             var typeParams = tupleType.GenericTypeArguments;
             if (typeParams.Length == 0 || typeParams.Length > 7)
@@ -76,38 +72,21 @@ namespace CastIron.Sql.Mapping
             return parentType.Namespace == "System" && parentType.Name.StartsWith("Tuple") && factory == null;
         }
 
-        private static bool IsObjectOrObjectArrayType(Type t)
+        private static bool IsObjectArrayType(Type t)
         {
             return t == null
-                   || t == typeof(object) || t == typeof(object[])
+                   || t == typeof(object[])
                    || t == typeof(IEnumerable<object>) || t == typeof(IList<object>) || t == typeof(IReadOnlyList<object>) || t == typeof(ICollection<object>)
                    || t == typeof(IEnumerable) || t == typeof(IList) || t == typeof(ICollection);
         }
 
-        private static bool IsDictionaryType(Type t)
-        {
-            if (!t.IsGenericType)
-                return false;
-            var genericDef = t.GetGenericTypeDefinition();
-            if (genericDef != typeof(IDictionary<,>) && genericDef != typeof(IReadOnlyDictionary<,>) && genericDef != typeof(Dictionary<,>))
-                return false;
-            return t.GetGenericArguments()[0] == typeof(string);
-        }
-
-        private static void WriteInstantiationExpressionForObjectInstance<T>(MapCompileContext<T> context)
+        private static void WriteInstantiationExpressionForObjectInstance(MapCompileContext context)
         {
             if (context.Factory != null)
             {
                 WriteFactoryMethodCallExpression(context.Factory, context);
                 return;
             }
-
-            var constructorCall = WriteConstructorCallExpression(context);
-            context.AddStatement(Expression.Assign(context.Instance, constructorCall));
-        }
-
-        private static void WriteInstantiationExpressionForObjectInstance(MapCompileContext context)
-        {
             var constructorCall = WriteConstructorCallExpression(context);
             context.AddStatement(Expression.Assign(context.Instance, constructorCall));
         }
@@ -116,16 +95,16 @@ namespace CastIron.Sql.Mapping
         {
             context.AddStatement(Expression.Assign(
                 context.Instance, 
-                Expression.Call(Expression.Constant(factory.Target), factory.Method)));            
+                Expression.Convert(Expression.Call(Expression.Constant(factory.Target), factory.Method), context.Specific)));            
             context.AddStatement(Expression.IfThen(
                 Expression.Equal(context.Instance, Expression.Constant(null)),
                 Expression.Throw(
                     Expression.New(
                         _exceptionConstructor, 
-                        Expression.Constant($"Provided factory method returned a null value for type {typeof(T).FullName}")))));
+                        Expression.Constant($"Provided factory method returned a null or unusable value for type {context.Specific.Name}")))));
         }
 
-        private static NewExpression WriteConstructorCallExpression( MapCompileContext context)
+        private static NewExpression WriteConstructorCallExpression(MapCompileContext context)
         {
             var constructor = context.GetConstructor();
             var parameters = constructor.GetParameters();
@@ -180,6 +159,8 @@ namespace CastIron.Sql.Mapping
             if (targetType == typeof(object))
                 return GetArrayConversionExpression(context, null, typeof(object[]), attrs);
 
+            // TODO: If we're asking for "object", should we just map a single column as a scalar or should we map to 
+            // Dictionary<string, object> like we do at the top level?
             if (DataRecordExpressions.IsMappableScalarType(targetType))
             {
                 var firstColumn = context.GetColumn(name);
@@ -192,8 +173,10 @@ namespace CastIron.Sql.Mapping
             if (targetType.IsArray && targetType.HasElementType)
                 return GetArrayConversionExpression(context, name, targetType, attrs);
 
-            if (IsDictionaryType(targetType))
-                return GetDictionaryConversionExpression(context, name, targetType);
+            if (IsConcreteDictionaryType(targetType))
+                return GetConcreteDictionaryConversionExpression(context, name, targetType);
+            if (IsDictionaryInterfaceType(targetType))
+                return GetDictionaryInterfaceConversionExpression(context, name, targetType);
 
             if (targetType.IsGenericType && targetType.IsInterface && (targetType.Namespace ?? string.Empty).StartsWith("System.Collections"))
                 return GetInterfaceCollectionConversionExpression(context, name, targetType, attrs);
@@ -203,14 +186,37 @@ namespace CastIron.Sql.Mapping
         
             if (IsMappableCustomObjectType(targetType))
             {
-                var subcontext = context.CreateSubcontext(targetType, name);
-                WriteInstantiationExpressionForObjectInstance(subcontext);
-                WritePropertyAssignmentExpressions(subcontext);
+                var contextToUse = name == null ? context : context.CreateSubcontext(targetType, name);
+                WriteInstantiationExpressionForObjectInstance(contextToUse);
+                WritePropertyAssignmentExpressions(contextToUse);
 
-                return Expression.Convert(subcontext.Instance, targetType);
+                return Expression.Convert(contextToUse.Instance, targetType);
             }
 
             throw new Exception($"Cannot find conversion rule for type {targetType.Name}");
+        }
+
+        // It is Dictionary<string,X> or is concrete and inherits from IDictionary<string,X>
+        private static bool IsConcreteDictionaryType(Type t)
+        {
+            if (t.IsInterface || t.IsAbstract)
+                return false;
+            if (t.IsGenericType && t.GetGenericTypeDefinition() == typeof(Dictionary<,>) && t.GenericTypeArguments[0] == typeof(string))
+                return true;
+            var dictType = t.GetInterfaces()
+                .Where(i => i.IsGenericType)
+                .FirstOrDefault(i => i.GetGenericTypeDefinition() == typeof(IDictionary<,>) && i.GenericTypeArguments[0] == typeof(string));
+            return dictType != null;
+        }
+
+        // Is one of IDictionary<string,X> or IReadOnlyDictionary<string,X>
+        private static bool IsDictionaryInterfaceType(Type t)
+        {
+            if (!t.IsGenericType && !t.IsInterface)
+                return false;
+            var genericDef = t.GetGenericTypeDefinition();
+            return (genericDef == typeof(IDictionary<,>) || genericDef == typeof(IReadOnlyDictionary<,>)) && t.GenericTypeArguments[0] == typeof(string);
+                
         }
 
         private static bool IsConcreteCollectionType(Type t)
@@ -228,7 +234,57 @@ namespace CastIron.Sql.Mapping
                    && !(t.Namespace ?? string.Empty).StartsWith("System.Collections");
         }
 
-        private static Expression GetDictionaryConversionExpression(MapCompileContext context, string name, Type targetType)
+        private static Expression GetConcreteDictionaryConversionExpression(MapCompileContext context, string name, Type targetType)
+        {
+            var idictType = targetType.GetInterfaces()
+                .Where(i => i.IsGenericType)
+                .FirstOrDefault(i => i.GetGenericTypeDefinition() == typeof(IDictionary<,>) && i.GenericTypeArguments[0] == typeof(string));
+            if (idictType == null)
+                throw new Exception($"Dictionary type {targetType.Name} does not inherit from IDictionary<string,>");
+            var elementType = idictType.GetGenericArguments()[1];
+
+            var dictType = typeof(IDictionary<,>).MakeGenericType(typeof(string), elementType);
+            if (!dictType.IsAssignableFrom(targetType))
+                throw new Exception($"Cannot convert from requested type {targetType.Name} to dictionary type {dictType.Name}");
+
+            var constructor = targetType.GetConstructor(Type.EmptyTypes);
+            if (constructor == null)
+                throw new Exception($"Collection type {targetType.FullName} must have a default parameterless constructor");
+
+            var addMethod = dictType.GetMethod(nameof(IDictionary<string, object>.Add));
+            if (addMethod == null)
+                throw new Exception($".{nameof(IDictionary<string, object>.Add)}() Method missing from dictionary type {targetType.Name}");
+
+            var dictVar = context.AddVariable(targetType, "dict");
+            context.AddStatement(Expression.Assign(dictVar, Expression.New(constructor)));
+
+            if (name == null)
+            {
+                var columns = context.GetFirstIndexForEachColumnName();
+                foreach (var column in columns)
+                {
+                    var getScalarExpression = DataRecordExpressions.GetScalarConversionExpression(column.Index, context, column.ColumnType, elementType);
+                    context.AddStatement(Expression.Call(dictVar, addMethod, Expression.Constant(column.OriginalName), getScalarExpression));
+                    column.MarkMapped();
+                }
+            }
+            else
+            {
+                var subcontext = context.CreateSubcontext(null, name);
+                var columns = subcontext.GetColumns(null).ToList();
+                foreach (var column in columns)
+                {
+                    var childName = column.OriginalName.Substring(name.Length + 1);
+                    var getScalarExpression = DataRecordExpressions.GetScalarConversionExpression(column.Index, context, column.ColumnType, elementType);
+                    context.AddStatement(Expression.Call(dictVar, addMethod, Expression.Constant(childName), getScalarExpression));
+                    column.MarkMapped();
+                }
+            }
+
+            return Expression.Convert(dictVar, targetType);
+        }
+
+        private static Expression GetDictionaryInterfaceConversionExpression(MapCompileContext context, string name, Type targetType)
         {
             var elementType = targetType.GetGenericArguments()[1];
 
