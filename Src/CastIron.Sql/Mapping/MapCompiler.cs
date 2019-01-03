@@ -67,78 +67,41 @@ namespace CastIron.Sql.Mapping
             return parentType.Namespace == "System" && parentType.Name.StartsWith("Tuple") && factory == null;
         }
 
-        private static void WriteInstantiationExpressionForObjectInstance(MapCompileContext context)
+        // It is Dictionary<string,X> or is concrete and inherits from IDictionary<string,X>
+        private static bool IsConcreteDictionaryType(Type t)
         {
-            if (context.Factory != null)
-            {
-                WriteFactoryMethodCallExpression(context.Factory, context);
-                return;
-            }
-            var constructorCall = WriteConstructorCallExpression(context);
-            context.AddStatement(Expression.Assign(context.Instance, constructorCall));
+            if (t.IsInterface || t.IsAbstract)
+                return false;
+            if (t.IsGenericType && t.GetGenericTypeDefinition() == typeof(Dictionary<,>) && t.GenericTypeArguments[0] == typeof(string))
+                return true;
+            var dictType = t.GetInterfaces()
+                .Where(i => i.IsGenericType)
+                .FirstOrDefault(i => i.GetGenericTypeDefinition() == typeof(IDictionary<,>) && i.GenericTypeArguments[0] == typeof(string));
+            return dictType != null;
         }
 
-        private static void WriteFactoryMethodCallExpression<T>(Func<T> factory, MapCompileContext context)
+        // Is one of IDictionary<string,X> or IReadOnlyDictionary<string,X>
+        private static bool IsDictionaryInterfaceType(Type t)
         {
-            context.AddStatement(Expression.Assign(
-                context.Instance, 
-                Expression.Convert(Expression.Call(Expression.Constant(factory.Target), factory.Method), context.Specific)));            
-            context.AddStatement(Expression.IfThen(
-                Expression.Equal(context.Instance, Expression.Constant(null)),
-                Expression.Throw(
-                    Expression.New(
-                        _exceptionConstructor, 
-                        Expression.Constant($"Provided factory method returned a null or unusable value for type {context.Specific.Name}")))));
+            if (!t.IsGenericType && !t.IsInterface)
+                return false;
+            var genericDef = t.GetGenericTypeDefinition();
+            return (genericDef == typeof(IDictionary<,>) || genericDef == typeof(IReadOnlyDictionary<,>)) && t.GenericTypeArguments[0] == typeof(string);
         }
 
-        private static NewExpression WriteConstructorCallExpression(MapCompileContext context)
+        private static bool IsConcreteCollectionType(Type t)
         {
-            var constructor = context.GetConstructor();
-            var parameters = constructor.GetParameters();
-            if (parameters.Length == 0)
-                return Expression.New(constructor);
-
-            // Map columns to constructor parameters by name, marking the columns consumed so they aren't used again later
-            var args = new Expression[parameters.Length];
-            for (var i = 0; i < parameters.Length; i++)
-            {
-                var parameter = parameters[i];
-                var name = parameter.Name.ToLowerInvariant();
-                if (context.HasColumn(name))
-                {
-                    args[i] = GetConversionExpression(context, parameter.Name.ToLowerInvariant(), parameter.ParameterType, parameter);
-                    continue;
-                }
-
-                if (parameter.GetCustomAttributes<UnnamedColumnsAttribute>().Any())
-                {
-                    args[i] = GetConversionExpression(context, parameter.Name.ToLowerInvariant(), parameter.ParameterType, parameter);
-                    continue;
-                }
-
-                // No matching column name, fill in the default value
-                args[i] = Expression.Convert(Expression.Constant(DataRecordExpressions.GetDefaultValue(parameter.ParameterType)), parameter.ParameterType);
-            }
-
-            return Expression.New(constructor, args);
+            return !t.IsInterface && !t.IsAbstract && t.GetInterfaces().Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(ICollection<>));
         }
 
-        private static void WritePropertyAssignmentExpressions(MapCompileContext context)
+        private static bool IsMappableCustomObjectType(Type t)
         {
-            var properties = GetMappableProperties(context.Specific);
-            foreach (var property in properties)
-            {
-                var expression = GetConversionExpression(context, property.Name.ToLowerInvariant(), property.PropertyType, property);
-                context.AddStatement(Expression.Call(context.Instance, property.GetSetMethod(), Expression.Convert(expression, property.PropertyType)));
-            }
-        }
-
-        private static IEnumerable<PropertyInfo> GetMappableProperties(Type specific)
-        {
-            return specific.GetProperties(BindingFlags.Public | BindingFlags.Instance)
-                .Where(p => p.SetMethod != null && p.GetMethod != null)
-                .Where(p => p.CanRead && p.CanWrite)
-                .Where(p => !p.GetMethod.IsPrivate && !p.SetMethod.IsPrivate);
+            return t.IsClass
+                   && !t.IsInterface
+                   && !t.IsAbstract
+                   && !t.IsArray
+                   && t != typeof(string)
+                   && !(t.Namespace ?? string.Empty).StartsWith("System.Collections");
         }
 
         private static Expression GetConversionExpression(MapCompileContext context, string name, Type targetType, ICustomAttributeProvider attrs)
@@ -183,44 +146,6 @@ namespace CastIron.Sql.Mapping
             }
 
             throw new Exception($"Cannot find conversion rule for type {targetType.Name}");
-        }
-
-        // It is Dictionary<string,X> or is concrete and inherits from IDictionary<string,X>
-        private static bool IsConcreteDictionaryType(Type t)
-        {
-            if (t.IsInterface || t.IsAbstract)
-                return false;
-            if (t.IsGenericType && t.GetGenericTypeDefinition() == typeof(Dictionary<,>) && t.GenericTypeArguments[0] == typeof(string))
-                return true;
-            var dictType = t.GetInterfaces()
-                .Where(i => i.IsGenericType)
-                .FirstOrDefault(i => i.GetGenericTypeDefinition() == typeof(IDictionary<,>) && i.GenericTypeArguments[0] == typeof(string));
-            return dictType != null;
-        }
-
-        // Is one of IDictionary<string,X> or IReadOnlyDictionary<string,X>
-        private static bool IsDictionaryInterfaceType(Type t)
-        {
-            if (!t.IsGenericType && !t.IsInterface)
-                return false;
-            var genericDef = t.GetGenericTypeDefinition();
-            return (genericDef == typeof(IDictionary<,>) || genericDef == typeof(IReadOnlyDictionary<,>)) && t.GenericTypeArguments[0] == typeof(string);
-                
-        }
-
-        private static bool IsConcreteCollectionType(Type t)
-        {
-            return !t.IsInterface && !t.IsAbstract && t.GetInterfaces().Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(ICollection<>));
-        }
-
-        private static bool IsMappableCustomObjectType(Type t)
-        {
-            return t.IsClass
-                   && !t.IsInterface
-                   && !t.IsAbstract
-                   && !t.IsArray
-                   && t != typeof(string)
-                   && !(t.Namespace ?? string.Empty).StartsWith("System.Collections");
         }
 
         private static Expression GetConcreteDictionaryConversionExpression(MapCompileContext context, string name, Type targetType)
@@ -477,6 +402,80 @@ namespace CastIron.Sql.Mapping
             }
 
             throw new Exception($"Cannot map array of type {elementType.Name}[]");
+        }
+
+        private static void WriteInstantiationExpressionForObjectInstance(MapCompileContext context)
+        {
+            if (context.Factory != null)
+            {
+                WriteFactoryMethodCallExpression(context.Factory, context);
+                return;
+            }
+            var constructorCall = WriteConstructorCallExpression(context);
+            context.AddStatement(Expression.Assign(context.Instance, constructorCall));
+        }
+
+        private static void WriteFactoryMethodCallExpression<T>(Func<T> factory, MapCompileContext context)
+        {
+            context.AddStatement(Expression.Assign(
+                context.Instance,
+                Expression.Convert(Expression.Call(Expression.Constant(factory.Target), factory.Method), context.Specific)));
+            context.AddStatement(Expression.IfThen(
+                Expression.Equal(context.Instance, Expression.Constant(null)),
+                Expression.Throw(
+                    Expression.New(
+                        _exceptionConstructor,
+                        Expression.Constant($"Provided factory method returned a null or unusable value for type {context.Specific.Name}")))));
+        }
+
+        private static NewExpression WriteConstructorCallExpression(MapCompileContext context)
+        {
+            var constructor = context.GetConstructor();
+            var parameters = constructor.GetParameters();
+            if (parameters.Length == 0)
+                return Expression.New(constructor);
+
+            // Map columns to constructor parameters by name, marking the columns consumed so they aren't used again later
+            var args = new Expression[parameters.Length];
+            for (var i = 0; i < parameters.Length; i++)
+            {
+                var parameter = parameters[i];
+                var name = parameter.Name.ToLowerInvariant();
+                if (context.HasColumn(name))
+                {
+                    args[i] = GetConversionExpression(context, parameter.Name.ToLowerInvariant(), parameter.ParameterType, parameter);
+                    continue;
+                }
+
+                if (parameter.GetCustomAttributes<UnnamedColumnsAttribute>().Any())
+                {
+                    args[i] = GetConversionExpression(context, parameter.Name.ToLowerInvariant(), parameter.ParameterType, parameter);
+                    continue;
+                }
+
+                // No matching column name, fill in the default value
+                args[i] = Expression.Convert(Expression.Constant(DataRecordExpressions.GetDefaultValue(parameter.ParameterType)), parameter.ParameterType);
+            }
+
+            return Expression.New(constructor, args);
+        }
+
+        private static void WritePropertyAssignmentExpressions(MapCompileContext context)
+        {
+            var properties = GetMappableProperties(context.Specific);
+            foreach (var property in properties)
+            {
+                var expression = GetConversionExpression(context, property.Name.ToLowerInvariant(), property.PropertyType, property);
+                context.AddStatement(Expression.Call(context.Instance, property.GetSetMethod(), Expression.Convert(expression, property.PropertyType)));
+            }
+        }
+
+        private static IEnumerable<PropertyInfo> GetMappableProperties(Type specific)
+        {
+            return specific.GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                .Where(p => p.SetMethod != null && p.GetMethod != null)
+                .Where(p => p.CanRead && p.CanWrite)
+                .Where(p => !p.GetMethod.IsPrivate && !p.SetMethod.IsPrivate);
         }
     }
 }
