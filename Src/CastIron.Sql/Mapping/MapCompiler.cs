@@ -22,31 +22,9 @@ namespace CastIron.Sql.Mapping
             var targetType = context.Specific;
             context.PopulateColumnLookups(context.Reader);
 
-            // Top-level object mapping currently works differently from nested object mapping. Here it produces
-            // a Dictionary to preserve column name information. Elsewhere it maps a scalar column value
-            if (targetType == typeof(object))
-            {
-                var expr = GetConcreteDictionaryConversionExpression(context, null, typeof(Dictionary<string, object>));
-                context.AddStatement(Expression.Convert(expr, typeof(T)));
-                return context.CompileLambda<T>();
-            }
-
-            // Tuple mapping only makes sense at the top-level. Below that we don't have enough information about
-            // which columns to use in which order to populate the tuple.
-            if (IsTupleType(targetType, context.Factory))
-                return CompileTupleExpression<T>(context, context.Specific);
-
             // For all other cases, fall back to normal recursive conversion routines.
             var expression = GetConversionExpression(context, null, targetType, null);
             context.AddStatement(Expression.Convert(expression, targetType));
-            return context.CompileLambda<T>();
-        }
-
-        public Func<IDataRecord, T> CompileTupleExpression<T>(MapCompileContext context, Type tupleType)
-        {
-            var expr = GetTupleConversionExpression(context, null, tupleType);
-            context.AddStatement(Expression.Assign(context.Instance, expr));
-            context.AddStatement(Expression.Convert(context.Instance, typeof(T)));
             return context.CompileLambda<T>();
         }
 
@@ -95,28 +73,9 @@ namespace CastIron.Sql.Mapping
         private static Expression GetConversionExpression(MapCompileContext context, string name, Type targetType, ICustomAttributeProvider attrs)
         {
             if (targetType == typeof(object))
-            {
-                var numColumns = context.GetColumns(name).Count();
-                if (numColumns == 0)
-                    return Expression.Convert(Expression.Constant(null), typeof(object));
-                if (numColumns == 1)
-                {
-                    var firstColumn = context.GetColumn(name);
-                    firstColumn.MarkMapped();
-                    return DataRecordExpressions.GetScalarConversionExpression(firstColumn.Index, context, context.Reader.GetFieldType(firstColumn.Index), targetType);
-                }
-
-                var expr = GetArrayConversionExpression(context, name, typeof(object[]), attrs);
-                return Expression.Convert(expr, typeof(object));
-            }
+                return GetObjectConversionExpression(context, name, targetType, attrs);
             if (DataRecordExpressions.IsSupportedPrimitiveType(targetType))
-            {
-                var firstColumn = context.GetColumn(name);
-                if (firstColumn == null)
-                    return Expression.Constant(DataRecordExpressions.GetDefaultValue(targetType));
-                firstColumn.MarkMapped();
-                return DataRecordExpressions.GetScalarConversionExpression(firstColumn.Index, context, context.Reader.GetFieldType(firstColumn.Index), targetType);
-            }
+                return GetPrimitiveConversionExpression(context, name, targetType);
 
             if (targetType.IsArray && targetType.HasElementType)
                 return GetArrayConversionExpression(context, name, targetType, attrs);
@@ -137,17 +96,53 @@ namespace CastIron.Sql.Mapping
 
             if (IsTupleType(targetType, null))
                 return GetTupleConversionExpression(context, name, targetType);
-        
-            if (IsMappableCustomObjectType(targetType))
-            {
-                var contextToUse = name == null ? context : context.CreateSubcontext(targetType, name);
-                AddInstantiationExpressionForObjectInstance(contextToUse);
-                AddPropertyAssignmentExpressions(contextToUse);
 
-                return Expression.Convert(contextToUse.Instance, targetType);
-            }
+            if (IsMappableCustomObjectType(targetType))
+                return GetCustomObjectConversionExpression(context, name, targetType);
 
             throw new Exception($"Cannot find conversion rule for type {targetType.Name}");
+        }
+
+        private static Expression GetCustomObjectConversionExpression(MapCompileContext context, string name, Type targetType)
+        {
+            var contextToUse = name == null ? context : context.CreateSubcontext(targetType, name);
+            AddInstantiationExpressionForObjectInstance(contextToUse);
+            AddPropertyAssignmentExpressions(contextToUse);
+
+            return Expression.Convert(contextToUse.Instance, targetType);
+        }
+
+        private static Expression GetPrimitiveConversionExpression(MapCompileContext context, string name, Type targetType)
+        {
+            var firstColumn = context.GetColumn(name);
+            if (firstColumn == null)
+                return Expression.Constant(DataRecordExpressions.GetDefaultValue(targetType));
+            firstColumn.MarkMapped();
+            return DataRecordExpressions.GetScalarConversionExpression(firstColumn.Index, context, context.Reader.GetFieldType(firstColumn.Index), targetType);
+        }
+
+        private static Expression GetObjectConversionExpression(MapCompileContext context, string name, Type targetType, ICustomAttributeProvider attrs)
+        {
+            // At the top-level (name==null) we convert to dictionary to preserve column name information
+            if (name == null)
+            {
+                var dictExpr = GetConcreteDictionaryConversionExpression(context, null, typeof(Dictionary<string, object>));
+                return Expression.Convert(dictExpr, typeof(object));
+            }
+            
+            // At the nested level (name!=null) we convert to a scalar (n==1) or an array (n>1) because name is always the same
+            var numColumns = context.GetColumns(name).Count();
+            if (numColumns == 0)
+                return Expression.Convert(Expression.Constant(null), typeof(object));
+            if (numColumns == 1)
+            {
+                var firstColumn = context.GetColumn(name);
+                firstColumn.MarkMapped();
+                return DataRecordExpressions.GetScalarConversionExpression(firstColumn.Index, context, context.Reader.GetFieldType(firstColumn.Index), targetType);
+            }
+
+            var expr = GetArrayConversionExpression(context, name, typeof(object[]), attrs);
+            return Expression.Convert(expr, typeof(object));
         }
 
         private static Expression GetTupleConversionExpression(MapCompileContext context, string name, Type targetType)
@@ -380,6 +375,8 @@ namespace CastIron.Sql.Mapping
             var propertyName = name.ToLowerInvariant();
             if (context.HasColumn(propertyName))
                 return propertyName;
+            if (attrs == null)
+                return null;
             var columnName = attrs.GetTypedAttributes<ColumnAttribute>()
                 .Select(c => c.Name.ToLowerInvariant())
                 .FirstOrDefault();
@@ -496,7 +493,7 @@ namespace CastIron.Sql.Mapping
                 }
 
                 // No matching column name, fill in the default value
-                args[i] = Expression.Convert(Expression.Constant(DataRecordExpressions.GetDefaultValue(parameter.ParameterType)), parameter.ParameterType);
+                args[i] = DataRecordExpressions.GetDefaultValueExpression(parameter.ParameterType);
             }
 
             return Expression.New(constructor, args);

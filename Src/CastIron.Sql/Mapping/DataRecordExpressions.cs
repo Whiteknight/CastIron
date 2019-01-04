@@ -137,7 +137,7 @@ namespace CastIron.Sql.Mapping
                         rawVar,
                         targetType
                     ),
-                    Expression.Convert(Expression.Constant(GetDefaultValue(targetType)), targetType));
+                    GetDefaultValueExpression(targetType));
             }
 
             // They are both numeric but not the same type. Unbox and convert
@@ -149,7 +149,7 @@ namespace CastIron.Sql.Mapping
                         Expression.Unbox(rawVar, columnType),
                         targetType
                     ),
-                    Expression.Convert(Expression.Constant(GetDefaultValue(targetType)), targetType));
+                    GetDefaultValueExpression(targetType));
             }
 
             // Target is bool, source type is numeric. Try to coerce by comparing against 0
@@ -170,12 +170,11 @@ namespace CastIron.Sql.Mapping
                     Expression.NotEqual(_dbNullExp, rawVar),
                     Expression.Convert(
                         Expression.Call(null, _convertMethod, new Expression[] { rawVar, Expression.Constant(baseTargetType, typeof(Type)) }), targetType),
-                    Expression.Convert(
-                        Expression.Constant(GetDefaultValue(targetType)), targetType));
+                    GetDefaultValueExpression(targetType));
             }
             
             // There is no conversion rule, so just return a default value.
-            return Expression.Convert(Expression.Constant(GetDefaultValue(targetType)), targetType);
+            return GetDefaultValueExpression(targetType);
         }
 
         public static object GetDefaultValue(Type t)
