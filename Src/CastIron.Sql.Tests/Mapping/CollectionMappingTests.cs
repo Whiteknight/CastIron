@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using CastIron.Sql.Statements;
@@ -9,7 +10,7 @@ namespace CastIron.Sql.Tests.Mapping
 {
     [TestFixture]
     public class CollectionMappingTests
-    { 
+    {
         public class TestQuery_StringArray : ISqlQuerySimple<string[]>
         {
             public string GetSql()
@@ -188,6 +189,49 @@ namespace CastIron.Sql.Tests.Mapping
             var result = target.Query(new SqlQuery<List<DateTime>>("SELECT '2018-12-11 17:01:02'")).First();
             result.Count.Should().Be(1);
             result[0].Should().Be(new DateTime(2018, 12, 11, 17, 1, 2));
+        }
+
+        private class TestCollectionType : ICollection<string>
+        {
+            private readonly List<string> _list;
+
+            public TestCollectionType()
+            {
+                _list = new List<string>();
+            }
+
+            public IEnumerator<string> GetEnumerator() => _list.GetEnumerator();
+
+            IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+            public void Add(string item) => _list.Add(item);
+
+            public void Clear() => _list.Clear();
+
+            public bool Contains(string item) => _list.Contains(item);
+
+            public void CopyTo(string[] array, int arrayIndex)
+            {
+                _list.CopyTo(array, arrayIndex);
+            }
+
+            public bool Remove(string item)
+            {
+                throw new NotImplementedException();
+            }
+
+            public int Count => _list.Count;
+            public bool IsReadOnly => false;
+        }
+
+        [Test]
+        public void TestQuery_CustomCollectionType([Values("MSSQL", "SQLITE")] string provider)
+        {
+            var target = RunnerFactory.Create(provider);
+            var result = target.Query(new SqlQuery<TestCollectionType>("SELECT 'A', 'B', 'C'")).First().ToList();
+            result[0].Should().Be("A");
+            result[1].Should().Be("B");
+            result[2].Should().Be("C");
         }
     }
 }

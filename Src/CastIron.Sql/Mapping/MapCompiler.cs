@@ -284,19 +284,19 @@ namespace CastIron.Sql.Mapping
 
         private static Expression GetConcreteCollectionConversionExpression(MapCompileContext context, string name, Type targetType, ICustomAttributeProvider attrs)
         {
-            if (targetType.GenericTypeArguments.Length != 1)
-                throw new Exception($"Cannot map to object of type {targetType.FullName}");
-            var elementType = targetType.GenericTypeArguments[0];
+            var icollectionType = targetType.GetInterfaces().FirstOrDefault(i => i.Namespace == "System.Collections.Generic" && i.IsGenericType && i.GetGenericTypeDefinition() == typeof(ICollection<>));
+            if (icollectionType == null)
+                throw new Exception($"Cannot map to object of type {targetType.Name}. Expecting ICollection<>");
+            var elementType = icollectionType.GenericTypeArguments[0];
 
-            var collectionType = typeof(ICollection<>).MakeGenericType(elementType);
-            if (!collectionType.IsAssignableFrom(targetType))
+            if (!icollectionType.IsAssignableFrom(targetType))
                 throw new Exception($"Cannot map to object of type {targetType.FullName}. Expected ICollection<{elementType.Name}>.");
 
             var constructor = targetType.GetConstructor(Type.EmptyTypes);
             if (constructor == null)
                 throw new Exception($"Collection type {targetType.FullName} must have a default parameterless constructor");
 
-            var addMethod = collectionType.GetMethod(nameof(ICollection<object>.Add));
+            var addMethod = icollectionType.GetMethod(nameof(ICollection<object>.Add));
             if (addMethod == null)
                 throw new Exception($".{nameof(ICollection<object>.Add)}() Method missing from collection type {targetType.FullName}");
 
