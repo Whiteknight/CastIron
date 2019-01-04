@@ -24,6 +24,8 @@ namespace CastIron.Sql.Mapping
 
             // For all other cases, fall back to normal recursive conversion routines.
             var expression = GetConversionExpression(context, null, targetType, null);
+            if (expression == null)
+                expression = DataRecordExpressions.GetDefaultValueExpression(typeof(T));
             context.AddStatement(Expression.Convert(expression, targetType));
             return context.CompileLambda<T>();
         }
@@ -100,7 +102,7 @@ namespace CastIron.Sql.Mapping
             if (IsMappableCustomObjectType(targetType))
                 return GetCustomObjectConversionExpression(context, name, targetType);
 
-            throw new Exception($"Cannot find conversion rule for type {targetType.Name}");
+            return null;
         }
 
         private static Expression GetCustomObjectConversionExpression(MapCompileContext context, string name, Type targetType)
@@ -116,7 +118,7 @@ namespace CastIron.Sql.Mapping
         {
             var firstColumn = context.GetColumn(name);
             if (firstColumn == null)
-                return Expression.Constant(DataRecordExpressions.GetDefaultValue(targetType));
+                return null;
             firstColumn.MarkMapped();
             return DataRecordExpressions.GetScalarConversionExpression(firstColumn.Index, context, context.Reader.GetFieldType(firstColumn.Index), targetType);
         }
@@ -209,6 +211,8 @@ namespace CastIron.Sql.Mapping
                 foreach (var column in columns)
                 {
                     var getScalarExpression = GetConversionExpression(context, column.CanonicalName, elementType, null);
+                    if (getScalarExpression == null)
+                        continue;
                     context.AddStatement(Expression.Call(dictVar, addMethod, Expression.Constant(column.OriginalName), getScalarExpression));
                     column.MarkMapped();
                 }
@@ -222,6 +226,8 @@ namespace CastIron.Sql.Mapping
                     var keyName = column.OriginalName.Substring(name.Length + 1);
                     var childName = column.CanonicalName.Substring(name.Length + 1);
                     var getScalarExpression = GetConversionExpression(subcontext, childName, elementType, null);
+                    if (getScalarExpression == null)
+                        continue;
                     context.AddStatement(Expression.Call(dictVar, addMethod, Expression.Constant(keyName), getScalarExpression));
                     column.MarkMapped();
                 }
@@ -255,6 +261,8 @@ namespace CastIron.Sql.Mapping
                 foreach (var column in columns)
                 {
                     var getScalarExpression = GetConversionExpression(context, column.CanonicalName, elementType, null);
+                    if (getScalarExpression == null)
+                        continue;
                     context.AddStatement(Expression.Call(dictVar, addMethod, Expression.Constant(column.OriginalName), getScalarExpression));
                 }
             }
@@ -482,14 +490,22 @@ namespace CastIron.Sql.Mapping
                 var name = parameter.Name.ToLowerInvariant();
                 if (context.HasColumn(name))
                 {
-                    args[i] = GetConversionExpression(context, parameter.Name.ToLowerInvariant(), parameter.ParameterType, parameter);
-                    continue;
+                    var expr = GetConversionExpression(context, parameter.Name.ToLowerInvariant(), parameter.ParameterType, parameter);
+                    if (expr != null)
+                    {
+                        args[i] = expr;
+                        continue;
+                    }
                 }
 
                 if (parameter.GetCustomAttributes<UnnamedColumnsAttribute>().Any())
                 {
-                    args[i] = GetConversionExpression(context, parameter.Name.ToLowerInvariant(), parameter.ParameterType, parameter);
-                    continue;
+                    var expr = GetConversionExpression(context, parameter.Name.ToLowerInvariant(), parameter.ParameterType, parameter);
+                    if (expr != null)
+                    {
+                        args[i] = expr;
+                        continue;
+                    }
                 }
 
                 // No matching column name, fill in the default value
@@ -505,6 +521,8 @@ namespace CastIron.Sql.Mapping
             foreach (var property in properties)
             {
                 var expression = GetConversionExpression(context, property.Name.ToLowerInvariant(), property.PropertyType, property);
+                if (expression == null)
+                    continue;
                 context.AddStatement(Expression.Call(context.Instance, property.GetSetMethod(), Expression.Convert(expression, property.PropertyType)));
             }
         }

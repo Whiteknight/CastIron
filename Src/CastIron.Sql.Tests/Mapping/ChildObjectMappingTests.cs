@@ -29,6 +29,8 @@ namespace CastIron.Sql.Tests.Mapping
             result.Child.Name.Should().Be("TEST");
         }
 
+        
+
         public class TestObject_WithChildObject
         {
             public int Id { get; set; }
@@ -56,6 +58,15 @@ namespace CastIron.Sql.Tests.Mapping
             objArray[0].Should().Be("A");
             objArray[1].Should().Be("B");
             objArray[2].Should().Be("C");
+        }
+
+        [Test]
+        public void TestQuery_ObjectWithChildNull([Values("MSSQL", "SQLITE")] string provider)
+        {
+            var target = RunnerFactory.Create(provider);
+            var result = target.Query(new SqlQuery<TestObject_WithChildObject>("SELECT 5 AS Id;")).First();
+            result.Id.Should().Be(5);
+            result.Value.Should().BeNull();
         }
     }
 }

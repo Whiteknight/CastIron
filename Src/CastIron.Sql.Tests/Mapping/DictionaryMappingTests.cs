@@ -100,5 +100,22 @@ namespace CastIron.Sql.Tests.Mapping
             result.Child["String"].Should().Be("TEST");
             result.Child["Int"].Should().Be("6");
         }
+
+        public class TestObject_ChildIDict
+        {
+            public int Id { get; set; }
+            public IDictionary<string, string> Child { get; set; }
+        }
+
+        [Test]
+        public void Map_CustomObjectWithChildIDictionary([Values("MSSQL", "SQLITE")] string provider)
+        {
+            var target = RunnerFactory.Create(provider);
+            var result = target.Query(new SqlQuery<TestObject_ChildIDict>("SELECT 5 AS Id, 'TEST' AS Child_String, 6 AS Child_Int;")).First();
+            result.Id.Should().Be(5);
+            result.Child.Count.Should().Be(2);
+            result.Child["String"].Should().Be("TEST");
+            result.Child["Int"].Should().Be("6");
+        }
     }
 }

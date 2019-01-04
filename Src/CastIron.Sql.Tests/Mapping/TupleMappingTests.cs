@@ -10,24 +10,11 @@ namespace CastIron.Sql.Tests.Mapping
     [TestFixture]
     public class TupleMappingTests
     {
-        public class GetValuesQuery : ISqlQuerySimple<Tuple<int, string, bool>>
-        {
-            public string GetSql()
-            {
-                return "SELECT 5, 'TEST', 1;";
-            }
-
-            public Tuple<int, string, bool> Read(IDataResults result)
-            {
-                return result.AsEnumerable<Tuple<int, string, bool>>().FirstOrDefault();
-            }
-        }
-
         [Test]
         public void Map_Tuple([Values("MSSQL", "SQLITE")] string provider)
         {
             var target = RunnerFactory.Create(provider);
-            var result = target.Query(new GetValuesQuery());
+            var result = target.Query<Tuple<int, string, bool>>("SELECT 5, 'TEST', 1;").First();
             result.Item1.Should().Be(5);
             result.Item2.Should().Be("TEST");
             result.Item3.Should().Be(true);
@@ -48,6 +35,16 @@ namespace CastIron.Sql.Tests.Mapping
             result.Items.Item1.Should().Be("TEST");
             result.Items.Item2.Should().Be(6);
             result.Items.Item3.Should().Be(3.14f);
+        }
+
+        [Test]
+        public void Map_TupleTooFewColumns([Values("MSSQL", "SQLITE")] string provider)
+        {
+            var target = RunnerFactory.Create(provider);
+            var result = target.Query<Tuple<int, string, int?>>("SELECT 5, 'TEST';").First();
+            result.Item1.Should().Be(5);
+            result.Item2.Should().Be("TEST");
+            result.Item3.Should().Be(null);
         }
     }
 }
