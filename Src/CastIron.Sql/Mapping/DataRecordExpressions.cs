@@ -116,16 +116,7 @@ namespace CastIron.Sql.Mapping
                 return Expression.Condition(
                     Expression.NotEqual(_dbNullExp, rawVar),
                     rawVar,
-                    Expression.Convert(Expression.Constant(null), targetType)); 
-            }
-
-            // The target is string, regardless of the data type we can .ToString() it
-            if (targetType == typeof(string))
-            {
-                return Expression.Condition(
-                    Expression.NotEqual(_dbNullExp, rawVar),
-                    Expression.Call(rawVar, nameof(ToString), Type.EmptyTypes),
-                    Expression.Convert(Expression.Constant(null), typeof(string)));
+                    GetDefaultValueExpression(typeof(object))); 
             }
 
             // They are the same type, so we can directly assign them
@@ -138,6 +129,15 @@ namespace CastIron.Sql.Mapping
                         targetType
                     ),
                     GetDefaultValueExpression(targetType));
+            }
+
+            // The target is string, regardless of the data type we can .ToString() it
+            if (targetType == typeof(string))
+            {
+                return Expression.Condition(
+                    Expression.NotEqual(_dbNullExp, rawVar),
+                    Expression.Call(rawVar, nameof(ToString), Type.EmptyTypes),
+                    GetDefaultValueExpression(typeof(string)));
             }
 
             // They are both numeric but not the same type. Unbox and convert
