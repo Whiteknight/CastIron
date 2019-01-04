@@ -186,11 +186,6 @@ namespace CastIron.Sql.Mapping
                 .Where(c => c != null);
         }
 
-        public bool HasUnmappedColumn(string name)
-        {
-            return GetColumn(name) != null;
-        }
-
         public ParameterExpression AddVariable<T>(string name)
         {
             return AddVariable(typeof(T), name);

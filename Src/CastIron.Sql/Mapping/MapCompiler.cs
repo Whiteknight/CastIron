@@ -107,11 +107,21 @@ namespace CastIron.Sql.Mapping
         private static Expression GetConversionExpression(MapCompileContext context, string name, Type targetType, ICustomAttributeProvider attrs)
         {
             if (targetType == typeof(object))
-                return GetArrayConversionExpression(context, null, typeof(object[]), attrs);
+            {
+                var numColumns = context.GetColumns(name).Count();
+                if (numColumns == 0)
+                    return Expression.Convert(Expression.Constant(null), typeof(object));
+                if (numColumns == 1)
+                {
+                    var firstColumn = context.GetColumn(name);
+                    firstColumn.MarkMapped();
+                    return DataRecordExpressions.GetScalarConversionExpression(firstColumn.Index, context, context.Reader.GetFieldType(firstColumn.Index), targetType);
+                }
 
-            // TODO: If we're asking for "object", should we just map a single column as a scalar or should we map to 
-            // Dictionary<string, object> like we do at the top level?
-            if (DataRecordExpressions.IsMappableScalarType(targetType))
+                var expr = GetArrayConversionExpression(context, name, typeof(object[]), attrs);
+                return Expression.Convert(expr, typeof(object));
+            }
+            if (DataRecordExpressions.IsSupportedPrimitiveType(targetType))
             {
                 var firstColumn = context.GetColumn(name);
                 if (firstColumn == null)
