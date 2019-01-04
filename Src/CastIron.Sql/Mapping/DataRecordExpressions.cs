@@ -103,8 +103,6 @@ namespace CastIron.Sql.Mapping
             return true;
         }
 
-        // TODO: Map to a dictionary types, if we have a key derivation function
-
         public static Expression GetScalarConversionExpression(int columnIdx, MapCompileContext context, Type columnType, Type targetType)
         { 
             // TODO: targetType == typeof(dynamic)
@@ -183,6 +181,11 @@ namespace CastIron.Sql.Mapping
         public static object GetDefaultValue(Type t)
         {
             return t.IsValueType ? Activator.CreateInstance(t) : null;
+        }
+
+        public static Expression GetDefaultValueExpression(Type t)
+        {
+            return Expression.Convert(Expression.Constant(GetDefaultValue(t)), t);
         }
 
         private static bool IsConvertible(Type t)

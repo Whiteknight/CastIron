@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Immutable;
 using System.Linq;
+using CastIron.Sql.Statements;
 using FluentAssertions;
 using NUnit.Framework;
 
@@ -22,13 +24,30 @@ namespace CastIron.Sql.Tests.Mapping
         }
 
         [Test]
-        public void MapTuple_Test([Values("MSSQL", "SQLITE")] string provider)
+        public void Map_Tuple([Values("MSSQL", "SQLITE")] string provider)
         {
             var target = RunnerFactory.Create(provider);
             var result = target.Query(new GetValuesQuery());
             result.Item1.Should().Be(5);
             result.Item2.Should().Be("TEST");
             result.Item3.Should().Be(true);
+        }
+
+        public class TestObjectWithTuple
+        {
+            public int Id { get; set; }
+            public Tuple<string, int, float> Items { get; set; }
+        }
+
+        [Test]
+        public void Map_ObjectWithTupleProperty([Values("MSSQL", "SQLITE")] string provider)
+        {
+            var target = RunnerFactory.Create(provider);
+            var result = target.Query<TestObjectWithTuple>("SELECT 5 AS Id, 'TEST' AS Items, 6 AS Items, 3.14 AS Items").First();
+            result.Id.Should().Be(5);
+            result.Items.Item1.Should().Be("TEST");
+            result.Items.Item2.Should().Be(6);
+            result.Items.Item3.Should().Be(3.14f);
         }
     }
 }

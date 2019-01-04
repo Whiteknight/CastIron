@@ -18,11 +18,27 @@ namespace CastIron.Sql.Tests.Mapping
             var result = target.Query(new SqlQuery<object>("SELECT 5 AS TestInt, 'TEST' AS TestString, CAST(1 AS BIT) AS TestBool;")).First();
             result.Should().BeOfType<Dictionary<string, object>>();
 
-            var array = result as Dictionary<string, object>;
-            array.Count.Should().Be(3);
-            array["TestInt"].Should().Be(5);
-            array["TestString"].Should().Be("TEST");
-            array["TestBool"].Should().Be(true);
+            var dict = result as Dictionary<string, object>;
+            dict.Count.Should().Be(3);
+            dict["TestInt"].Should().Be(5);
+            dict["TestString"].Should().Be("TEST");
+            dict["TestBool"].Should().Be(true);
+        }
+
+        [Test]
+        public void TestQuery_MapToObjectWithDuplicates([Values("MSSQL", "SQLITE")] string provider)
+        {
+            var target = RunnerFactory.Create(provider);
+            var result = target.Query(new SqlQuery<object>("SELECT 5 AS TestInt, 'A' AS TestString, 'B' AS TestString;")).First();
+            result.Should().BeOfType<Dictionary<string, object>>();
+
+            var dict = result as Dictionary<string, object>;
+            dict.Count.Should().Be(2);
+            dict["TestInt"].Should().Be(5);
+            dict["TestString"].Should().BeOfType<object[]>();
+            var array = dict["TestString"] as object[];
+            array[0].Should().Be("A");
+            array[1].Should().Be("B");
         }
 
         [Test]

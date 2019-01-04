@@ -44,20 +44,8 @@ namespace CastIron.Sql.Mapping
 
         public Func<IDataRecord, T> CompileTupleExpression<T>(MapCompileContext context, Type tupleType)
         {
-            var typeParams = tupleType.GenericTypeArguments;
-            if (typeParams.Length == 0 || typeParams.Length > 7)
-                throw new Exception($"Cannot create a tuple with {typeParams.Length} parameters. Must be between 1 and 7");
-            var factoryMethod = typeof(Tuple).GetMethods(BindingFlags.Public | BindingFlags.Static)
-                .Where(m => m.Name == nameof(Tuple.Create) && m.GetParameters().Length == typeParams.Length)
-                .Select(m => m.MakeGenericMethod(typeParams))
-                .FirstOrDefault();
-            if (factoryMethod == null)
-                throw new Exception($"Cannot find factory method for type {tupleType.Name}");
-            var args = new Expression[typeParams.Length];
-            for (var i = 0; i < typeParams.Length; i++)
-                args[i] = DataRecordExpressions.GetScalarConversionExpression(i, context, context.Reader.GetFieldType(i), typeParams[i]);
-
-            context.AddStatement(Expression.Assign(context.Instance, Expression.Call(null, factoryMethod, args)));
+            var expr = GetTupleConversionExpression(context, null, tupleType);
+            context.AddStatement(Expression.Assign(context.Instance, expr));
             context.AddStatement(Expression.Convert(context.Instance, typeof(T)));
             return context.CompileLambda<T>();
         }
@@ -135,6 +123,7 @@ namespace CastIron.Sql.Mapping
             if (targetType == typeof(IEnumerable) || targetType == typeof(IList) || targetType == typeof(ICollection))
                 return GetArrayConversionExpression(context, name, typeof(object[]), attrs);
 
+            // TODO: For Collection and Dictionary types, if the collection or dictionary already exists, add to it in-place instead of creating new and assigning.
             if (IsConcreteDictionaryType(targetType))
                 return GetConcreteDictionaryConversionExpression(context, name, targetType);
             if (IsDictionaryInterfaceType(targetType))
@@ -145,17 +134,54 @@ namespace CastIron.Sql.Mapping
 
             if (IsConcreteCollectionType(targetType))
                 return GetConcreteCollectionConversionExpression(context, name, targetType, attrs);
+
+            if (IsTupleType(targetType, null))
+                return GetTupleConversionExpression(context, name, targetType);
         
             if (IsMappableCustomObjectType(targetType))
             {
                 var contextToUse = name == null ? context : context.CreateSubcontext(targetType, name);
-                WriteInstantiationExpressionForObjectInstance(contextToUse);
-                WritePropertyAssignmentExpressions(contextToUse);
+                AddInstantiationExpressionForObjectInstance(contextToUse);
+                AddPropertyAssignmentExpressions(contextToUse);
 
                 return Expression.Convert(contextToUse.Instance, targetType);
             }
 
             throw new Exception($"Cannot find conversion rule for type {targetType.Name}");
+        }
+
+        private static Expression GetTupleConversionExpression(MapCompileContext context, string name, Type targetType)
+        {
+            var columns = context.GetColumns(name).ToList();
+            return GetTupleConversionExpression(context, targetType, columns);
+        }
+
+        private static Expression GetTupleConversionExpression(MapCompileContext context, Type targetType, IReadOnlyList<ColumnInfo> columns)
+        {
+            var typeParams = targetType.GenericTypeArguments;
+            if (typeParams.Length == 0 || typeParams.Length > 7)
+                throw new Exception($"Cannot create a tuple with {typeParams.Length} parameters. Must be between 1 and 7");
+            var factoryMethod = typeof(Tuple).GetMethods(BindingFlags.Public | BindingFlags.Static)
+                .Where(m => m.Name == nameof(Tuple.Create) && m.GetParameters().Length == typeParams.Length)
+                .Select(m => m.MakeGenericMethod(typeParams))
+                .FirstOrDefault();
+            if (factoryMethod == null)
+                throw new Exception($"Cannot find factory method for type {targetType.Name}");
+            var args = new Expression[typeParams.Length];
+
+            for (var i = 0; i < typeParams.Length; i++)
+            {
+                var parameterType = typeParams[i];
+                if (i >= columns.Count)
+                {
+                    args[i] = DataRecordExpressions.GetDefaultValueExpression(parameterType);
+                    continue;
+                }
+
+                var column = columns[i];
+                args[i] = DataRecordExpressions.GetScalarConversionExpression(column.Index, context, column.ColumnType, parameterType);
+            }
+            return Expression.Call(null, factoryMethod, args);
         }
 
         private static Expression GetConcreteDictionaryConversionExpression(MapCompileContext context, string name, Type targetType)
@@ -187,7 +213,7 @@ namespace CastIron.Sql.Mapping
                 var columns = context.GetFirstIndexForEachColumnName();
                 foreach (var column in columns)
                 {
-                    var getScalarExpression = DataRecordExpressions.GetScalarConversionExpression(column.Index, context, column.ColumnType, elementType);
+                    var getScalarExpression = GetConversionExpression(context, column.CanonicalName, elementType, null);
                     context.AddStatement(Expression.Call(dictVar, addMethod, Expression.Constant(column.OriginalName), getScalarExpression));
                     column.MarkMapped();
                 }
@@ -195,12 +221,13 @@ namespace CastIron.Sql.Mapping
             else
             {
                 var subcontext = context.CreateSubcontext(null, name);
-                var columns = subcontext.GetColumns(null).ToList();
+                var columns = subcontext.GetFirstIndexForEachColumnName();
                 foreach (var column in columns)
                 {
-                    var childName = column.OriginalName.Substring(name.Length + 1);
-                    var getScalarExpression = DataRecordExpressions.GetScalarConversionExpression(column.Index, context, column.ColumnType, elementType);
-                    context.AddStatement(Expression.Call(dictVar, addMethod, Expression.Constant(childName), getScalarExpression));
+                    var keyName = column.OriginalName.Substring(name.Length + 1);
+                    var childName = column.CanonicalName.Substring(name.Length + 1);
+                    var getScalarExpression = GetConversionExpression(subcontext, childName, elementType, null);
+                    context.AddStatement(Expression.Call(dictVar, addMethod, Expression.Constant(keyName), getScalarExpression));
                     column.MarkMapped();
                 }
             }
@@ -232,21 +259,20 @@ namespace CastIron.Sql.Mapping
                 var columns = context.GetFirstIndexForEachColumnName();
                 foreach (var column in columns)
                 {
-                    var getScalarExpression = DataRecordExpressions.GetScalarConversionExpression(column.Index, context, column.ColumnType, elementType);
+                    var getScalarExpression = GetConversionExpression(context, column.CanonicalName, elementType, null);
                     context.AddStatement(Expression.Call(dictVar, addMethod, Expression.Constant(column.OriginalName), getScalarExpression));
-                    column.MarkMapped();
                 }
             }
             else
             {
                 var subcontext = context.CreateSubcontext(null, name);
-                var columns = subcontext.GetColumns(null).ToList();
+                var columns = subcontext.GetFirstIndexForEachColumnName();
                 foreach (var column in columns)
                 {
-                    var childName = column.OriginalName.Substring(name.Length + 1);
-                    var getScalarExpression = DataRecordExpressions.GetScalarConversionExpression(column.Index, context, column.ColumnType, elementType);
-                    context.AddStatement(Expression.Call(dictVar, addMethod, Expression.Constant(childName), getScalarExpression));
-                    column.MarkMapped();
+                    var key = column.OriginalName.Substring(name.Length + 1);
+                    var childName = column.CanonicalName.Substring(name.Length + 1);
+                    var getScalarExpression = GetConversionExpression(subcontext, childName, elementType, null);
+                    context.AddStatement(Expression.Call(dictVar, addMethod, Expression.Constant(key), getScalarExpression));
                 }
             }
 
@@ -290,12 +316,14 @@ namespace CastIron.Sql.Mapping
             {
                 var subcontext = context.CreateSubcontext(elementType, name);
 
-                WriteInstantiationExpressionForObjectInstance(subcontext);
-                WritePropertyAssignmentExpressions(subcontext);
+                AddInstantiationExpressionForObjectInstance(subcontext);
+                AddPropertyAssignmentExpressions(subcontext);
 
                 context.AddStatement(Expression.Call(listVar, addMethod, subcontext.Instance));
                 return listVar;
             }
+
+            // TODO: Is it worthwhile to recurse here? 
 
             throw new Exception($"Cannot map collection of type {targetType.Name}");
         }
@@ -337,8 +365,8 @@ namespace CastIron.Sql.Mapping
             {
                 var subcontext = context.CreateSubcontext(elementType, name);
 
-                WriteInstantiationExpressionForObjectInstance(subcontext);
-                WritePropertyAssignmentExpressions(subcontext);
+                AddInstantiationExpressionForObjectInstance(subcontext);
+                AddPropertyAssignmentExpressions(subcontext);
 
                 context.AddStatement(Expression.Call(listVar, addMethod, subcontext.Instance));
                 return Expression.Convert(listVar, targetType);
@@ -404,8 +432,8 @@ namespace CastIron.Sql.Mapping
                 var arrayVar = subcontext.AddVariable(targetType, "array");
                 context.AddStatement(Expression.Assign(arrayVar, Expression.New(constructor, Expression.Constant(1))));
 
-                WriteInstantiationExpressionForObjectInstance(subcontext);
-                WritePropertyAssignmentExpressions(subcontext);
+                AddInstantiationExpressionForObjectInstance(subcontext);
+                AddPropertyAssignmentExpressions(subcontext);
                 context.AddStatement(Expression.Assign(Expression.ArrayAccess(arrayVar, Expression.Constant(0)), Expression.Convert(subcontext.Instance, elementType)));
 
                 return arrayVar;
@@ -414,22 +442,26 @@ namespace CastIron.Sql.Mapping
             throw new Exception($"Cannot map array of type {elementType.Name}[]");
         }
 
-        private static void WriteInstantiationExpressionForObjectInstance(MapCompileContext context)
+        private static void AddInstantiationExpressionForObjectInstance(MapCompileContext context)
         {
             if (context.Factory != null)
             {
-                WriteFactoryMethodCallExpression(context.Factory, context);
+                AddFactoryMethodCallExpression(context.Factory, context);
                 return;
             }
-            var constructorCall = WriteConstructorCallExpression(context);
+            var constructorCall = GetConstructorCallExpression(context);
             context.AddStatement(Expression.Assign(context.Instance, constructorCall));
         }
 
-        private static void WriteFactoryMethodCallExpression<T>(Func<T> factory, MapCompileContext context)
+        private static void AddFactoryMethodCallExpression<T>(Func<T> factory, MapCompileContext context)
         {
             context.AddStatement(Expression.Assign(
                 context.Instance,
-                Expression.Convert(Expression.Call(Expression.Constant(factory.Target), factory.Method), context.Specific)));
+                Expression.Convert(
+                    Expression.Call(
+                        Expression.Constant(factory.Target), 
+                        factory.Method), 
+                    context.Specific)));
             context.AddStatement(Expression.IfThen(
                 Expression.Equal(context.Instance, Expression.Constant(null)),
                 Expression.Throw(
@@ -438,7 +470,7 @@ namespace CastIron.Sql.Mapping
                         Expression.Constant($"Provided factory method returned a null or unusable value for type {context.Specific.Name}")))));
         }
 
-        private static NewExpression WriteConstructorCallExpression(MapCompileContext context)
+        private static NewExpression GetConstructorCallExpression(MapCompileContext context)
         {
             var constructor = context.GetConstructor();
             var parameters = constructor.GetParameters();
@@ -470,7 +502,7 @@ namespace CastIron.Sql.Mapping
             return Expression.New(constructor, args);
         }
 
-        private static void WritePropertyAssignmentExpressions(MapCompileContext context)
+        private static void AddPropertyAssignmentExpressions(MapCompileContext context)
         {
             var properties = GetMappableProperties(context.Specific);
             foreach (var property in properties)
