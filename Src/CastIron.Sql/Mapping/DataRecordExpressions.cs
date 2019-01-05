@@ -122,6 +122,7 @@ namespace CastIron.Sql.Mapping
             // They are the same type, so we can directly assign them
             if (columnType == targetType || (!columnType.IsClass && typeof(Nullable<>).MakeGenericType(columnType) == targetType))
             {
+                
                 return Expression.Condition(
                     Expression.NotEqual(_dbNullExp, rawVar),
                     Expression.Convert(

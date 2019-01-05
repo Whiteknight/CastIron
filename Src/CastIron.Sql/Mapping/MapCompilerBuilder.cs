@@ -155,7 +155,7 @@ namespace CastIron.Sql.Mapping
 
         public Func<IDataRecord, T> Compile(IDataReader reader)
         {
-            var defaultCompiler = _defaultCase.Compiler ?? CachingMappingCompiler.GetDefaultInstance();
+            var defaultCompiler = _defaultCase.Compiler ?? MapCompilation.GetDefaultInstance();
 
             // 1. Compile a mapper for every possible subclass and creation options combo
             // The cache will prevent recompilation of same maps so we won't worry about .Distinct() here.

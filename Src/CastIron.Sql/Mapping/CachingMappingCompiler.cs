@@ -2,7 +2,6 @@
 using System.Collections.Concurrent;
 using System.Data;
 using System.Text;
-using System.Threading;
 using CastIron.Sql.Utility;
 
 namespace CastIron.Sql.Mapping
@@ -12,22 +11,10 @@ namespace CastIron.Sql.Mapping
         private readonly IMapCompiler _inner;
         private readonly ConcurrentDictionary<string, object> _cache;
 
-        private static CachingMappingCompiler _defaultInstance;
-
         public CachingMappingCompiler(IMapCompiler inner)
         {
             _inner = inner;
             _cache = new ConcurrentDictionary<string, object>();
-        }
-
-        public static CachingMappingCompiler GetDefaultInstance()
-        {
-            if (_defaultInstance != null)
-                return _defaultInstance;
-
-            var newInstance = new CachingMappingCompiler(new MapCompiler());
-            var oldValue = Interlocked.CompareExchange(ref _defaultInstance, newInstance, null);
-            return oldValue ?? newInstance;
         }
 
         public void ClearCache()
