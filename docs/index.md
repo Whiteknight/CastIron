@@ -3,7 +3,7 @@
 **CastIron** is a Micro ORM with particular focus on three ideas:
 
 1. The *Query Object* pattern to encapsulate database accesses as reusable objects, 
-1. Deep modularity, where you can use the parts you want and ignore or replace everything, and
+1. Deep modularity where you can use the parts you want and ignore or replace everything, and
 1. Developer centricity with discoverable interfaces, easy fallbacks to tried-and-true `System.Data`, and helpful error messages.
 
 CastIron doesn't impose any required structure onto your program, nor require you to use any feature you don't want.
@@ -12,8 +12,8 @@ Features of CastIron:
 
 1. Write your own SQL instead of relying on an SQL code generator to produce messy, unreadable, unoptimized code
 1. Make use of all SQL features, instead of just the few features an ORM would expose to you
-1. Easily encapsulate your commands and queries into objects, for easy reuse and adherance to the *Single Responsibility Pattern*
-1. Easy batching of multiple commands and queries together
+1. Easily encapsulate your commands and queries into objects, for easy reuse and adherance to the *Single Responsibility Principle*
+1. Easy batching of multiple commands and queries together onto a single open connection
 1. Automatic and configurable mapping of result sets to values and objects
 
 Please see the [Quick Start](quickstart.md) guide to get started with some common usage patterns.
@@ -30,3 +30,4 @@ The `ISqlCommand` type and its variants (`ISqlCommand<T>`, `ISqlCommandSimple`, 
 * [Architecture Overview](architecture.md)
 * [Query Objects](queryobjects.md)
 * [Result Mapping](mapping.md)
+** [Mapping Complex Objects](maponto.md)

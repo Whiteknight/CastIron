@@ -4,6 +4,8 @@ Mapping results from an `System.Data.IDataReader` to an enumerable of values or 
 
 All result mapping starts with an `IDataResults` or `IDataResultsStream`, which encapsulates the `System.Data.IDataReader` and some additional details. An `IDataResults` instance is automatically passed to the `Read()` method of your `ISqlQuery` and certain `ISqlCommand<T>` variants. `IDataResultsStream` instances come from the `ISqlRunner.QueryStream()` method. In either case, the basics of mapping are the same.
 
+If you would like to build up complex objects by mapping together multiple result sets, see the page on [Mapping Complex Objects](maponto.md) which shows several detailed examples.
+
 ## Old-Fashioned Manual Mapping
 
 The most "traditional" and backwards-compatible way to read results is to get the raw `System.Data.IDataReader`:
