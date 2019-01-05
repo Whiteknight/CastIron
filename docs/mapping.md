@@ -1,24 +1,12 @@
 # Mapping
 
-Mapping results from an `System.Data.IDataReader` to an enumerable of custom objects is one of the core features of CastIron. The conversion from a data reader to objects is rarely a straight-forward task, so CastIron provides a set of built-in mappers and mapper-builders to handle some of the complexities in a heuristic-based way.
+Mapping results from an `System.Data.IDataReader` to an enumerable of values or objects is one of the core features of CastIron. However, this conversion is rarely a straight-forward task. CastIron provides a set of built-in mappers and mapper-builders to handle some of the complexities in a heuristic-based way. As with all other features of CastIron, the mappers are pluggable, so you can substitute your own implementation if you prefer.
 
 All result mapping starts with an `IDataResults` or `IDataResultsStream`, which encapsulates the `System.Data.IDataReader` and some additional details. An `IDataResults` instance is automatically passed to the `Read()` method of your `ISqlQuery` and certain `ISqlCommand<T>` variants. `IDataResultsStream` instances come from the `ISqlRunner.QueryStream()` method. In either case, the basics of mapping are the same.
 
-### Basic Mapping Heuristics
+## Old-Fashioned Manual Mapping
 
-The most basic, default behavior of CastIron is to map result set columns to object properties and constructor parameters by matching names, case insensitive. However this raises some difficulties because database columns do not need to have a name, may have a name which uses special characters which cannot be represented as property or parameter names in C# code, and may have multiple columns with the same name. The built-in mappers follow the given few rules:
-
-1. If the property or parameter is a scalar type, the first matching column will be mapped
-1. If the property or parameter is a supported collection type, all matching columns will be mapped
-1. If the name of the property or parameter name matches, case insensitive, those columns will be mapped first
-1. Otherwise, if the property is tagged with the `ColumnAttribute`, and the `ColumnAttribute.Name` property matches, case insensitive, those columns will be mapped
-1. Otherwise, if the property or parameter is tagged with the `UnnamedColumnsAttribute`, any unnamed columns will be mapped
-
-It is possible to provide mappings which use other behaviors, but CastIron does not supply any of these (yet). `ColumnAttribute.Order` and `ColumnAttribute.TypeName` are not currently supported.
-
-## The Old-Fashioned Way
-
-The most "traditional" and backwards-compatible way to get results is to get the raw `IDataReader`:
+The most "traditional" and backwards-compatible way to read results is to get the raw `System.Data.IDataReader`:
 
 ```csharp
 var reader = results.AsRawReader();
@@ -26,45 +14,302 @@ var reader = results.AsRawReader();
 
 Once you call `AsRawReader()` the reader is consumed and the `IDataResults` object cannot be used anymore. This is an excellent stepping stone for a migration from old `System.Data.Sql` primitives to CastIron: Wrap your queries into an appropriate `ISqlQuery` variant, and use the raw reader to map results until you're reading to upgrade to the more automated mappings.
 
+## Primitive Types
+
+CastIron defines a list of "primitive types" as the following, including the `Nullable<T>` variants of each:
+
+* `bool`
+* `byte`
+* `byte[]`
+* `DateTime`
+* `decimal`
+* `double`
+* `float`
+* `Guid`
+* `int`
+* `long`
+* `short`
+* `string`
+* `uint`
+* `ulong`
+* `ushort`
+
+CastIron can typically convert almost all raw column values to any of the above primitive types so long as the data formats are convertible.
+
 ## `AsEnumerable()`
 
-The method `IDataResults.AsEnumerable<T>()` is the most basic mechanism to map a results stream from the database into an enumerable of objects. This method has several overloads and options which can be leveraged for different use-cases: It can take a mapper delegate to convert each row to objects, It can take a mapper compiler to build a mapper which converts each row. It can also take a preferred constructor and a factory method in some cases.
+The method `IDataResults.AsEnumerable<T>()` is the most basic mechanism to map a results stream from the database into an enumerable of objects. This method has several options which can be leveraged for different use-cases: It can take a mapper delegate to convert each row to objects, It can take a mapper compiler to build a mapper which converts each row. It can also take a preferred constructor and a factory method in some cases. Many of these use-cases will be discussed below.
 
-### The Default Mapper Compiler
+## Object Mappings
 
-When you call `AsEnumerable<T>()` without any arguments, the default mapper is used
-
-```csharp
-var enumerable = results.AsEnumerable<MyResultType>();
-```
-
-The default mapper is a combined mapper which uses most of the default mapping logics of CastIron. You can access this mapper instance directly:
+If we ask CastIron to map rows to `object`s, each row will be converted into an `IDictionary<string, object>` by column name:
 
 ```csharp
-var defaultMapper = CastIron.Sql.Mapping.CachingMappingCompiler.GetDefaultInstance();
+var firstRow = result.AsEnumerable<object>().First();
+var asDict = firstRow as IDictionary<string, object>;
+var intValue = asDict["IntValue"];
 ```
 
-The default mapper uses caching to keep the compiled mappers around for better performance. The caching compiler wraps the `RecordMapperCompiler()`, which dispatches to appropriate mappers by type. See the "Mapper Compilers" section below for more details on each individual mapper. Some of the types that the mapper supports by default are:
+Notice that if we ask CastIron to map `object`s nested in another type, such as an `object` property in a class or a collection type like `List<object>` CastIron will instead map it to a single scalar value or an array of values (when there are multiple columns of the same name). We will discuss this in more detail later in the page.
 
-* `object` and `object[]` both map each result row to an array of `object` using the `IDataRecord.GetResults()` method. This object array will contain `DBNull` instead of `null` where values are missing.
-* `string[]` mapps each result row to an array of string by calling `.ToString()` on each entry, except `DBNull` which is converted to `null`.
-* `Tuple<...>` types map each result row to a tuple of the given types, by ordinal index. The first column of the reader is converted to the first parameter of the Tuple constructor, etc.
-* For any other requested type, the mapper compiler builds a mapper delegate by assigning named columns to constructor parameters and public writable properties of matching names (case-insensitive).
+## Object Array Mappings
 
-### Using a Custom Mapper Compiler
-
-One overload of `AsEnumerable<T>()` allows for the use of a custom mapper:
+If we ask CastIron to map rows to `object[]` arrays, we will get an array with values from each column in the native data type, with `DBNull` converted to `null`.
 
 ```csharp
-IEnumerable<T> AsEnumerable<T>(IRecordMapperCompiler compiler, Func<T> factory = null, ConstructorInfo preferredConstructor = null);
+object[] firstRow = result.AsEnumerable<object[]>().First();
+object firstValue = firstRow[0];
 ```
 
-The first argument is the compiler to use use, which defaults to the default compiler if `null`. The remaining parameters allow you to specify additional options to the compiler. Notice that not all compilers respect these parameters.
+`object[]` arrays can also be instantiated if we ask CastIron to map rows to any of the following types:
 
-* `factory` allows you to specify a factory method to create the record. Specifying a factory method disables caching for the generated mapper if used with the caching mapper compiler.
-* `preferredConstructor` allows you to specify a particular constructor to use. By default, the property-and-constructor compiler will select a "best" constructor according to a matching heuristic. Specifying the preferred constructor allows you to pick which constructor to use and avoid the matching algorithm
+* `object[]`
+* `IEnumerable<object>`
+* `ICollection<object>`
+* `IList<object>`
+* `IReadOnlyList<object>`
+* `IEnumerable`
+* `IList`
+* `ICollection`
 
-See the section below on "Mapper Compilers" which lists the built-in mapper compilers.
+## Tuple Mappings
+
+If we ask CastIron to map to a `Tuple<>` type, each row will be converted to a tuple with the first column value going into the first tuple value, the second column into the second tuple value, etc. The maximum supported tuple size is 7, above which CastIron is unable to convert.
+
+```csharp
+var firstRow = result.AsEnumerable<Tuple<int, string, float>>().First();
+int firstValue = firstRow.Item1;
+string secondValue = firstRow.Item2;
+float thirdValue = firstRow.Item3;
+```
+
+Each element of the tuple must be one of the Primitive Types listed above or `object`. If `object`, the raw value of the column will be used, with `DBNull` converted to `null`.
+
+## Primitive Mappings
+
+If we ask CastIron to map a row to one of the primitive types, it will take the value from the first column of the result set and map it. Other columns will be ignored.
+
+```csharp
+IEnumerable<int> values = result.AsEnumerable<int>();
+```
+
+This is useful when we only want to select a single item from a DB, or a sequence of items in a single column. Additional columns in the result set, if any, will be ignored.
+
+## Array and Collection Mappings
+
+We can ask CastIron to map a row into an array of any of the primitive types listed above and their `Nullable<T>` variants, including mapping to other collection types:
+
+```csharp
+var arrayOfBools = result.AsEnumerable<bool[]>();
+var listOfInts = result.AsEnumerable<List<int>>();
+var iListOfNullableFloats = result.AsEnumerable<List<float?>>();
+var iEnumerableOfString = result.AsEnumerable<IEnumerable<string>>();
+```
+
+By default, CastIron can support arrays of primitive types, any interface type which is assignable from `List<T>`, and any concrete type which implements `ICollection<T>` and has a default parameterless constructor (Where `T` is any of the primitive types). Some examples:
+
+* `T[]`
+* `IList<T>`
+* `IReadOnlyList<T>`
+* `ICollection<T>`
+* `IEnumerable<T>`
+* `List<T>`
+* `HashSet<T>`
+* Custom types which inherit from `ICollection<T>`
+
+## Dictionary Mappings
+
+CastIron can map a row to a dictionary where the key is a `string` name of the column and the value is the value of that column. CastIron can support `Dictionary<string, T>`, any custom type which implements `IDictionary<string, T>` and has a default parameterless constructor, `IDictionary<string, T>` and `IReadOnlyDictionary<string, T>` (where `T` is any of the primitive types or `object`).
+
+Some examples:
+
+```csharp
+var dicts = result.AsEnumerable<Dictionary<string, int>>();
+var idicts = result.AsEnumerable<IDictionary<string, object>>();
+var irodicts = result.AsEnumerable<IReadOnlyDictionary<string, float>>();
+```
+
+Where there are multiple columns with the same name, only the first column of each unique name will be used, case-insensitive.
+
+### Example: ExpandObject
+
+The `ExpandoObject` class implements `IDictionary<string, object>` so CastIron can map to it, and we can use it with the `dynamic` keyword:
+
+```sql
+SELECT 5 AS Id, 'CastIron' AS [Name], '0.7.0' AS [Version];
+```
+
+```csharp
+dynamic expand = results.AsEnumerable<ExpandObject>();
+int id = expand.Id;
+string name = expand.Name;
+string version = expand.Version;
+```
+
+## Custom Object Mapping
+
+The above special cases can be interesting in some situations, but the most helpful and most common use of CastIron's mapping feature is to map the values of a row into the properties of a custom object type. However, there are some difficulties in this approach:
+
+1. It's possible for a result set to have multiple columns with the same name, but it is not possible for an object to have multiple properties with the same name. If we want to map such a result set to an object, we would need to map the same-named columns to some sort of collection type.
+1. It's possible for an object to have properties which are themselves other objects, creating a hierarchical tree-like structure. Rows from the database are flat and do not support nesting. If we want to map values from a flat row into properties of nested objects, we need some kind of way to indicate how to map these.
+1. It's possible for a column in a result set to not have any name. If we would like to map these values, we would need some way to inform the mapper which property should receive these values (with the same caveat about multiple columns needing to be mapped to a collection type).
+1. It is possible for an object to have read-only properties with values which can only be set in the constructor. To map these values, the mapper must be able to pass some column values into the constructor parameters.
+
+The default mapper in CastIron solves several of these problems using a series of heuristics designed to try and map the most data with the least ambiguity and loss of information.
+
+### Basic Property Mapping Heuristics
+
+CastIron's mapper obeys the following heuristics and principles when mapping columns from a result set into the constructor parameters and writable public properties of an object:
+
+1. Name matching of properties and parameters is always case-insensitive. When column names are used as keys in a `Dictionary<,>` the case of the original column name will be preserved.
+1. If the property or parameter is a scalar type, the first column with a matching name will be mapped
+1. If the property or parameter is a supported collection type, all columns with a matching name will be mapped
+1. If the name of the property or parameter name matches, those columns will be mapped first
+1. Otherwise, if the property is tagged with the `ColumnAttribute`, and the `ColumnAttribute.Name` property matches, those columns will be mapped
+1. Otherwise, if the property or parameter is tagged with the `UnnamedColumnsAttribute`, any unnamed columns will be mapped, using the same rules about number of columns and scalars vs collections listed above.
+1. If the type of the property is `object`, the property will be mapped as a scalar if there is only one matching column, and will be mapped as `object[]` if there are multiple matching columns.
+1. If the type of the property is a supported dictionary type or a custom child object type, the name of the property will be used as a prefix to match column names and the mapper will recurse using that name prefix.
+
+It is possible to provide mappings which use other behaviors, but CastIron does not supply any of these (yet). `ColumnAttribute.Order` and `ColumnAttribute.TypeName` are not currently supported.
+
+### Simple Example
+
+First, consider the following class:
+
+```csharp
+public class Person
+{
+    public int Id { get; }
+    public string Name { get; set;}
+    public List<string> Nicknames { get; set; }
+
+    public Person(int id)
+    {
+        Id = id;
+    }
+}
+```
+
+And consider this SQL statement which can pull the data from the database:
+
+```sql
+SELECT
+    ID,
+    FirstName + ' ' + LastName AS [Name],
+    PrimaryNickname AS Nicknames,
+    AlternateNickname AS Nicknames
+    FROM
+        People;
+```
+
+Finally, we perform the mapping by calling `AsEnumerable`:
+
+```csharp
+var people = results.AsEnumerable<Person>().ToList();
+```
+
+In this case, the `ID` column of each row will be mapped to the `id` constructor parameter and will be readonly. The `FirstName` and `LastName` columns will be combined and  mapped directly to the `Name` property. The `PrimaryNickname` and `AlternateNickname` columns will be mapped to the Nicknames collection. The mapping compiler will, after analyzing the result set, compile code very similar to the following:
+
+```csharp
+Person Map(IDataRecord r)
+{
+    Person instance = new Person((int)r.GetValue(0));
+    instance.Name = (string)r.GetValue(1);
+    List<string> list1 = new List<string>();
+    list1.Add((string)r.GetValue(2));
+    list1.Add((string)r.GetValue(3));
+    instance.Nicknames = list1;
+    return instance;
+}
+```
+
+### Creating the Instance
+
+With no options specified, CastIron will create an object instance by searching for a "best" constructor and mapping columns to constructor parameters. Once the object instance is created, public writeable properties will be assigned from matching columns. This is the default mechanism but is not the only supported one.
+
+#### Best Match Constructor
+
+The default behavior of CastIron is to search for the "best" matching constructor. The default heuristic for what consistutes "best" is to find the constructor with the largest number of parameters which can be mapped from columns in the result set. This heuristic can be overridden by providing your own custom `IConstructorFinder` instance:
+
+```csharp
+var objects = results.AsEnumerable<MyType>(c => c.UseConstructorFinder(myConstructorFinder));
+```
+
+CastIron provides two types which can be used:
+
+* `CastIron.Sql.Mapping.ConstructorFinder` which uses the "best" heuristic above and
+* `CastIron.Sql.Mapping.DefaultOnlyConstructorFinder` which only uses the default parameterless constructor, and forces all columns to map to public properties.
+
+Instead of these two, you can provide your own custom instance if you want to have different behavior.
+
+#### Factory Methods
+
+You can use a custom factory method to provide an instance.
+
+```csharp
+var objects = results.AsEnumerable<MyType>(c => c.UseFactory(r => new MyType()));
+```
+
+Notice that, because factory methods are outside the control of CastIron and may change behavior, maps cannot be cached if factory methods are used.
+
+#### Preferred Constructors
+
+You can manually specify a constructor to use, if you want to have that control. There are two overrides for method `.UseConstructor()` which allow you to specify which one to use. The first takes a `ConstructorInfo` parameter, and the second takes an array of types which are used to lookup the constructor:
+
+```csharp
+var objects = results.AsEnumerable<MyType>(c => c.UseConstructor(constructorInfo));
+
+var objects = results.AsEnumerable<MyType(c => c.UseConstructor(new Type[] { ... }));
+```
+
+The constructor provided may not be `null`, may not be a `static`, `private` or `protected`. It must be the constructor for the class you are trying to map.
+
+## Map Compilers
+
+CastIron doesn't just map a result set to an enumerable of values. First it compiles an efficient mapping function and then it invokes that mapping function on every row in the result set. This compilation step takes extra time at the beginning, but mapping individual rows is faster thereafter.
+
+You can implement your own mapper compiler by implementing the `IMapCompiler` interface in your own custom class. You can use your custom map compiler from the `IDataResults.AsEnumerable<T>()` method:
+
+```csharp
+var enumerable = results.AsEnumerable<MyCustomType>(c => c.UseCompiler(myCompiler));
+```
+
+CastIron provides two built-in compiler types which may be useful to you.
+
+### `MapCompiler`
+
+The default `MapCompiler` is the brains of the operation. This type performs the compilation of mapping delegates for all mapping rules described in this file. 
+
+### `CachingMapCompiler`
+
+The `CachingMapCompiler` class is a Decorator type which wraps any `IMapCompiler` and caches the compiled mapping functions. This helps to speed up mapping of subsequent calls which use the same result set (same number of columns with the same names) and same output type.
+
+You can clear the cache at any time by calling the `ClearCache()` method on the `CachingMapCompiler` instance. This can be handy in cases where you're executing lots of one-off dynamic queries and do not want to build up a large memory footprint.
+
+If you are doing many dynamic queries which are not reusable, the caching compiler is likely not the best choice and you should consider just using the `MapCompiler` directly. 
+
+### The Default Compiler
+
+There is a global instance of the `IMapCompiler` which will be used whenever you do not specify a compiler explicitly.
+
+```csharp
+var defaultInstance = CastIron.Sql.Mapping.MapCompilation.GetDefaultInstance();
+```
+
+This method defaults to a global caching compiler:
+
+```csharp
+var cachingInstance = CastIron.Sql.Mapping.MapCompilation.GetCachedInstance();
+
+This `CachingMapCompiler` instance can be used directly and can be cleared like any other caching compiler instance to save memory space.
+
+You can set your own default compiler, so you don't have to set it in every single query:
+
+```csharp
+CastIron.Sql.Mapping.MapCompilation.SetDefaultInstance(myCompiler);
+```
+
+When you call `AsEnumerable<T>()` without any arguments, the default mapper is used.
 
 ### Using Subclasses
 
@@ -96,129 +341,23 @@ You can create different mappings for rows which represent Dogs from rows which 
 
 ```csharp
 var pets = results.AsEnumerable<Pet>(s => s
+    
+    // Default type, if no other predicates match
+    .UseClass<Exotic>()
+
+    // Predicates tested in order until a match is found
     .UseSubclass<Dog>(r => r.GetString(0) == "dog")
-    .UseSubclass<Cat>(r => r.GetString(0) == "cat")
-    .Otherwise<Exotic>());
+    .UseSubclass<Cat>(r => r.GetString(0) == "cat"));
 ```
 
-Predicates are evaluated in the specified order, so when there is overlap the first predicate which matches will select the subclass to use. The `Otherwise()` method specifies which subclass to use when all the other predicates fail. The methods `UseSubclass()` and `Otherwise()` both allow to specify normal mapping options like the mapper compiler to use.
+Predicates are evaluated in the specified order, so when there is overlap the first predicate which matches will select the subclass to use. 
 
 ### Using a Custom Mapping
 
-A Mapper is a delegate which takes an `IDataRecord` and returns your desired object type. The mapper compilers build these mappers automatically, but you can specify your own if you want the control.
+A Map is a delegate which takes an `IDataRecord` and returns your desired object type. The mapper compilers build these mappers automatically, but you can specify your own if you want the control, or have existing logic which you are trying to port to CastIron.
 
 ```csharp
-var enumerable = results.AsEnumerable<MyResultType>(r => new MyResultType { ... });
+var enumerable = results.AsEnumerable<MyResultType>(c => c.UseMap(r => new MyResultType { ... }));
 ```
 
-This overload is one level of abstraction higher than the `AsRawReader()` method and typically requires more work to implement than the mapper compilers.
-
-## Mapper Compilers
-
-There are several `IRecordMapperCompiler` types in the `CastIron.Sql.Mapping` namespace which you can use. The default mapper will automatically select the most appropriate one based on the type and options you provide, but if you would like more control or to provide custom behavior you can specify one of these.
-
-Mapper compilers create a `Func<IDataRecord, T>` delegate which, once created, can be used and reused with any `IDataReader` instances which have the same schema: The readers must have the same columns with the same names, in the same order, with the same basic data types. This is because once the named properties are matched to named columns, the numeric indices are used to perform the actual movement of data between the two.
-
-### `CachingMappingCompiler`
-
-The `CachingMappingCompiler` is a Decorator around another compiler which provides caching behaviors. If the compiled mapper can be cached, it will be held in memory. This provides a nice performance boost when the same queries are executed over and over again.
-
-```csharp
-var compiler = new CachingMappingCompiler(innerCompiler);
-```
-
-To clear the cache, which may be necessary in some situations, you can call the `ClearCache()` method:
-
-```csharp
-compiler.ClearCache();
-```r
-
-The default compiler is an instance of `CachingMappingCompiler`. You can get a reference to it if, for example, you want to clear the default cache:
-
-```csharp
-var defaultCompiler = CachingMappingCompiler.GetDefaultInstance();
-```
-
-### `ObjectRecordMapperCompiler`
-
-The `ObjectRecordMapperCompiler` maps the `IDataReader` into an enumerable of `object` or `object[]`. If there is exactly one column and the requested type is `object`, the value returned will be the object from the column. Otherwise, the returned value will be `object[]` cast to the requested type. This object array will include `DBNull` instances instead of `null` which will need to be detected and converted in your application if desired.
-
-The supported types of this compiler are:
-
-* `object`
-* `object[]`
-* `IEnumerable<object>`
-* `ICollection<object>`
-* `IList<object>`
-* `IReadOnlyList<object>`
-* `IEnumerable`
-* `IList`
-* `ICollection`
-
-### `PrimitiveRecordMapperCompiler`
-
-The `PrimitiveRecordMapperCompiler` is used to map a value from a single column of the record to the given primitive type via unboxing and converstion. If the value is `DBNull` the default value for that type is returned instead. This mapper supports the following types, and their `Nullable<T>` variants, and collection types where available:
-
-* `bool`
-* `byte`
-* `byte[]`
-* `DateTime`
-* `decimal`
-* `double`
-* `float`
-* `Guid`
-* `int`
-* `long`
-* `short`
-* `string`
-* `uint`
-* `ulong`
-* `ushort`
-
-#### Collection Types
-
-Constructor parameters and public properties can be collection types of the supported primitive types. All columns the in `IDataRecord` with a matching name will be added to the collection with that name.
-
-Array types will be instantiated directly and filled by assigning to array indices.
-
-Interface types which inherit from `ICollection<T>` will be instantiated as a `List<T>` and elements added with the `.Add()` method.
-
-Concrete types which inherit from `ICollection<T>` will be instantiated by invoking the default parameterless constructor. Elements will be added by calling the `.Add()` method. Any custom collection type which implements `ICollection<T>`, has a default parameterless constructor and implements the `.Add()` method can be used for this purpose. 
-
-For example, the following types properties can all be mapped:
-
-```csharp
-string[] results = ...;
-
-IList<int> results = ...;   // instantiated as List<int>
-
-HashSet<double> results = ...;
-```
-
-### `TupleRecordMapperCompiler`
-
-The `TupleRecordMapperCompiler` maps a row into a `Tuple<>` by ordinal column index. The first column becomes the first parameter, the second column the second parameter, etc. This compiler can handle a Tuple with up to 7 values. This compiler expects each type to be a primitive value (see the list under "`PrimitiveRecordMapperCompiler`" above) and cannot map where the tuple type parameter is a class.
-
-### `PropertyAndConstructorRecordMapperCompiler`
-
-The `PropertyAndConstructorRecordMapperCompiler` is the most advanced compiler in CastIron. It maps a row into an object by matching constructor parameters and public writable properties by name. Name matching is case insensitive, and obeys `ColumnAttribute.Name` when provided. This compiler first creates an instance by using either a supplied factory method or else it will find an appropriate constructor. When the object is instantiated, any remaining columns from the result set will be mapped to public properties on the instance.
-
-#### Creating the Instance
-
-If a `factory` method is provided, the compiler will use the factory method to create the instance and will not attempt to match constructor parameters.
-
-If a `preferredConstructor` is provided, the compiler will use the given constructor and will match constructor parameters by name. Constructor parameters which do not have a matching column or a column which cannot be mapped, will be given a default value.
-
-If `factory` and `preferredConstructor` are both omitted, the compiler will find the best "matching" constructor. The best match is the constructor with the largest number of parameters which correspond to column names in the result set. Constructors with parameters that do not correspond to a column will be ignored. Constructors with parameters which are not mappable primitive types (see the list under "`PrimitiveRecordMapperCompiler`") will be ignored. If a suitable constructor cannot be found, an exception will be thrown.
-
-Constructor parameters which can be mapped will be one of the primitive types (see "`PrimitiveRecordMapperCompiler`" above) or a supported collection type (see "Collection Types" below).
-
-#### Mapping Properties
-
-Public properties with public `set` methods can be mapped to columns with the same name (case insensitive). The properties must either be one of the primitive types (see "`PrimitiveRecordMapperCompiler`" above) or a supported collection type (see "Collection Types" below).
-
-
-
-### `RecordMapperCompiler` 
-
-The `RecordMapperCompiler` dispatches to other compilers depending on the type of object requested. For example, if an `object[]` is requested, it will dispatch to a `ObjectRecordMapperCompiler` or if a custom object is requested it will dispatch to `PropertyAndConstructorRecordMapperCompiler`. 
+This option is only one level of abstraction higher than the `.AsRawReader()` method and typically requires more work to implement than the mapper compilers. Where possible, try to use one of the existing maps or map compilers to save yourself work and potential sources of bugs.
