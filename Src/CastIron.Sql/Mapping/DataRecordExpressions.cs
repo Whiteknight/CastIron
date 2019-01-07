@@ -84,28 +84,8 @@ namespace CastIron.Sql.Mapping
             return _primitiveTypes.Contains(t) || t == typeof(object);
         }
 
-        public static bool IsSupportedCollectionType(Type t)
-        {
-            if (t.IsArray && t.HasElementType)
-                return _primitiveTypes.Contains(t.GetElementType());
-
-            if (!t.IsGenericType || t.GenericTypeArguments.Length != 1)
-                return false;
-
-            var elementType = t.GenericTypeArguments[0];
-            if (!_primitiveTypes.Contains(elementType))
-                return false;
-
-            var collectionType = typeof(ICollection<>).MakeGenericType(elementType);
-            if (!collectionType.IsAssignableFrom(t))
-                return false;
-
-            return true;
-        }
-
         public static Expression GetScalarConversionExpression(int columnIdx, MapCompileContext context, Type columnType, Type targetType)
         { 
-            // TODO: targetType == typeof(dynamic)
             // Pull the value out of the reader into the rawVar
             var rawVar = context.AddVariable<object>("raw");
             var getRawStmt = Expression.Assign(rawVar, Expression.Call(context.RecordParam, GetValueMethod, Expression.Constant(columnIdx)));
@@ -113,6 +93,7 @@ namespace CastIron.Sql.Mapping
 
             if (targetType == typeof(object))
             {
+                // raw != DBNull.Instance ? raw : (object)null;
                 return Expression.Condition(
                     Expression.NotEqual(_dbNullExp, rawVar),
                     rawVar,
@@ -122,7 +103,7 @@ namespace CastIron.Sql.Mapping
             // They are the same type, so we can directly assign them
             if (columnType == targetType || (!columnType.IsClass && typeof(Nullable<>).MakeGenericType(columnType) == targetType))
             {
-                
+                // raw != DBNull.Instance ? (targetType)raw : default(targetType);
                 return Expression.Condition(
                     Expression.NotEqual(_dbNullExp, rawVar),
                     Expression.Convert(
@@ -135,6 +116,7 @@ namespace CastIron.Sql.Mapping
             // The target is string, regardless of the data type we can .ToString() it
             if (targetType == typeof(string))
             {
+                // raw != DBNull.Instance ? raw.ToString() : (string)null;
                 return Expression.Condition(
                     Expression.NotEqual(_dbNullExp, rawVar),
                     Expression.Call(rawVar, nameof(ToString), Type.EmptyTypes),
@@ -156,7 +138,7 @@ namespace CastIron.Sql.Mapping
             // Target is bool, source type is numeric. Try to coerce by comparing against 0
             if ((targetType == typeof(bool) || targetType == typeof(bool?)) && _numericTypes.Contains(columnType))
             {
-                // var result = rawVar is DBNull ? (rawVar != 0) : false
+                // rawVar != DBNull.Instance ? ((targetType)rawVar != (targetType)0) : false
                 return Expression.Condition(
                     Expression.NotEqual(_dbNullExp, rawVar),
                     Expression.NotEqual(Expression.Convert(Expression.Constant(0), columnType), Expression.Unbox(rawVar, columnType)),
@@ -166,6 +148,7 @@ namespace CastIron.Sql.Mapping
             // Convert.ChangeType where the column is IConvertable. Convert to the non-Nullable<> version of TargetType
             if (IsConvertible(columnType))
             {
+                // raw != DBNull.Instance ? (targetType)Convert.ChangeType(raw, targetType) : default(targetType)
                 var baseTargetType = GetTypeWithoutNullability(targetType);
                 return Expression.Condition(
                     Expression.NotEqual(_dbNullExp, rawVar),

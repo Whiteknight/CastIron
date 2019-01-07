@@ -90,52 +90,24 @@ namespace CastIron.Sql.Mapping
                 var score = 0;
                 foreach (var param in parameters)
                 {
-                    if (DataRecordExpressions.IsSupportedPrimitiveType(param.ParameterType))
+                    var name = param.Name.ToLowerInvariant();
+                    if (columnNames.ContainsKey(name))
                     {
-                        var name = param.Name.ToLowerInvariant();
-                        if (columnNames.ContainsKey(name))
-                        {
-                            score += 1;
-                            continue;
-                        }
-
-                        if (param.GetCustomAttributes<UnnamedColumnsAttribute>().Any())
-                        {
-                            score += columnNames.ContainsKey("") ? 1 : 0;
-                            continue;
-                        }
-                        return -1;
+                        score += 1;
+                        continue;
                     }
-
-                    if (DataRecordExpressions.IsSupportedCollectionType(param.ParameterType))
-                    {
-                        var name = param.Name.ToLowerInvariant();
-                        if (columnNames.ContainsKey(name))
-                        {
-                            score += columnNames[name];
-                            continue;
-                        }
-
-                        if (param.GetCustomAttributes<UnnamedColumnsAttribute>().Any())
-                        {
-                            score += columnNames.ContainsKey("") ? columnNames[""] : 0;
-                            continue;
-                        }
-                        return -1;
-                    }
-                    
 
                     if (param.GetCustomAttributes<UnnamedColumnsAttribute>().Any())
                     {
-                        score++;
+                        score += columnNames.ContainsKey("") ? 1 : 0;
                         continue;
                     }
+                    return -1;
 
                     // TODO: If the constructor param has the same name as a property, and that property has [Column("")] should we use that?
 
                     // TODO: check that the types are compatible. Add a big delta where the match is easy, smaller delta where the match requires conversion
                     // TODO: Return -1 where the types cannot be converted
-                    return -1;
                 }
 
                 return score;
