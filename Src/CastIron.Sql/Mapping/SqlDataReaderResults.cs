@@ -59,9 +59,6 @@ namespace CastIron.Sql.Mapping
             return new DataRecordMappingEnumerable<T>(_reader, _context, map);
         }
 
-        // TODO: Method to .AsEnumerable the next N consecutive result sets
-        // TODO: Method to .AsEnumerable all remaining result sets
-
         public object GetOutputParameter(string name)
         {
             if (_command == null || !_command.Parameters.Contains(name))

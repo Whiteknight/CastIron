@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Linq;
 using System.Reflection;
 using CastIron.Sql.Mapping;
 using CastIron.Sql.Utility;
@@ -167,6 +168,33 @@ namespace CastIron.Sql
         {
             Assert.ArgumentNotNull(results, nameof(results));
             return results.AdvanceToNextResultSet().AsEnumerable<T>(setup);
+        }
+
+        public static IEnumerable<T> AsEnumerableAll<T>(this IDataResults results, Action<IMapCompilerBuilder<T>> setup = null)
+        {
+            return AsEnumerableNextSeveral<T>(results, int.MaxValue, setup);
+        }
+
+        public static IEnumerable<T> AsEnumerableNextSeveral<T>(this IDataResults results, int numResultSets, Action<IMapCompilerBuilder<T>> setup = null)
+        {
+            if (numResultSets <= 0)
+                yield break;
+
+            var values = results.AsEnumerable<T>(setup);
+            foreach (var value in values)
+                yield return value;
+            numResultSets--;
+
+            while (numResultSets > 0)
+            {
+                var hasMore = results.TryAdvanceToNextResultSet();
+                if (!hasMore)
+                    yield break;
+                numResultSets--;
+                var nextValues = results.AsEnumerable<T>(setup);
+                foreach (var value in nextValues)
+                    yield return value;
+            }
         }
     }
 }
