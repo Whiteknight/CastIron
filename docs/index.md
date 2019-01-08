@@ -31,3 +31,4 @@ The `ISqlCommand` type and its variants (`ISqlCommand<T>`, `ISqlCommandSimple`, 
 * [Query Objects](queryobjects.md)
 * [Result Mapping](mapping.md)
 ** [Mapping Complex Objects](maponto.md)
+* [FAQ](faq.md)
