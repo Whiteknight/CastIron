@@ -11,7 +11,7 @@ namespace CastIron.Sql.Tests
         {
             public string ReadOutputs(IDataResults result)
             {
-                return result.GetOutputParameter("@param").ToString();
+                return result.GetOutputParameter<string>("@param");
             }
 
             public bool SetupCommand(IDataInteraction command)
@@ -40,7 +40,7 @@ namespace CastIron.Sql.Tests
         {
             public string ReadOutputs(IDataResults result)
             {
-                return result.GetOutputParameter("@param").ToString();
+                return result.GetOutputParameter<string>("@param");
             }
 
             public bool SetupCommand(IDataInteraction command)
@@ -63,7 +63,7 @@ namespace CastIron.Sql.Tests
         {
             public string ReadOutputs(IDataResults result)
             {
-                return result.GetOutputParameter("@param").ToString();
+                return result.GetOutputParameterValue("@param").ToString();
             }
 
             public bool SetupCommand(IDataInteraction command)
@@ -111,7 +111,7 @@ namespace CastIron.Sql.Tests
         {
             public string ReadOutputs(IDataResults result)
             {
-                return result.GetOutputParameter("@param").ToString();
+                return result.GetOutputParameterValue("@param").ToString();
             }
 
             public bool SetupCommand(IDataInteraction command)

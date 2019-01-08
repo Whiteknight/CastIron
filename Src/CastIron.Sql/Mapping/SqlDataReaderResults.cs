@@ -59,16 +59,16 @@ namespace CastIron.Sql.Mapping
             return new DataRecordMappingEnumerable<T>(_reader, _context, map);
         }
 
-        public object GetOutputParameter(string name)
+        public object GetOutputParameterValue(string name)
         {
-            if (_command == null || !_command.Parameters.Contains(name))
+            var parameterName = (name.StartsWith("@") ? name : "@" + name).ToLowerInvariant();
+
+            var param = _command?.Parameters.Cast<DbParameter>()
+                .Where(p => p.Direction != ParameterDirection.Input)
+                .FirstOrDefault(p => p.ParameterName.ToLowerInvariant() == parameterName);
+            if (param == null)
                 return null;
 
-            if (!(_command.Parameters[name] is DbParameter param))
-                return null;
-
-            if (param.Direction == ParameterDirection.Input)
-                return null;
             if (param.Value == DBNull.Value)
                 return null;
             return param.Value;
@@ -76,13 +76,32 @@ namespace CastIron.Sql.Mapping
 
         public T GetOutputParameter<T>(string name)
         {
-            var value = GetOutputParameter(name);
+            var value = GetOutputParameterValue(name);
             if (value == null)
                 return default(T);
-            // TODO: Can we call into DataRecordExpressions to try and convert the value according to conversion rules?
-            if (!(value is T))
-                throw new Exception($"Cannot get value '{name}'. Expected type {typeof(T).FullName} but found {value.GetType().FullName}");
-            return (T) value;
+            if (typeof(T) == typeof(object))
+                return (T) value;
+            if (value is T asT)
+                return asT;
+            if (value is IConvertible && typeof(IConvertible).IsAssignableFrom(typeof(T)))
+                return (T) Convert.ChangeType(value, typeof(T));
+
+            return default(T);
+        }
+
+        public T GetOutputParameterOrThrow<T>(string name)
+        {
+            var value = GetOutputParameterValue(name);
+            if (value == null)
+                return default(T);
+            if (typeof(T) == typeof(object))
+                return (T) value;
+            if (value is T asT)
+                return asT;
+            if (value is IConvertible && typeof(IConvertible).IsAssignableFrom(typeof(T)))
+                return (T) Convert.ChangeType(value, typeof(T));
+
+            throw new Exception($"Cannot get value '{name}'. Expected type {typeof(T).FullName} but found {value.GetType().FullName}");
         }
 
         public T GetOutputParameters<T>()
@@ -93,15 +112,19 @@ namespace CastIron.Sql.Mapping
             if (_command == null)
                 return t;
 
-            var propertyMap = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance)
+            var properties = typeof(T)
+                .GetProperties(BindingFlags.Public | BindingFlags.Instance)
                 .Where(p => p.CanWrite)
-                .ToDictionary(p => p.Name.ToLowerInvariant());
-            foreach (var param in _command.Parameters.OfType<IDbDataParameter>())
+                .Where(p => p.PropertyType == typeof(object) || typeof(IConvertible).IsAssignableFrom(p.PropertyType))
+                .ToList();
+            var getMethod = typeof(SqlDataReaderResults).GetMethod(nameof(GetOutputParameter));
+            if (getMethod == null)
+                throw new Exception($"Cannot find method {nameof(SqlDataReaderResults)}.{nameof(GetOutputParameter)}");
+            foreach (var property in properties)
             {
-                var normalizedName = param.ParameterName.StartsWith("@") ? param.ParameterName.Substring(1) : param.ParameterName;
-                normalizedName = normalizedName.ToLowerInvariant();
-                if (propertyMap.ContainsKey(normalizedName))
-                    propertyMap[normalizedName].SetValue(t, param.Value);
+                var getMethodTyped = getMethod.MakeGenericMethod(property.PropertyType);
+                var value = getMethodTyped.Invoke(this, new object[] {property.Name});
+                property.SetValue(t, value);
             }
 
             return t;

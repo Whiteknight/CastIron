@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
-using System.Linq;
 using System.Reflection;
 using CastIron.Sql.Mapping;
 using CastIron.Sql.Utility;
@@ -42,7 +41,7 @@ namespace CastIron.Sql
         /// </summary>
         /// <param name="name"></param>
         /// <returns></returns>
-        object GetOutputParameter(string name);
+        object GetOutputParameterValue(string name);
 
         /// <summary>
         /// Get the value of the output parameter by name, coerced to the specified type
@@ -51,6 +50,14 @@ namespace CastIron.Sql
         /// <param name="name"></param>
         /// <returns></returns>
         T GetOutputParameter<T>(string name);
+
+        /// <summary>
+        /// Get the value of the output parameter by name, coerced to the specified type
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        T GetOutputParameterOrThrow<T>(string name);
 
         /// <summary>
         /// Map all output parameter values to the specified object type, where each parameter value is set
