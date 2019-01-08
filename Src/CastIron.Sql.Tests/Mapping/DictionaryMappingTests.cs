@@ -91,6 +91,18 @@ namespace CastIron.Sql.Tests.Mapping
         }
 
         [Test]
+        public void Map_DictionaryOfListOfInt([Values("MSSQL", "SQLITE")] string provider)
+        {
+            var target = RunnerFactory.Create(provider);
+            var dict = target.Query(new SqlQuery<Dictionary<string, List<int>>>("SELECT 1 AS A, 2 AS A, 3 AS B, 4 AS B, 5 AS C;")).First();
+
+            dict.Count.Should().Be(3);
+            dict["A"].Should().ContainInOrder(1, 2);
+            dict["B"].Should().ContainInOrder(3, 4);
+            dict["C"].Should().ContainInOrder(5);
+        }
+
+        [Test]
         public void Map_CustomObjectWithChildDictionary([Values("MSSQL", "SQLITE")] string provider)
         {
             var target = RunnerFactory.Create(provider);

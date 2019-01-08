@@ -205,33 +205,7 @@ namespace CastIron.Sql.Mapping
             var dictVar = context.AddVariable(targetType, "dict");
             context.AddStatement(Expression.Assign(dictVar, Expression.New(constructor)));
 
-            if (name == null)
-            {
-                var columns = context.GetFirstIndexForEachColumnName();
-                foreach (var column in columns)
-                {
-                    var getScalarExpression = GetConversionExpression(context, column.CanonicalName, elementType, null);
-                    if (getScalarExpression == null)
-                        continue;
-                    context.AddStatement(Expression.Call(dictVar, addMethod, Expression.Constant(column.OriginalName), getScalarExpression));
-                    column.MarkMapped();
-                }
-            }
-            else
-            {
-                var subcontext = context.CreateSubcontext(null, name);
-                var columns = subcontext.GetFirstIndexForEachColumnName();
-                foreach (var column in columns)
-                {
-                    var keyName = column.OriginalName.Substring(name.Length + 1);
-                    var childName = column.CanonicalName.Substring(name.Length + 1);
-                    var getScalarExpression = GetConversionExpression(subcontext, childName, elementType, null);
-                    if (getScalarExpression == null)
-                        continue;
-                    context.AddStatement(Expression.Call(dictVar, addMethod, Expression.Constant(keyName), getScalarExpression));
-                    column.MarkMapped();
-                }
-            }
+            AddDictionaryPopulateStatements(context, name, elementType, dictVar, addMethod);
 
             return Expression.Convert(dictVar, targetType);
         }
@@ -255,6 +229,13 @@ namespace CastIron.Sql.Mapping
             var dictVar = context.AddVariable(dictType, "dict");
             context.AddStatement(Expression.Assign(dictVar, Expression.New(constructor)));
 
+            AddDictionaryPopulateStatements(context, name, elementType, dictVar, addMethod);
+
+            return targetType == dictType ? (Expression)dictVar : Expression.Convert(dictVar, targetType);
+        }
+
+        private static void AddDictionaryPopulateStatements(MapCompileContext context, string name, Type elementType, ParameterExpression dictVar, MethodInfo addMethod)
+        {
             if (name == null)
             {
                 var columns = context.GetFirstIndexForEachColumnName();
@@ -272,19 +253,21 @@ namespace CastIron.Sql.Mapping
                 var columns = subcontext.GetFirstIndexForEachColumnName();
                 foreach (var column in columns)
                 {
-                    var key = column.OriginalName.Substring(name.Length + 1);
+                    var keyName = column.OriginalName.Substring(name.Length + 1);
                     var childName = column.CanonicalName.Substring(name.Length + 1);
                     var getScalarExpression = GetConversionExpression(subcontext, childName, elementType, null);
-                    context.AddStatement(Expression.Call(dictVar, addMethod, Expression.Constant(key), getScalarExpression));
+                    if (getScalarExpression == null)
+                        continue;
+                    context.AddStatement(Expression.Call(dictVar, addMethod, Expression.Constant(keyName), getScalarExpression));
                 }
             }
-
-            return targetType == dictType ? (Expression)dictVar : Expression.Convert(dictVar, targetType);
         }
 
         private static Expression GetConcreteCollectionConversionExpression(MapCompileContext context, string name, Type targetType, ICustomAttributeProvider attrs)
         {
-            var icollectionType = targetType.GetInterfaces().FirstOrDefault(i => i.Namespace == "System.Collections.Generic" && i.IsGenericType && i.GetGenericTypeDefinition() == typeof(ICollection<>));
+            var icollectionType = targetType
+                .GetInterfaces()
+                .FirstOrDefault(i => i.Namespace == "System.Collections.Generic" && i.IsGenericType && i.GetGenericTypeDefinition() == typeof(ICollection<>));
             if (icollectionType == null)
                 throw new Exception($"Cannot map to object of type {targetType.Name}. Expecting ICollection<>");
             var elementType = icollectionType.GenericTypeArguments[0];
@@ -303,32 +286,9 @@ namespace CastIron.Sql.Mapping
             var listVar = context.AddVariable(targetType, "list");
             context.AddStatement(Expression.Assign(listVar, Expression.New(constructor)));
 
-            if (DataRecordExpressions.IsMappableScalarType(elementType))
-            {
-                var columns = GetColumnsForProperty(context, name, attrs);
-                foreach (var column in columns)
-                {
-                    var getScalarExpression = DataRecordExpressions.GetScalarConversionExpression(column.Index, context, column.ColumnType, elementType);
-                    context.AddStatement(Expression.Call(listVar, addMethod, getScalarExpression));
-                    column.MarkMapped();
-                }
-                return listVar;
-            }
+            AddCollectionPopulateStatements(context, name, attrs, elementType, listVar, addMethod);
 
-            if (IsMappableCustomObjectType(elementType))
-            {
-                var subcontext = context.CreateSubcontext(elementType, name);
-
-                AddInstantiationExpressionForObjectInstance(subcontext);
-                AddPropertyAssignmentExpressions(subcontext);
-
-                context.AddStatement(Expression.Call(listVar, addMethod, subcontext.Instance));
-                return listVar;
-            }
-
-            // TODO: Is it worthwhile to recurse here? 
-
-            throw new Exception($"Cannot map collection of type {targetType.Name}");
+            return listVar;
         }
 
         private static Expression GetInterfaceCollectionConversionExpression(MapCompileContext context, string name, Type targetType, ICustomAttributeProvider attrs)
@@ -352,16 +312,24 @@ namespace CastIron.Sql.Mapping
             var listVar = context.AddVariable(listType, "list");
             context.AddStatement(Expression.Assign(listVar, Expression.New(constructor)));
 
+            AddCollectionPopulateStatements(context, name, attrs, elementType, listVar, addMethod);
+
+            return Expression.Convert(listVar, targetType);
+        }
+
+        private static void AddCollectionPopulateStatements(MapCompileContext context, string name, ICustomAttributeProvider attrs, Type elementType, Expression listVar, MethodInfo addMethod)
+        {
             if (DataRecordExpressions.IsMappableScalarType(elementType))
             {
                 var columns = GetColumnsForProperty(context, name, attrs);
                 foreach (var column in columns)
                 {
+                    // TODO: Is it possible to try recurse here? 
                     var getScalarExpression = DataRecordExpressions.GetScalarConversionExpression(column.Index, context, column.ColumnType, elementType);
                     context.AddStatement(Expression.Call(listVar, addMethod, getScalarExpression));
                     column.MarkMapped();
                 }
-                return Expression.Convert(listVar, targetType);
+                return;
             }
 
             if (IsMappableCustomObjectType(elementType))
@@ -372,10 +340,10 @@ namespace CastIron.Sql.Mapping
                 AddPropertyAssignmentExpressions(subcontext);
 
                 context.AddStatement(Expression.Call(listVar, addMethod, subcontext.Instance));
-                return Expression.Convert(listVar, targetType);
+                return;
             }
 
-            throw new Exception($"Cannot map Property '{name}' with type {targetType.Name}");
+            throw new Exception($"Cannot map collection with element type {elementType.Name} named '{name}'");
         }
 
         private static string GetColumnNameFromProperty(MapCompileContext context, string name, ICustomAttributeProvider attrs)
@@ -460,6 +428,7 @@ namespace CastIron.Sql.Mapping
 
         private static void AddFactoryMethodCallExpression<T>(Func<T> factory, MapCompileContext context)
         {
+            // instance = factory();
             context.AddStatement(Expression.Assign(
                 context.Instance,
                 Expression.Convert(
@@ -467,6 +436,8 @@ namespace CastIron.Sql.Mapping
                         Expression.Constant(factory.Target), 
                         factory.Method), 
                     context.Specific)));
+
+            // if (instance == null) throw new Exception(...);
             context.AddStatement(Expression.IfThen(
                 Expression.Equal(context.Instance, Expression.Constant(null)),
                 Expression.Throw(

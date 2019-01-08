@@ -168,6 +168,7 @@ namespace CastIron.Sql.Mapping
 
         public static Expression GetDefaultValueExpression(Type t)
         {
+            // (t)default(t)
             return Expression.Convert(Expression.Constant(GetDefaultValue(t)), t);
         }
 
