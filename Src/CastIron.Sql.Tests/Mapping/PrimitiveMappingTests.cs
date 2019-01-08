@@ -183,10 +183,10 @@ namespace CastIron.Sql.Tests.Mapping
             result.Should().Be(5.67M);
         }
 
-        // TODO SQLite doesn't handle hex literals for binary(n), we need a new way to test it
         [Test]
-        public void Primitive_binary_ByteArray([Values("MSSQL")] string provider)
+        public void Primitive_binary_ByteArray([Values("MSSQL", "SQLITE")] string provider)
         {
+            TestUtilities.NeedsFixesFor("SQLITE", provider, "brings back result as int64 instead of byte[]");
             var target = RunnerFactory.Create(provider);
             var result = target.Query(new TestQuery<byte[]>("SELECT CAST(0x0102030405 AS Binary(5)) AS TestBinary"));
             result.Should().NotBeNull();
@@ -196,16 +196,18 @@ namespace CastIron.Sql.Tests.Mapping
 
         // SQLite doesn't support UUID natively
         [Test]
-        public void Primitive_Guid_Null([Values("MSSQL")] string provider)
+        public void Primitive_Guid_Null([Values("MSSQL", "SQLITE")] string provider)
         {
+            TestUtilities.NeedsFixesFor("SQLITE", provider, "Doesn't have a NEWID function");
             var target = RunnerFactory.Create(provider);
             var result = target.Query(new TestQuery<Guid>("SELECT NEWID() AS TestId;"));
             result.Should().NotBe(Guid.Empty);
         }
 
         [Test]
-        public void Primitive_Guid_Nullable([Values("MSSQL")] string provider)
+        public void Primitive_Guid_Nullable([Values("MSSQL", "SQLITE")] string provider)
         {
+            TestUtilities.NeedsFixesFor("SQLITE", provider, "Doesn't have a NEWID function");
             var target = RunnerFactory.Create(provider);
             var result = target.Query(new TestQuery<Guid?>("SELECT NEWID() AS TestId;"));
             result.Should().NotBe(Guid.Empty);
