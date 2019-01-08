@@ -25,6 +25,6 @@
         /// </summary>
         /// <param name="result">The result object which contains data reader, mappers, and output parameters</param>
         /// <returns></returns>
-        T GetResults(IDataResults result);
+        T Read(IDataResults result);
     }
 }

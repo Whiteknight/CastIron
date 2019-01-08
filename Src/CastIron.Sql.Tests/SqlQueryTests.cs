@@ -67,7 +67,7 @@ namespace CastIron.Sql.Tests
                 return interaction.IsValid;
             }
 
-            public Query2Values GetResults(IDataResults result)
+            public Query2Values Read(IDataResults result)
             {
                 return result.AsEnumerable<Query2Values>().Single();
             }
@@ -117,7 +117,7 @@ namespace CastIron.Sql.Tests
                 return true;
             }
 
-            public string GetResults(IDataResults result)
+            public string Read(IDataResults result)
             {
                 return result.AsEnumerable<string>().FirstOrDefault();
             }
@@ -139,7 +139,7 @@ namespace CastIron.Sql.Tests
                 return false;
             }
 
-            public string GetResults(IDataResults result)
+            public string Read(IDataResults result)
             {
                 return result.AsEnumerable<string>().FirstOrDefault();
             }
@@ -167,7 +167,7 @@ namespace CastIron.Sql.Tests
                 return true;
             }
 
-            public ParameterResult GetResults(IDataResults result)
+            public ParameterResult Read(IDataResults result)
             {
                 return result.GetOutputParameters<ParameterResult>();
             }

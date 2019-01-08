@@ -34,7 +34,7 @@ SELECT
 ;";
         }
 
-        public IEnumerable<T> GetResults(IDataResults result)
+        public IEnumerable<T> Read(IDataResults result)
         {
             return result.AsEnumerable<T>().ToList();
         }
