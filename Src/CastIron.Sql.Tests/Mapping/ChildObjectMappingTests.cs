@@ -29,6 +29,16 @@ namespace CastIron.Sql.Tests.Mapping
             result.Child.Name.Should().Be("TEST");
         }
 
+
+        [Test]
+        public void TestQuery_ObjectWithChildCustomSeparator([Values("MSSQL", "SQLITE")] string provider)
+        {
+            var target = RunnerFactory.Create(provider);
+            var result = target.Query(new SqlQuery<TestObject_WithChild>("SELECT 5 AS Id, 'TEST' AS ChildXName;", c => c.UseChildSeparator("X"))).First();
+            result.Id.Should().Be(5);
+            result.Child.Name.Should().Be("TEST");
+        }
+
         public class TestObject_WithChildObject
         {
             public int Id { get; set; }
@@ -87,6 +97,14 @@ namespace CastIron.Sql.Tests.Mapping
         {
             var target = RunnerFactory.Create(provider);
             var result = target.Query<TestObject_WithNestedChildren>("SELECT 'TEST' AS A_B_Value").Single();
+            result?.A?.B?.Value.Should().Be("TEST");
+        }
+
+        [Test]
+        public void TestQuery_NestedChildrenCustomSeparator([Values("MSSQL", "SQLITE")] string provider)
+        {
+            var target = RunnerFactory.Create(provider);
+            var result = target.Query(new SqlQuery<TestObject_WithNestedChildren>("SELECT 'TEST' AS AXBXValue", c => c.UseChildSeparator("X"))).Single();
             result?.A?.B?.Value.Should().Be("TEST");
         }
     }

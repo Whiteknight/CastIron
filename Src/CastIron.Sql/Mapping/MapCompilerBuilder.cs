@@ -20,6 +20,7 @@ namespace CastIron.Sql.Mapping
             public Func<T> Factory { get; private set; }
             public ConstructorInfo Constructor { get; private set; }
             public Func<IDataRecord, T> Mapper { get; set; }
+            public string Separator { get; private set; }
 
             public void SetMap(Func<IDataRecord, T> map)
             {
@@ -85,6 +86,11 @@ namespace CastIron.Sql.Mapping
                     throw new Exception("May not specify a particular constructor before specifying the subclass");
                 Type = t;
             }
+
+            public void SetSeparator(string separator)
+            {
+                Separator = separator;
+            }
         }
 
         public MapCompilerBuilder()
@@ -143,6 +149,12 @@ namespace CastIron.Sql.Mapping
         {
             Assert.ArgumentNotNull(factory, nameof(factory));
             _defaultCase.SetFactoryMethod(factory);
+            return this;
+        }
+
+        public IMapCompilerBuilderBase<T> UseChildSeparator(string separator)
+        {
+            _defaultCase.SetSeparator(separator);
             return this;
         }
 
@@ -216,7 +228,7 @@ namespace CastIron.Sql.Mapping
                 throw new Exception($"Type {subclass.Type.FullName} is not assignable to {typeof(T).FullName}");
             if (subclass.Mapper == null)
             {
-                var context = new MapCompileContext(reader, subclass.Type, subclass.Type, subclass.Factory as Func<object>, subclass.Constructor, subclass.ConstructorFinder);
+                var context = new MapCompileContext(reader, subclass.Type, subclass.Type, subclass.Factory as Func<object>, subclass.Constructor, subclass.ConstructorFinder, null, subclass.Separator);
                 subclass.Mapper = (subclass.Compiler ?? defaultCompiler).CompileExpression<T>(context);
             }
 

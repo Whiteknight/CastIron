@@ -4,7 +4,7 @@ using System.Reflection;
 
 namespace CastIron.Sql.Mapping
 {
-    public interface IMapCompilerBuilderBase<T>
+    public interface IMapCompilerBuilderBase<in T>
     {
         IMapCompilerBuilderBase<T> UseMap(Func<IDataRecord, T> map);
         IMapCompilerBuilderBase<T> UseCompiler(IMapCompiler compiler);
@@ -12,6 +12,7 @@ namespace CastIron.Sql.Mapping
         IMapCompilerBuilderBase<T> UseConstructor(params Type[] argumentTypes);
         IMapCompilerBuilderBase<T> UseConstructorFinder(IConstructorFinder finder);
         IMapCompilerBuilderBase<T> UseFactoryMethod(Func<T> factory);
+        IMapCompilerBuilderBase<T> UseChildSeparator(string separator);
     }
 
     public interface IMapCompilerBuilder<T> : IMapCompilerBuilderBase<T>

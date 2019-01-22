@@ -55,12 +55,14 @@ namespace CastIron.Sql.Mapping
         private readonly List<ParameterExpression> _variables;
         private readonly List<Expression> _statements;
         private readonly VariableNumberSource _variableNumbers;
+        private readonly string _separator;
 
-        public MapCompileContext(IDataReader reader, Type parent, Type specific, Func<object> factory, ConstructorInfo preferredConstructor, IConstructorFinder constructorFinder, VariableNumberSource numberSource = null)
+        public MapCompileContext(IDataReader reader, Type parent, Type specific, Func<object> factory, ConstructorInfo preferredConstructor, IConstructorFinder constructorFinder, VariableNumberSource numberSource = null, string separator = "_")
         {
             Assert.ArgumentNotNull(reader, nameof(reader));
             Assert.ArgumentNotNull(parent, nameof(parent));
 
+            _separator = (separator ?? "_").ToLowerInvariant();
             Parent = parent;
             Specific = specific ?? parent;
 
@@ -82,10 +84,12 @@ namespace CastIron.Sql.Mapping
             _variables.Add(Instance);
         }
 
-        public MapCompileContext(MapCompileContext parent, Type type, string prefix)
+        public MapCompileContext(MapCompileContext parent, Type type, string prefix, string separator)
         {
             Assert.ArgumentNotNull(parent, nameof(parent));
+            Assert.ArgumentNotNullOrEmpty(separator, nameof(_separator));
 
+            _separator = separator;
             Parent = type;
             Specific = type;
 
@@ -133,8 +137,8 @@ namespace CastIron.Sql.Mapping
         public MapCompileContext CreateSubcontext(Type t, string prefix)
         {
             if (!string.IsNullOrEmpty(prefix))
-                prefix = prefix + "_";
-            return new MapCompileContext(this, t, prefix);
+                prefix = prefix + _separator;
+            return new MapCompileContext(this, t, prefix, _separator);
         }
 
         public ConstructorInfo PreferredConstructor { get; set; }
@@ -148,6 +152,8 @@ namespace CastIron.Sql.Mapping
         {
             for (var i = 0; i < reader.FieldCount; i++)
             {
+                // TODO: Specify list of prefixes to ignore. If the column starts with a prefix, remove those chars from the front
+                // e.g. "Table_ID" with prefix "Table_" becomes "ID"
                 var name = (reader.GetName(i) ?? "");
                 var info = new ColumnInfo(i, name, reader.GetFieldType(i));
                 if (!_columnNames.ContainsKey(info.CanonicalName))
