@@ -29,7 +29,7 @@ namespace CastIron.Sql.Tests
         }
 
         [Test]
-        public void SqlCommandT_Test()
+        public void Execute_T_Test()
         {
             var runner = RunnerFactory.Create();
             var result = runner.Execute(new Command1());
@@ -52,7 +52,7 @@ namespace CastIron.Sql.Tests
         }
 
         [Test]
-        public void SqlCommandT_NotExecuted()
+        public void Execute_T_NotExecuted()
         {
             var runner = RunnerFactory.Create();
             var result = runner.Execute(new Command2());
@@ -76,7 +76,7 @@ namespace CastIron.Sql.Tests
 
         // Sqlite doesn't support output parameters?
         [Test]
-        public void SqlCommandRawCommand_UntypedOutputParameter([Values("MSSQL")] string provider)
+        public void Execute_UntypedOutputParameter([Values("MSSQL")] string provider)
         {
             var runner = RunnerFactory.Create(provider);
             var result = runner.Execute(new CommandWithUntypedOutputParameter());
@@ -100,7 +100,7 @@ namespace CastIron.Sql.Tests
 
         // Sqlite doesn't support output parameters?
         [Test]
-        public void SqlCommandRawCommand_TypedOutputParameter([Values("MSSQL")] string provider)
+        public void Execute_TypedOutputParameter([Values("MSSQL")] string provider)
         {
             var runner = RunnerFactory.Create(provider);
             var result = runner.Execute(new CommandWithTypedOutputParameter());
@@ -123,11 +123,34 @@ namespace CastIron.Sql.Tests
         }
 
         [Test]
-        public void SqlCommandRaw_NotExecuted([Values("MSSQL")] string provider)
+        public void Execute_NotExecuted([Values("MSSQL")] string provider)
         {
             var runner = RunnerFactory.Create(provider);
             var result = runner.Execute(new CommandNotExecuted());
             result.Should().BeNullOrEmpty();
+        }
+
+        public class CommandWithRowsAffected : ISqlCommandSimple<int>
+        {
+            public string GetSql()
+            {
+                return @"
+                    DECLARE @temp TABLE (X INT NOT NULL);
+                    INSERT INTO @temp(X) VALUES (1),(2),(3),(4);";
+            }
+
+            public int ReadOutputs(IDataResults result)
+            {
+                return result.RowsAffected;
+            }
+        }
+
+        [Test]
+        public void Execute_RowsAffected([Values("MSSQL")] string provider)
+        {
+            var runner = RunnerFactory.Create(provider);
+            var rowsAffected = runner.Execute(new CommandWithRowsAffected());
+            rowsAffected.Should().Be(4);
         }
     }
 }

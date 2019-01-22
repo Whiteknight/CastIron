@@ -23,7 +23,7 @@ namespace CastIron.Sql.Mapping
         private bool _isConsuming;
         public int CurrentSet { get; private set; }
 
-        public SqlDataReaderResults(IDbCommand command, IExecutionContext context, IDataReader reader)
+        public SqlDataReaderResults(IDbCommand command, IExecutionContext context, IDataReader reader, int? rowsAffected = null)
         {
             _command = command;
             _context = context;
@@ -31,7 +31,10 @@ namespace CastIron.Sql.Mapping
             _isConsumed = false;
             _isConsuming = false;
             CurrentSet = 0;
+            RowsAffected = rowsAffected ?? reader?.RecordsAffected ?? 0;
         }
+
+        public int RowsAffected { get; }
 
         public IDataReader AsRawReader()
         {

@@ -14,6 +14,11 @@ namespace CastIron.Sql
     public interface IDataResults
     {
         /// <summary>
+        /// Where available, the number of rows affected by the query
+        /// </summary>
+        int RowsAffected { get; }
+
+        /// <summary>
         /// Get a reference to the raw IDataReader. Accessing the underlying reader consumes it and makes
         /// other methods on this object unusable
         /// </summary>
