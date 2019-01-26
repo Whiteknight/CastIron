@@ -3,7 +3,7 @@
 Start by creating an `ISqlRunner` for your chosen provider:
 
 ```csharp
-// MS SQL Server
+// MS SQL Server, requires CastIron.Sql package
 var runner = CastIron.Sql.RunnerFactory.Create(connectionString);
 
 // SQLite, requires CastIron.Sqlite package
@@ -37,7 +37,7 @@ using (var stream = runner.QueryStream(new MyQueryObject())))
 ### Execute a string of SQL and get a mapped result
 
 ```csharp
-var result = runner.Query("SELECT * FROM MyTable");
+var result = runner.Query<MyResultType>("SELECT * FROM MyTable");
 ```
 
 ### Execute a string of SQL which does not return a result
@@ -48,7 +48,7 @@ runner.Execute("UPDATE MyTable SET ...");
 
 ### Just execute an SQL query and get an `IDataReader`
 
-```csharp 
+```csharp
 using (var stream = runner.QueryStream("SELECT * FROM MyTable"))
 {
     var reader = stream.AsRawReader();

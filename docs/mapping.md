@@ -40,11 +40,15 @@ CastIron can typically convert almost all raw column values to any of the above 
 
 ## `AsEnumerable()`
 
-The method `IDataResults.AsEnumerable<T>()` is the most basic mechanism to map a results stream from the database into an enumerable of objects. This method has several options which can be leveraged for different use-cases: It can take a mapper delegate to convert each row to objects, It can take a mapper compiler to build a mapper which converts each row. It can also take a preferred constructor and a factory method in some cases. Many of these use-cases will be discussed below.
+The method `IDataResults.AsEnumerable<T>()` is the most basic mechanism to map a results stream from the database into an enumerable of objects. This method has several options which can be leveraged for different use-cases, and allows plugging in custom implementations of various algorithms. We'll discuss some of these options below.
 
 ## Object Mappings
 
-If we ask CastIron to map rows to `object`s, each row will be converted into an `IDictionary<string, object>` by column name:
+Mapping to an `object` works a little differently depending on how and when the mapping occurs.
+
+### Top-Level `object` mapping
+
+At the top level, if we call `.AsEnumerable<object>()` each row will be converted into an `IDictionary<string, object>` by column name:
 
 ```csharp
 var firstRow = result.AsEnumerable<object>().First();
@@ -52,9 +56,67 @@ var asDict = firstRow as IDictionary<string, object>;
 var intValue = asDict["IntValue"];
 ```
 
-Notice that if we ask CastIron to map `object`s nested in another type, such as an `object` property in a class or a collection type like `List<object>` CastIron will instead map it to a single scalar value or an array of values (when there are multiple columns of the same name). We will discuss this in more detail later in the page.
+Notice that SQL allows multiple columns to have the same name. CastIron maps values according to this heuristic:
 
-## Object Array Mappings
+1. If there is only one column with the given name, the value will be mapped as a scalar using the type from the database, with `DBNull` converted to `null`.
+2. If there is more than one column with the given name, the values will be mapped to an `object[]` array, with `DBNull` mapped to `null`.
+
+Here's a quick example:
+
+```sql
+SELECT 1 AS Id, 'A' AS [Name], 'B' AS [Name];
+```
+
+```csharp
+object obj = result.AsEnumerable<object>();
+var dict = obj as Dictionary<string, object>;
+var id = dict["Id"];    // 1
+var names = dict["Name"] as object[];
+var name1 = names[0].ToString(); // 'A'
+var name2 = names[1].ToString(); // 'B'
+```
+
+In general, for all but the most fast-and-dirty queries, you'll want more control over the data structure than this and you should use a proper custom class instead of `object`.
+
+### Nested `object` mapping
+
+If the `object` is nested somewhere, such as in `List<object>` or as an `object` property in a class, CastIron will instead map it according to a different set of heuristics:
+
+1. If there are no matching columns, the value is set to `null`
+1. If there is exactly one matching column, the value is mapped as a scalar
+1. If there is more than one matching column, the value is mapped to an `object[]` array
+
+Let's show a few examples. First, we define our result type:
+
+```csharp
+public class ResultRow
+{
+    public int Id { get; set;}
+    public object Name { get; set;}
+}
+```
+
+Now let's look at some queries:
+
+```sql
+SELECT 1 AS Id;
+```
+
+In this first case, the `.Name` property will be `null`, there are no columns called `Name`.
+
+```sql
+SELECT 1 AS Id, 'A' AS [Name];
+```
+
+In this second case, the `.Name` property will be the string `"A"`.
+
+```sql
+SELECT 1 AS Id, 'A' AS [Name], 'B' AS [Name];
+```
+
+In this third case, the `.Name` property will contain an `object[]` array with the values `{ "A", "B" }`.
+
+## Object Array and Collection Mappings
 
 If we ask CastIron to map rows to `object[]` arrays, we will get an array with values from each column in the native data type, with `DBNull` converted to `null`.
 
@@ -74,9 +136,11 @@ object firstValue = firstRow[0];
 * `IList`
 * `ICollection`
 
+Again, for all but the most quick-and-dirty queries, you'll probably want to use a real custom class instead of using a mapping like this.
+
 ## Tuple Mappings
 
-If we ask CastIron to map to a `Tuple<>` type, each row will be converted to a tuple with the first column value going into the first tuple value, the second column into the second tuple value, etc. The maximum supported tuple size is 7, above which CastIron is unable to convert.
+If we ask CastIron to map to a `Tuple<>` type, each row will be converted to a tuple with the first column value going into the first tuple value, the second column into the second tuple value, etc. The maximum supported tuple size is 7, above which CastIron is (currently) unable to convert.
 
 ```csharp
 var firstRow = result.AsEnumerable<Tuple<int, string, float>>().First();
@@ -99,7 +163,7 @@ This is useful when we only want to select a single item from a DB, or a sequenc
 
 ## Array and Collection Mappings
 
-We can ask CastIron to map a row into an array of any of the primitive types listed above and their `Nullable<T>` variants, including mapping to other collection types:
+We can ask CastIron to map a row into an array or collection type of any of the primitive types listed above and their `Nullable<T>` variants, including mapping to other collection types:
 
 ```csharp
 var arrayOfBools = result.AsEnumerable<bool[]>();
@@ -117,7 +181,7 @@ By default, CastIron can support arrays of primitive types, any interface type w
 * `IEnumerable<T>`
 * `List<T>`
 * `HashSet<T>`
-* Custom types which inherit from `ICollection<T>`
+* Custom types which inherit from `ICollection<T>` and have a default parameterless constructor
 
 ## Dictionary Mappings
 
@@ -131,7 +195,7 @@ var idicts = result.AsEnumerable<IDictionary<string, object>>();
 var irodicts = result.AsEnumerable<IReadOnlyDictionary<string, float>>();
 ```
 
-Where there are multiple columns with the same name, only the first column of each unique name will be used, case-insensitive.
+If the value type is `object` and there are multiple columns with the same name, the value will be instantiated as `object[]` and all values will be included. If the value is any other the other primitive types, only the first column with that name will be mapped.
 
 ### Example: ExpandObject
 
@@ -152,12 +216,14 @@ string version = expand.Version;
 
 The above special cases can be interesting in some situations, but the most helpful and most common use of CastIron's mapping feature is to map the values of a row into the properties of a custom object type. However, there are some difficulties in this approach:
 
-1. It's possible for a result set to have multiple columns with the same name, but it is not possible for an object to have multiple properties with the same name. If we want to map such a result set to an object, we would need to map the same-named columns to some sort of collection type.
+1. It's possible for a result set to have multiple columns with the same name, but it is not possible for an object to have multiple properties with the same name. If we want to map such a result set to an object without loss, we would need to map the same-named columns to some sort of collection type.
 1. It's possible for an object to have properties which are themselves other objects, creating a hierarchical tree-like structure. Rows from the database are flat and do not support nesting. If we want to map values from a flat row into properties of nested objects, we need some kind of way to indicate how to map these.
 1. It's possible for a column in a result set to not have any name. If we would like to map these values, we would need some way to inform the mapper which property should receive these values (with the same caveat about multiple columns needing to be mapped to a collection type).
 1. It is possible for an object to have read-only properties with values which can only be set in the constructor. To map these values, the mapper must be able to pass some column values into the constructor parameters.
 
-The default mapper in CastIron solves several of these problems using a series of heuristics designed to try and map the most data with the least ambiguity and loss of information.
+The default mapper in CastIron solves all of these problems using a series of heuristics designed to try and map the most data with the least ambiguity and loss of information.
+
+See the page on [Mapping Complex Objects](maponto.md) for a more in-depth look at how to combine multiple result sets to build complex object graphs.
 
 ### Basic Property Mapping Heuristics
 
@@ -167,7 +233,7 @@ CastIron's mapper obeys the following heuristics and principles when mapping col
 1. If the property or parameter is a scalar type, the first column with a matching name will be mapped
 1. If the property or parameter is a supported collection type, all columns with a matching name will be mapped
 1. If the name of the property or parameter name matches, those columns will be mapped first
-1. Otherwise, if the property is tagged with the `ColumnAttribute`, and the `ColumnAttribute.Name` property matches, those columns will be mapped
+1. Otherwise, if the property is tagged with the `ColumnAttribute`, and the `ColumnAttribute.Name` property matches columns (case insensitive), those columns will be mapped
 1. Otherwise, if the property or parameter is tagged with the `UnnamedColumnsAttribute`, any unnamed columns will be mapped, using the same rules about number of columns and scalars vs collections listed above.
 1. If the type of the property is `object`, the property will be mapped as a scalar if there is only one matching column, and will be mapped as `object[]` if there are multiple matching columns.
 1. If the type of the property is a supported dictionary type or a custom child object type, the name of the property will be used as a prefix to match column names and the mapper will recurse using that name prefix.
@@ -280,7 +346,7 @@ CastIron provides two built-in compiler types which may be useful to you.
 
 ### `MapCompiler`
 
-The default `MapCompiler` is the brains of the operation. This type performs the compilation of mapping delegates for all mapping rules described in this file. 
+The default `MapCompiler` is the brains of the operation. This type performs the compilation of mapping delegates for all mapping rules described in this file.
 
 ### `CachingMapCompiler`
 
@@ -288,7 +354,7 @@ The `CachingMapCompiler` class is a Decorator type which wraps any `IMapCompiler
 
 You can clear the cache at any time by calling the `ClearCache()` method on the `CachingMapCompiler` instance. This can be handy in cases where you're executing lots of one-off dynamic queries and do not want to build up a large memory footprint.
 
-If you are doing many dynamic queries which are not reusable, the caching compiler is likely not the best choice and you should consider just using the `MapCompiler` directly. 
+If you are doing many dynamic queries which are not reusable, the caching compiler is likely not the best choice and you should consider just using the `MapCompiler` directly.
 
 ### The Default Compiler
 
@@ -322,11 +388,11 @@ public abstract class Pet {
     public string Name { get; set;}
 }
 
-public class Dog : Pet { 
+public class Dog : Pet {
     public bool IsAGoodDog { get; set; }
 }
 
-public class Cat : Pet { 
+public class Cat : Pet {
     public int LevelOfGeneralDisdain { get; set; }
 }
 
@@ -343,7 +409,7 @@ You can create different mappings for rows which represent Dogs from rows which 
 
 ```csharp
 var pets = results.AsEnumerable<Pet>(s => s
-    
+
     // Default type, if no other predicates match
     .UseClass<Exotic>()
 
@@ -352,7 +418,7 @@ var pets = results.AsEnumerable<Pet>(s => s
     .UseSubclass<Cat>(r => r.GetString(0) == "cat"));
 ```
 
-Predicates are evaluated in the specified order, so when there is overlap the first predicate which matches will select the subclass to use. 
+Predicates are evaluated in the specified order, so when there is overlap the first predicate which matches will select the subclass to use.
 
 ### Using a Custom Mapping
 

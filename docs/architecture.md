@@ -1,27 +1,28 @@
 # CastIron Architecture
 
-CastIron is generally divided into two major parts: Execution and Mapping. The Execution portion consists of the `ISqlRunner`, the various query object interfaces and batching logic. The Mapping portion consists largely of the `IDataResults` object and the `IMapCompiler` suite. You can use one part without being forced to use the other.
+CastIron is generally divided into two major parts: Execution and Mapping. The Execution portion consists of the `ISqlRunner`, the various query object interfaces and batching logic. The Mapping portion consists largely of the `IDataResults` object and the `IMapCompiler` suite. You can use one part without being forced to use the other, and both sections of CastIron provide many options and opportunities for pluggability to help customize the library to your work flow.
 
 ## Design Goals
 
 CastIron has a number of design goals:
 
-1. Pluggability. CastIron should provide sane and powerful defaults, but everything should be pluggable for cases where different behaviors and features are required.
-1. Targetted Performance. Common operations should be fast, even if uncommon operations may be slow.
-1. Unobtrusiveness. CastIron should never get in the way and should never impose design decisions on your software. You should be able to fall back to trusty `System.Data` objects and methods at any time.
-1. Honesty. Mapping between an SQL database and the rich type system of a programming language like C# is a hard problem with many difficulties. ORMs try to hide these difficulties, but CastIron wants to be honest about what it can and cannot do.
-1. Query Object Pattern. CastIron suggests, but does not require, the use of the Query Object Pattern to help organize your code and encapsulate your database interactions.
-1. Simplicity. CastIron is not an ORM and does not aspire to be one. Building schemas, tracking schemas and maintaining object mappings are all strictly outside the purview of CastIron.
-1. Helpfulness. CastIron provides discoverable and fluent interfaces, and helpful error messages to assist developers.
+1. **Pluggability**. CastIron should provide sane and powerful defaults, but everything should be pluggable for cases where different behaviors and features are required.
+1. **Targetted Performance**. Common operations should be fast, even if uncommon operations may be slow.
+1. **Unobtrusiveness**. CastIron should never get in the way and should never impose design decisions on your software. You should be able to fall back to trusty `System.Data` objects and methods at any time.
+1. **Honesty**. Mapping between an SQL database and the rich type system of a programming language like C# is a hard problem with many difficulties. ORMs try to hide these difficulties, but CastIron wants to be honest about what it can and cannot do.
+1. **Query Object Pattern**. CastIron suggests, but does not require, the use of the Query Object Pattern to help organize your code and encapsulate your database interactions.
+1. **Simplicity**. CastIron is not an ORM and does not aspire to be one. Building schemas, tracking schemas and maintaining object mappings are all strictly outside the purview of CastIron.
+1. **Helpfulness**. CastIron provides discoverable and fluent interfaces, and helpful error messages to assist developers.
 
 ## Important Abstractions
 
 The basic types provided in `System.Data` have limitations and also can be difficult to use cleanly. Additionally, different providers often have different capabilities which can make writing code for multiple providers unnecessarily difficult. Here is a small sample of the basic limitations and drawbacks which CastIron aims to smooth over:
 
-* `IDbConnection` and `IDbCommand` interfaces don't provide any async method variants, even though most concrete provider types do provide these.
+* `IDbConnection` and `IDbCommand` interfaces don't provide any `async` method variants, even though most concrete provider types do provide these.
 * Adding parameters to `IDbCommand` can be very verbose, especially if you want to share code between providers. Different providers handle these parameters differently.
 * Output parameters are exposed as `object` from the `IDbCommand` but `IDataReader` provides type-safe access methods for result set data.
-* `IDataReader` will return `DbNull` instead of `null` values and will throw unhelpful exceptions instead of casting to `null` or a default value when a value is accessed.
+* `IDataReader` will return `DBNull` instead of `null` values and will throw unhelpful exceptions instead of casting to `null` or a default value when a value is accessed.
+* `SqlException` and its variants will tell you that there is an error, but won't tell you what query was being executed or what parameters were passed, forcing you to recreate this information manually.
 
 For these and several other reasons, CastIron provides several wrappers and abstractions which help to shield the developer from these problems:
 
@@ -38,6 +39,10 @@ The `IDataInteraction` is a wrapper around `IDbCommand` (and `IDbCommandAsync`) 
 The `IDataResults` object wraps the `IDataReader` and `IDbCommand` objects to provide access to all result sets and output parameters. To get the raw `IDataReader` object, call `IDataResults.AsRawReader()`. If you want a raw reader object which uses better error messages (at a slight performance penalty) call `IDataResults.AsRawReaderWithBetterErrorMessages()`.
 
 This type is the gateway to accessing the [Mapping Subsystem](mapping.md).
+
+### `SqlProblemException`
+
+CastIron provides `SqlProblemException` which includes the `SqlException`, the query text and the parameter values for easy debugging.
 
 ## Execution Basics
 

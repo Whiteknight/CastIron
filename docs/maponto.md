@@ -1,10 +1,12 @@
 # Building Complex Objects
 
-One of the design challenges of EntityFramework is that queries of almost any complexity are mapped into a single query with a single result set. Even modest LINQ queries can turn into huge result sets with dozens of columns and significant mapping logic. Errors are hard to find and performance is completely outside of the developer's control.
+One of the design challenges of EntityFramework is that queries of any complexity are mapped into a single  SQL `SELECT` statement with a single result set. Even modest LINQ queries can turn into huge queries with result sets that are huge and unintelligible to normal human observers. Errors are hard to find and performance is completely outside of the developer's control.
 
 CastIron instead embraces and encourages the idea of using multiple result sets in a query. Each individual query can be small, simple and focused on doing one thing right. The difficulty in this approach arises when we need to combine multiple result sets together to form a complex hierarchy of objects.
 
-## Example: Load a Person and Details 
+This page will show several examples about how to build complex objects using queries with multiple result sets. Hopefully you will agree that this is a pretty readable and more maintainable strategy.
+
+## Example: Load a Person and Details
 
 Consider the case of loading out person records from a database along with contact information:
 
@@ -51,7 +53,7 @@ SELECT Id, [Name] FROM Person WHERE Id = @id;
 SELECT Id, [Type], [Value] FROM ContactMethod WHERE PersonId = @id;
 ```
 
-The later might be a bit more involved depending on the query. We'll look at that in a bit. First, let's put this all together into a single query object which loads a single person by ID:
+The other query, loading out multiple Person records, might be a bit more involved depending on the query. We'll look at that in a bit. First, let's put this all together into a single query object which loads a single person by ID:
 
 ```csharp
 public class LoadOnePersonQuery : ISqlQuery<Person>
@@ -68,7 +70,8 @@ public class LoadOnePersonQuery : ISqlQuery<Person>
         cmd.ExecuteText(@"
             SELECT Id, [Name] FROM Person WHERE Id = @id;
             SELECT Id, [Type], [Value] FROM ContactMethod WHERE PersonId = @id;");
-        cmd.AddParameterWithValue("@id", _id)
+        cmd.AddParameterWithValue("@id", _id);
+        return true;
     }
 
     public Person GetResults(IDataResults results)
@@ -89,7 +92,7 @@ We can execute this query using our `ISqlRunner`:
 var people = runner.Query(new LoadOnePersonQuery(5));
 ```
 
-## Example: Load People with ForEachInnerJoin
+## Example: Load People with `ForEachInnerJoin`
 
 The above example is clean and simple, but now we want to look at the case where we load multiple people by some criteria. For the sake of simplicity, we will do a simple paging operation, which we may use to display a large list of people on a webpage, only a few at a time. First, let's look at the SQL query we will want to use:
 
@@ -99,20 +102,22 @@ DECLARE @persons TABLE (
     [Name] VARCHAR(64) NOT NULL
 )
 INSERT INTO @persons(Id, [Name])
-    SELECT 
-        Id, [Name] 
-        FROM Person 
+    SELECT
+        Id, [Name]
+        FROM Person
         ORDER BY Id ASC OFFSET @start ROWS FETCH NEXT @pageSize ROWS ONLY;
 
 SELECT Id, [Name] FROM @persons;
-SELECT 
-    cm.Id, cm.[Type], cm.[Value] 
-    FROM 
+SELECT
+    cm.Id, cm.[Type], cm.[Value]
+    FROM
         @persons p
         INNER JOIN
         ContactMethod cm
             ON p.Id = cm.PersonId;
 ```
+
+Notice first that this query was deliberately structured to be readable and extendable in the future. Different types of search criteria can be used to populate the `@persons` table, which then fuels the remainder of the query.
 
 To combine these two result sets into a single enumerable of objects, we have a few options. We could do something like a `.Join()` on these two result sets:
 
@@ -120,6 +125,7 @@ To combine these two result sets into a single enumerable of objects, we have a 
 var persons = results.AsEnumerable<Person>().ToList();
 results.AdvanceToNextResultSet();
 var contacts = results.AsEnumerable<ContactMethod().ToList();
+
 var pairs = persons
     .Join(contacts.GroupBy(c => c.PersonId), p => p.Id, cm => cm.Key, (p, cm) => new {
         Person = p,
@@ -153,6 +159,7 @@ Now we can use an extension method provided by CastIron to simplify the join ope
 var persons = results.AsEnumerable<Person>().ToList();
 results.AdvanceToNextResultSet();
 var contacts = results.AsEnumerable<ContactMethod().ToList();
+
 persons.ForEachInnerJoin(contacts, p => p.Id, cm => cm.PersonId, (p, cm) => p.ContactMethods.Add(cm));
 return persons;
 ```
@@ -179,21 +186,22 @@ public class LoadPageOfPersonsQuery : ISqlQuery<IReadOnlyList<Person>>
                 [Name] VARCHAR(64) NOT NULL
             )
             INSERT INTO @persons(Id, [Name])
-                SELECT 
-                    Id, [Name] 
-                    FROM Person 
+                SELECT
+                    Id, [Name]
+                    FROM Person
                     ORDER BY Id ASC OFFSET @start ROWS FETCH NEXT @pageSize ROWS ONLY;
 
             SELECT Id, [Name] FROM @persons;
-            SELECT 
-                cm.Id, cm.[Type], cm.[Value] 
-                FROM 
+            SELECT
+                cm.Id, cm.[Type], cm.[Value]
+                FROM
                     @persons p
                     INNER JOIN
                     ContactMethod cm
                         ON p.Id = cm.PersonId;");
         cmd.AddParameterWithValue("@start", _start);
         cmd.AddParameterWithValue("@pageSize", _pageSize);
+        return true;
     }
 
     public IReadOnlyList<Person> GetResults(IDataResults results)
@@ -212,7 +220,7 @@ We can execute this query pretty simply from anywhere that we have an `ISqlRunne
 var people = runner.Query(new LoadPageOfPersonsQuery(0, 100));
 ```
 
-## Example: MapOnto
+## Example: `MapOnto`
 
 CastIron provides another nice extension method which might be helpful in some cases. It's like the `ForEachInnerJoin` method, but gives you an option to select the object you want instead of using LINQ to match keys:
 
@@ -232,7 +240,7 @@ The choice of whether to use one of the CastIron extension methods or normal LIN
 
 One thing that often comes up when Paging results on a UI is the need to get a count of all results, so we can know how many pages to show. We would like a display on the bottom of the page that says something like "Page 5 of 400". To do that, we need to know how many items are in the database. We could add this into our existing `LoadPageOfPersonsQuery` object by creating a new `PagedResults` type and adding a count query to the end of our existing query sql:
 
-```csharp 
+```csharp
 public class PagedResults<T>
 {
     public int Count { get; set; }
@@ -258,15 +266,15 @@ public class LoadPageOfPersonsWithCountQuery : ISqlQuery<PagedResults<Person>>
                 [Name] VARCHAR(64) NOT NULL
             )
             INSERT INTO @persons(Id, [Name])
-                SELECT 
-                    Id, [Name] 
-                    FROM Person 
+                SELECT
+                    Id, [Name]
+                    FROM Person
                     ORDER BY Id ASC OFFSET @start ROWS FETCH NEXT @pageSize ROWS ONLY;
 
             SELECT Id, [Name] FROM @persons;
-            SELECT 
-                cm.Id, cm.[Type], cm.[Value] 
-                FROM 
+            SELECT
+                cm.Id, cm.[Type], cm.[Value]
+                FROM
                     @persons p
                     INNER JOIN
                     ContactMethod cm
@@ -290,7 +298,9 @@ public class LoadPageOfPersonsWithCountQuery : ISqlQuery<PagedResults<Person>>
 }
 ```
 
-However, it might be better to create a separate query class to get this so we can reuse it, and execute the two queries together as a batch on a single connection:
+## Example: Count in a separate query
+
+The above example gives us everything we need all in a single nice package: The list of persons, the contacts, and a count of all people. However, it might be better to create a separate query class to get the count, because we might not want to do that every single time we load a page. Also, if it's a separate query, we can reuse it in other workflows. If we have two queries, we can execute them together as a batch.
 
 ```csharp
 public class GetPersonsCountQuery : ISqlQuerySimple<int>
