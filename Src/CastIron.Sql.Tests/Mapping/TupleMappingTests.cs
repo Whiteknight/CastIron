@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections.Immutable;
 using System.Linq;
-using CastIron.Sql.Statements;
 using FluentAssertions;
 using NUnit.Framework;
 

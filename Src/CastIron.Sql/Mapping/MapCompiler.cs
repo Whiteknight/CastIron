@@ -30,9 +30,23 @@ namespace CastIron.Sql.Mapping
             return context.CompileLambda<T>();
         }
 
+        private static readonly HashSet<Type> _tupleTypes = new HashSet<Type>
+        {
+            typeof(Tuple<>),
+            typeof(Tuple<,>),
+            typeof(Tuple<,,>),
+            typeof(Tuple<,,,>),
+            typeof(Tuple<,,,,>),
+            typeof(Tuple<,,,,,>),
+            typeof(Tuple<,,,,,,>)
+        };
+
         private static bool IsTupleType(Type parentType, object factory)
         {
-            return parentType.Namespace == "System" && parentType.Name.StartsWith("Tuple") && factory == null;
+            if (factory != null || !parentType.IsGenericType || !parentType.IsConstructedGenericType)
+                return false;
+            var genericTypeDef = parentType.GetGenericTypeDefinition();
+            return _tupleTypes.Contains(genericTypeDef);
         }
 
         // It is Dictionary<string,X> or is concrete and inherits from IDictionary<string,X>
