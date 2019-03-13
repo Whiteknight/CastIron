@@ -215,5 +215,17 @@ namespace CastIron.Sql.Tests.Mapping
             result = target.Query(new TestQuery<Guid?>("SELECT NULL AS TestId;"));
             result.Should().BeNull();
         }
+
+        [Test]
+        public void Primitive_string_Guid([Values("MSSQL", "SQLITE")] string provider)
+        {
+            var target = RunnerFactory.Create(provider);
+            var result = target.Query(new TestQuery<Guid>("SELECT '12345678-1234-1234-1234-123456789012' AS TestId;"));
+            result.Should().NotBe(Guid.Empty);
+
+            var result2 = target.Query(new TestQuery<Guid?>("SELECT '12345678-1234-1234-1234-123456789012' AS TestId;"));
+            result2.Should().NotBeNull();
+            result2.Should().NotBe(Guid.Empty);
+        }
     }
 }

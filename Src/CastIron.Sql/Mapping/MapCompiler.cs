@@ -349,11 +349,14 @@ namespace CastIron.Sql.Mapping
             if (IsMappableCustomObjectType(elementType))
             {
                 var subcontext = context.CreateSubcontext(elementType, name);
-
-                AddInstantiationExpressionForObjectInstance(subcontext);
-                AddPropertyAssignmentExpressions(subcontext);
-
-                context.AddStatement(Expression.Call(listVar, addMethod, subcontext.Instance));
+                var subcontextColumns = subcontext.GetColumnNameCounts();
+                if (subcontextColumns.Any())
+                {
+                    AddInstantiationExpressionForObjectInstance(subcontext);
+                    AddPropertyAssignmentExpressions(subcontext);
+                    context.AddStatement(Expression.Call(listVar, addMethod, subcontext.Instance));
+                }
+                
                 return;
             }
 

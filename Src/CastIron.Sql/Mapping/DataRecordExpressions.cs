@@ -68,6 +68,7 @@ namespace CastIron.Sql.Mapping
         private static readonly MethodInfo GetValueMethod = typeof(IDataRecord).GetMethod(nameof(IDataRecord.GetValue));
         private static readonly Expression _dbNullExp = Expression.Field(null, typeof(DBNull), nameof(DBNull.Value));
         private static readonly MethodInfo _convertMethod = typeof(Convert).GetMethod(nameof(Convert.ChangeType), new[] { typeof(object), typeof(Type) });
+        private static readonly MethodInfo _guidParseMethod = typeof(Guid).GetMethod(nameof(Guid.Parse));
 
         public static bool IsSupportedPrimitiveType(Type t)
         {
@@ -145,16 +146,29 @@ namespace CastIron.Sql.Mapping
                     Expression.Constant(false));
             }
 
+            if (columnType == typeof(string) && (targetType == typeof(Guid) || targetType == typeof(Guid?)))
+            {
+                return Expression.Condition(
+                    Expression.NotEqual(_dbNullExp, rawVar),
+                    Expression.Convert(
+                        Expression.Call(null, _guidParseMethod, new Expression[] {
+                            Expression.Convert(rawVar, typeof(string)) }), targetType),
+                    GetDefaultValueExpression(targetType));
+            }
+
             // Convert.ChangeType where the column is IConvertable. Convert to the non-Nullable<> version of TargetType
             if (IsConvertible(columnType))
             {
                 // raw != DBNull.Instance ? (targetType)Convert.ChangeType(raw, targetType) : default(targetType)
                 var baseTargetType = GetTypeWithoutNullability(targetType);
-                return Expression.Condition(
-                    Expression.NotEqual(_dbNullExp, rawVar),
-                    Expression.Convert(
-                        Expression.Call(null, _convertMethod, new Expression[] { rawVar, Expression.Constant(baseTargetType, typeof(Type)) }), targetType),
-                    GetDefaultValueExpression(targetType));
+                if (IsConvertible(targetType))
+                {
+                    return Expression.Condition(
+                        Expression.NotEqual(_dbNullExp, rawVar),
+                        Expression.Convert(
+                            Expression.Call(null, _convertMethod, new Expression[] { rawVar, Expression.Constant(baseTargetType, typeof(Type)) }), targetType),
+                        GetDefaultValueExpression(targetType));
+                }
             }
             
             // There is no conversion rule, so just return a default value.
