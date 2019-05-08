@@ -2,7 +2,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using CastIron.Sql.Statements;
 using FluentAssertions;
 using NUnit.Framework;
 
@@ -175,7 +174,7 @@ namespace CastIron.Sql.Tests.Mapping
         public void TestQuery_MapToRawIntArray([Values("MSSQL", "SQLITE")] string provider)
         {
             var target = RunnerFactory.Create(provider);
-            var result = target.Query(new SqlQuery<List<int>>("SELECT 5, 6, '7'")).First();
+            var result = target.Query<List<int>>("SELECT 5, 6, '7'").First();
             result.Count.Should().Be(3);
             result[0].Should().Be(5);
             result[1].Should().Be(6);
@@ -186,7 +185,7 @@ namespace CastIron.Sql.Tests.Mapping
         public void TestQuery_MapStringToDateTimeList([Values("MSSQL", "SQLITE")] string provider)
         {
             var target = RunnerFactory.Create(provider);
-            var result = target.Query(new SqlQuery<List<DateTime>>("SELECT '2018-12-11 17:01:02'")).First();
+            var result = target.Query<List<DateTime>>("SELECT '2018-12-11 17:01:02'").First();
             result.Count.Should().Be(1);
             result[0].Should().Be(new DateTime(2018, 12, 11, 17, 1, 2));
         }
@@ -228,7 +227,7 @@ namespace CastIron.Sql.Tests.Mapping
         public void TestQuery_CustomCollectionType([Values("MSSQL", "SQLITE")] string provider)
         {
             var target = RunnerFactory.Create(provider);
-            var result = target.Query(new SqlQuery<TestCollectionType>("SELECT 'A', 'B', 'C'")).First().ToList();
+            var result = target.Query<TestCollectionType>("SELECT 'A', 'B', 'C'").First().ToList();
             result[0].Should().Be("A");
             result[1].Should().Be("B");
             result[2].Should().Be("C");

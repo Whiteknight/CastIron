@@ -14,7 +14,7 @@ namespace CastIron.Sql.Execution
             _interactionFactory = interactionFactory;
         }
 
-        public T Execute<T>(ISqlQuery query, ISqlQueryReader<T> queryReader, IExecutionContext context, int index)
+        public T Execute<T>(ISqlQuery query, IResultMaterializer<T> queryReader, IExecutionContext context, int index)
         {
             context.StartAction(index, "Setup Command");
             using (var command = context.CreateCommand())
@@ -48,7 +48,7 @@ namespace CastIron.Sql.Execution
             }
         }
 
-        public async Task<T> ExecuteAsync<T>(ISqlQuery query, ISqlQueryReader<T> queryReader, IExecutionContext context, int index)
+        public async Task<T> ExecuteAsync<T>(ISqlQuery query, IResultMaterializer<T> queryReader, IExecutionContext context, int index)
         {
             context.StartAction(index, "Setup Command");
             using (var command = context.CreateAsyncCommand())

@@ -31,7 +31,7 @@ namespace CastIron.Sql
             return beingRead ? _executors.ToArray() : new Action<IExecutionContext, int>[0];
         }
 
-        public ISqlResultPromise<T> Add<T>(ISqlQuerySimple query, ISqlQueryReader<T> reader)
+        public ISqlResultPromise<T> Add<T>(ISqlQuerySimple query, IResultMaterializer<T> reader)
         {
             Assert.ArgumentNotNull(query, nameof(query));
             Assert.ArgumentNotNull(reader, nameof(reader));
@@ -46,10 +46,10 @@ namespace CastIron.Sql
 
         public ISqlResultPromise<T> Add<T>(ISqlQuerySimple<T> query)
         {
-            return Add<T>(query, query);
+            return Add(query, query);
         }
 
-        public ISqlResultPromise<T> Add<T>(ISqlQuery query, ISqlQueryReader<T> reader)
+        public ISqlResultPromise<T> Add<T>(ISqlQuery query, IResultMaterializer<T> reader)
         {
             Assert.ArgumentNotNull(query, nameof(query));
             Assert.ArgumentNotNull(reader, nameof(reader));
@@ -64,7 +64,7 @@ namespace CastIron.Sql
 
         public ISqlResultPromise<T> Add<T>(ISqlQuery<T> query)
         {
-            return Add<T>(query, query);
+            return Add(query, query);
         }
 
         public ISqlResultPromise Add(ISqlCommandSimple command)
@@ -112,7 +112,7 @@ namespace CastIron.Sql
         public ISqlResultPromise<IReadOnlyList<T>> Add<T>(string sql)
         {
             Assert.ArgumentNotNullOrEmpty(sql, nameof(sql));
-            return Add(new SqlQuery<T>(sql));
+            return Add(SqlQuery.Simple<T>(sql));
         }
 
         private void AddExecutor(Action<IExecutionContext, int> executor)

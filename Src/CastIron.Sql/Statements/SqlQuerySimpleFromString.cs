@@ -6,11 +6,11 @@ using CastIron.Sql.Utility;
 
 namespace CastIron.Sql.Statements
 {
-    public class SqlQuery : ISqlQuerySimple
+    public class SqlQuerySimpleFromString : ISqlQuerySimple
     {
         private readonly string _sql;
 
-        public SqlQuery(string sql)
+        public SqlQuerySimpleFromString(string sql)
         {
             Assert.ArgumentNotNullOrEmpty(sql, nameof(sql));
             _sql = sql;
@@ -22,12 +22,12 @@ namespace CastIron.Sql.Statements
         }
     }
 
-    public class SqlQuery<TRow> : ISqlQuerySimple<IReadOnlyList<TRow>>
+    public class SqlQuerySimpleFromString<TRow> : ISqlQuerySimple<IReadOnlyList<TRow>>
     {
         private readonly string _sql;
         private readonly Action<IMapCompilerBuilder<TRow>> _setupCompiler;
 
-        public SqlQuery(string sql, Action<IMapCompilerBuilder<TRow>> setupCompiler = null)
+        public SqlQuerySimpleFromString(string sql, Action<IMapCompilerBuilder<TRow>> setupCompiler = null)
         {
             Assert.ArgumentNotNullOrEmpty(sql, nameof(sql));
             _sql = sql;

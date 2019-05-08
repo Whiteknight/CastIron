@@ -2,7 +2,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Dynamic;
 using System.Linq;
-using CastIron.Sql.Statements;
 using FluentAssertions;
 using NUnit.Framework;
 
@@ -15,7 +14,7 @@ namespace CastIron.Sql.Tests.Mapping
         public void TestQuery_MapToObject([Values("MSSQL", "SQLITE")] string provider)
         {
             var target = RunnerFactory.Create(provider);
-            var result = target.Query(new SqlQuery<object>("SELECT 5 AS TestInt, 'TEST' AS TestString, CAST(1 AS BIT) AS TestBool;")).First();
+            var result = target.Query<object>("SELECT 5 AS TestInt, 'TEST' AS TestString, CAST(1 AS BIT) AS TestBool;").First();
             result.Should().BeOfType<Dictionary<string, object>>();
 
             var dict = result as Dictionary<string, object>;
@@ -29,7 +28,7 @@ namespace CastIron.Sql.Tests.Mapping
         public void TestQuery_MapToObjectWithDuplicates([Values("MSSQL", "SQLITE")] string provider)
         {
             var target = RunnerFactory.Create(provider);
-            var result = target.Query(new SqlQuery<object>("SELECT 5 AS TestInt, 'A' AS TestString, 'B' AS TestString;")).First();
+            var result = target.Query<object>("SELECT 5 AS TestInt, 'A' AS TestString, 'B' AS TestString;").First();
             result.Should().BeOfType<Dictionary<string, object>>();
 
             var dict = result as Dictionary<string, object>;
@@ -45,7 +44,7 @@ namespace CastIron.Sql.Tests.Mapping
         public void TestQuery_MapToObjectArray([Values("MSSQL", "SQLITE")] string provider)
         {
             var target = RunnerFactory.Create(provider);
-            var result = target.Query(new SqlQuery<object[]>("SELECT 5 AS TestInt, 'TEST' AS TestString, CAST(1 AS BIT) AS TestBool;")).First();
+            var result = target.Query<object[]>("SELECT 5 AS TestInt, 'TEST' AS TestString, CAST(1 AS BIT) AS TestBool;").First();
             result.Should().BeOfType<object[]>();
 
             result.Length.Should().Be(3);
@@ -58,7 +57,7 @@ namespace CastIron.Sql.Tests.Mapping
         public void TestQuery_dynamic([Values("MSSQL", "SQLITE")] string provider)
         {
             var target = RunnerFactory.Create(provider);
-            dynamic result = target.Query(new SqlQuery<ExpandoObject>("SELECT 5 AS TestInt, 'TEST' AS TestString;")).First();
+            dynamic result = target.Query<ExpandoObject>("SELECT 5 AS TestInt, 'TEST' AS TestString;").First();
             string testString = result.TestString;
             testString.Should().Be("TEST");
 
@@ -70,7 +69,7 @@ namespace CastIron.Sql.Tests.Mapping
         public void TestQuery_MapToIList([Values("MSSQL", "SQLITE")] string provider)
         {
             var target = RunnerFactory.Create(provider);
-            var result = target.Query(new SqlQuery<IList>("SELECT 5 AS TestInt, 'TEST' AS TestString, CAST(1 AS BIT) AS TestBool;")).First();
+            var result = target.Query<IList>("SELECT 5 AS TestInt, 'TEST' AS TestString, CAST(1 AS BIT) AS TestBool;").First();
             result.Should().BeOfType<object[]>();
 
             result.Count.Should().Be(3);
@@ -83,7 +82,7 @@ namespace CastIron.Sql.Tests.Mapping
         public void TestQuery_MapToICollection([Values("MSSQL", "SQLITE")] string provider)
         {
             var target = RunnerFactory.Create(provider);
-            var result = target.Query(new SqlQuery<ICollection>("SELECT 5 AS TestInt, 'TEST' AS TestString, CAST(1 AS BIT) AS TestBool;")).First();
+            var result = target.Query<ICollection>("SELECT 5 AS TestInt, 'TEST' AS TestString, CAST(1 AS BIT) AS TestBool;").First();
             result.Should().BeOfType<object[]>();
 
             result.Count.Should().Be(3);
@@ -97,7 +96,7 @@ namespace CastIron.Sql.Tests.Mapping
         public void TestQuery_MapToIEnumerable([Values("MSSQL", "SQLITE")] string provider)
         {
             var target = RunnerFactory.Create(provider);
-            var result = target.Query(new SqlQuery<IEnumerable>("SELECT 5 AS TestInt, 'TEST' AS TestString, CAST(1 AS BIT) AS TestBool;")).First();
+            var result = target.Query<IEnumerable>("SELECT 5 AS TestInt, 'TEST' AS TestString, CAST(1 AS BIT) AS TestBool;").First();
             result.Should().BeOfType<object[]>();
 
             var list = result.Cast<object>().ToList();
@@ -111,7 +110,7 @@ namespace CastIron.Sql.Tests.Mapping
         public void TestQuery_MapToIEnumerableOfObject([Values("MSSQL", "SQLITE")] string provider)
         {
             var target = RunnerFactory.Create(provider);
-            var result = target.Query(new SqlQuery<IEnumerable<object>>("SELECT 5 AS TestInt, 'TEST' AS TestString, CAST(1 AS BIT) AS TestBool;")).First();
+            var result = target.Query<IEnumerable<object>>("SELECT 5 AS TestInt, 'TEST' AS TestString, CAST(1 AS BIT) AS TestBool;").First();
             result.Should().BeOfType<List<object>>();
 
             var list = result.ToList();

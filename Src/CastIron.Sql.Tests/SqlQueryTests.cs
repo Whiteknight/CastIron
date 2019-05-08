@@ -204,5 +204,14 @@ namespace CastIron.Sql.Tests
             var rowsAffected = runner.Query(new QueryWithRowsAffected());
             rowsAffected.Should().Be(4);
         }
+
+        [Test]
+        public void SqlQuery_Combine([Values("MSSQL", "SQLITE")] string provider)
+        {
+            var runner = RunnerFactory.Create(provider);
+            var query = SqlQuery.Combine("SELECT 1", r => r.AsEnumerable<int>().First());
+            var result = runner.Query(query);
+            result.Should().Be(1);
+        }
     }
 }

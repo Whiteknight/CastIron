@@ -13,7 +13,7 @@
         bool SetupCommand(IDataInteraction interaction);
     }
 
-    public interface ISqlQueryReader<out T>
+    public interface IResultMaterializer<out T>
     {
         /// <summary>
         /// Get results from the query
@@ -28,7 +28,7 @@
     /// to set query text and parameters manually
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    public interface ISqlQuery<out T> : ISqlQuery, ISqlQueryReader<T>
+    public interface ISqlQuery<out T> : ISqlQuery, IResultMaterializer<T>
     {
     }
 }

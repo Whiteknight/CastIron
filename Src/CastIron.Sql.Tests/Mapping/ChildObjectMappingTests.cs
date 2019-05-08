@@ -1,5 +1,4 @@
 using System.Linq;
-using CastIron.Sql.Statements;
 using FluentAssertions;
 using NUnit.Framework;
 
@@ -24,7 +23,7 @@ namespace CastIron.Sql.Tests.Mapping
         public void TestQuery_ObjectWithChild([Values("MSSQL", "SQLITE")] string provider)
         {
             var target = RunnerFactory.Create(provider);
-            var result = target.Query(new SqlQuery<TestObject_WithChild>("SELECT 5 AS Id, 'TEST' AS Child_Name;")).First();
+            var result = target.Query<TestObject_WithChild>("SELECT 5 AS Id, 'TEST' AS Child_Name;").First();
             result.Id.Should().Be(5);
             result.Child.Name.Should().Be("TEST");
         }
@@ -34,7 +33,8 @@ namespace CastIron.Sql.Tests.Mapping
         public void TestQuery_ObjectWithChildCustomSeparator([Values("MSSQL", "SQLITE")] string provider)
         {
             var target = RunnerFactory.Create(provider);
-            var result = target.Query(new SqlQuery<TestObject_WithChild>("SELECT 5 AS Id, 'TEST' AS ChildXName;", c => c.UseChildSeparator("X"))).First();
+            var query = SqlQuery.Simple<TestObject_WithChild>("SELECT 5 AS Id, 'TEST' AS ChildXName;", c => c.UseChildSeparator("X"));
+            var result = target.Query(query).First();
             result.Id.Should().Be(5);
             result.Child.Name.Should().Be("TEST");
         }
@@ -49,7 +49,7 @@ namespace CastIron.Sql.Tests.Mapping
         public void TestQuery_ObjectPropertySingleValue([Values("MSSQL", "SQLITE")] string provider)
         {
             var target = RunnerFactory.Create(provider);
-            var result = target.Query(new SqlQuery<TestObject_WithChildObject>("SELECT 6 AS Id, 'A' AS Value")).First();
+            var result = target.Query<TestObject_WithChildObject>("SELECT 6 AS Id, 'A' AS Value").First();
             result.Id.Should().Be(6);
             result.Value.Should().BeOfType<string>();
             (result.Value as string).Should().Be("A");
@@ -59,7 +59,7 @@ namespace CastIron.Sql.Tests.Mapping
         public void TestQuery_ObjectPropertyMultipleValues([Values("MSSQL", "SQLITE")] string provider)
         {
             var target = RunnerFactory.Create(provider);
-            var result = target.Query(new SqlQuery<TestObject_WithChildObject>("SELECT 6 AS Id, 'A' AS Value, 'B' AS Value, 'C' AS value")).First();
+            var result = target.Query<TestObject_WithChildObject>("SELECT 6 AS Id, 'A' AS Value, 'B' AS Value, 'C' AS value").First();
             result.Id.Should().Be(6);
             result.Value.Should().BeOfType<object[]>();
             var objArray = result.Value as object[];
@@ -72,7 +72,7 @@ namespace CastIron.Sql.Tests.Mapping
         public void TestQuery_ObjectWithChildNull([Values("MSSQL", "SQLITE")] string provider)
         {
             var target = RunnerFactory.Create(provider);
-            var result = target.Query(new SqlQuery<TestObject_WithChildObject>("SELECT 5 AS Id;")).First();
+            var result = target.Query<TestObject_WithChildObject>("SELECT 5 AS Id;").First();
             result.Id.Should().Be(5);
             result.Value.Should().BeNull();
         }
@@ -104,7 +104,8 @@ namespace CastIron.Sql.Tests.Mapping
         public void TestQuery_NestedChildrenCustomSeparator([Values("MSSQL", "SQLITE")] string provider)
         {
             var target = RunnerFactory.Create(provider);
-            var result = target.Query(new SqlQuery<TestObject_WithNestedChildren>("SELECT 'TEST' AS AXBXValue", c => c.UseChildSeparator("X"))).Single();
+            var query = SqlQuery.Simple<TestObject_WithNestedChildren>("SELECT 'TEST' AS AXBXValue", c => c.UseChildSeparator("X"));
+            var result = target.Query(query).Single();
             result?.A?.B?.Value.Should().Be("TEST");
         }
     }

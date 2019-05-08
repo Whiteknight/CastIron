@@ -1,6 +1,5 @@
 using System;
 using System.Linq;
-using CastIron.Sql.Statements;
 using FluentAssertions;
 using NUnit.Framework;
 
@@ -76,7 +75,7 @@ namespace CastIron.Sql.Tests.Mapping
         public void TestQuery_MapStringToDateTime([Values("MSSQL", "SQLITE")] string provider)
         {
             var target = RunnerFactory.Create(provider);
-            var result = target.Query(new SqlQuery<DateTime>("SELECT '2018-12-11 17:01:02'")).First();
+            var result = target.Query<DateTime>("SELECT '2018-12-11 17:01:02'").First();
             result.Should().Be(new DateTime(2018, 12, 11, 17, 1, 2));
         }
 
