@@ -16,13 +16,7 @@
     /// Represents a query which returns a result set or multiple result sets
     /// Use ISqlParameterized to add parameters to the query
     /// </summary>
-    public interface ISqlQuerySimple<out T> : ISqlQuerySimple
+    public interface ISqlQuerySimple<out T> : ISqlQuerySimple, ISqlQueryReader<T>
     {
-        /// <summary>
-        /// Return the results of the query
-        /// </summary>
-        /// <param name="result">The results object which contains the data reader, mappers and output parameters</param>
-        /// <returns></returns>
-        T Read(IDataResults result);
     }
 }

@@ -13,12 +13,7 @@
         bool SetupCommand(IDataInteraction interaction);
     }
 
-    /// <summary>
-    /// Represents a query which returns result sets from the DB. The raw DbCommand is provided
-    /// to set query text and parameters manually
-    /// </summary>
-    /// <typeparam name="T"></typeparam>
-    public interface ISqlQuery<out T> : ISqlQuery
+    public interface ISqlQueryReader<out T>
     {
         /// <summary>
         /// Get results from the query
@@ -26,5 +21,14 @@
         /// <param name="result">The result object which contains data reader, mappers, and output parameters</param>
         /// <returns></returns>
         T Read(IDataResults result);
+    }
+
+    /// <summary>
+    /// Represents a query which returns result sets from the DB. The raw DbCommand is provided
+    /// to set query text and parameters manually
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    public interface ISqlQuery<out T> : ISqlQuery, ISqlQueryReader<T>
+    {
     }
 }

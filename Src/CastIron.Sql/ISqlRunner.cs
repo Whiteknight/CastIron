@@ -185,6 +185,22 @@ namespace CastIron.Sql
             runner.Execute(batch.GetExecutors(), build);
         }
 
+        public static T Query<T>(this ISqlRunner runner, ISqlQuerySimple query, ISqlQueryReader<T> reader, Action<IContextBuilder> build = null)
+        {
+            Assert.ArgumentNotNull(runner, nameof(runner));
+            Assert.ArgumentNotNull(query, nameof(query));
+            Assert.ArgumentNotNull(reader, nameof(reader));
+            return runner.Execute(c => new SqlQuerySimpleStrategy().Execute(query, reader, c, 0), build);
+        }
+
+        public static Task<T> QueryAsync<T>(this ISqlRunner runner, ISqlQuerySimple query, ISqlQueryReader<T> reader, Action<IContextBuilder> build = null)
+        {
+            Assert.ArgumentNotNull(runner, nameof(runner));
+            Assert.ArgumentNotNull(query, nameof(query));
+            Assert.ArgumentNotNull(reader, nameof(reader));
+            return runner.ExecuteAsync(c => new SqlQuerySimpleStrategy().ExecuteAsync(query, reader, c, 0), build);
+        }
+
         /// <summary>
         /// Execute the query object and return the result. Maps internally to a call to 
         /// IDbCommand.ExecuteReader()
@@ -197,15 +213,27 @@ namespace CastIron.Sql
         public static T Query<T>(this ISqlRunner runner, ISqlQuerySimple<T> query, Action<IContextBuilder> build = null)
         {
             Assert.ArgumentNotNull(runner, nameof(runner));
-            Assert.ArgumentNotNull(query, nameof(query));
-            return runner.Execute(c => new SqlQuerySimpleStrategy().Execute(query, c, 0), build);
+            return runner.Query<T>(query, query, build);
         }
 
         public static Task<T> QueryAsync<T>(this ISqlRunner runner, ISqlQuerySimple<T> query, Action<IContextBuilder> build = null)
         {
             Assert.ArgumentNotNull(runner, nameof(runner));
+            return runner.QueryAsync<T>(query, query, build);
+        }
+
+        public static T Query<T>(this ISqlRunner runner, ISqlQuery query, ISqlQueryReader<T> reader, Action<IContextBuilder> build = null)
+        {
+            Assert.ArgumentNotNull(runner, nameof(runner));
             Assert.ArgumentNotNull(query, nameof(query));
-            return runner.ExecuteAsync(c => new SqlQuerySimpleStrategy().ExecuteAsync(query, c, 0), build);
+            return runner.Execute(c => new SqlQueryStrategy(runner.InteractionFactory).Execute(query, reader, c, 0), build);
+        }
+
+        public static Task<T> QueryAsync<T>(this ISqlRunner runner, ISqlQuery query, ISqlQueryReader<T> reader, Action<IContextBuilder> build = null)
+        {
+            Assert.ArgumentNotNull(runner, nameof(runner));
+            Assert.ArgumentNotNull(query, nameof(query));
+            return runner.ExecuteAsync(c => new SqlQueryStrategy(runner.InteractionFactory).ExecuteAsync(query, reader, c, 0), build);
         }
 
         /// <summary>
@@ -220,15 +248,13 @@ namespace CastIron.Sql
         public static T Query<T>(this ISqlRunner runner, ISqlQuery<T> query, Action<IContextBuilder> build = null)
         {
             Assert.ArgumentNotNull(runner, nameof(runner));
-            Assert.ArgumentNotNull(query, nameof(query));
-            return runner.Execute(c => new SqlQueryStrategy(runner.InteractionFactory).Execute(query, c, 0), build);
+            return runner.Query<T>(query, query, build);
         }
 
         public static Task<T> QueryAsync<T>(this ISqlRunner runner, ISqlQuery<T> query, Action<IContextBuilder> build = null)
         {
             Assert.ArgumentNotNull(runner, nameof(runner));
-            Assert.ArgumentNotNull(query, nameof(query));
-            return runner.ExecuteAsync(c => new SqlQueryStrategy(runner.InteractionFactory).ExecuteAsync(query, c, 0), build);
+            return runner.QueryAsync<T>(query, query, build);
         }
 
         /// <summary>

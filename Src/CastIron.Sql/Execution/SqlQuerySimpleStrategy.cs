@@ -7,7 +7,7 @@ namespace CastIron.Sql.Execution
 {
     public class SqlQuerySimpleStrategy
     {
-        public T Execute<T>(ISqlQuerySimple<T> query, IExecutionContext context, int index)
+        public T Execute<T>(ISqlQuerySimple query, ISqlQueryReader<T> queryReader, IExecutionContext context, int index)
         {
             context.StartAction(index, "Setup Command");
             using (var dbCommand = context.CreateCommand())
@@ -25,7 +25,7 @@ namespace CastIron.Sql.Execution
                     {
                         context.StartAction(index, "Map Results");
                         var rawResultSet = new SqlDataReaderResults(dbCommand, context, reader);
-                        return query.Read(rawResultSet);
+                        return queryReader.Read(rawResultSet);
                     }
                 }
                 catch (SqlProblemException)
@@ -41,7 +41,7 @@ namespace CastIron.Sql.Execution
             }
         }
 
-        public async Task<T> ExecuteAsync<T>(ISqlQuerySimple<T> query, IExecutionContext context, int index)
+        public async Task<T> ExecuteAsync<T>(ISqlQuerySimple query, ISqlQueryReader<T> queryReader, IExecutionContext context, int index)
         {
             context.StartAction(index, "Setup Command");
             using (var dbCommand = context.CreateAsyncCommand())
@@ -59,7 +59,7 @@ namespace CastIron.Sql.Execution
                     {
                         context.StartAction(index, "Map Results");
                         var rawResultSet = new SqlDataReaderResults(dbCommand.Command, context, reader);
-                        return await Task.Run(() => query.Read(rawResultSet));
+                        return await Task.Run(() => queryReader.Read(rawResultSet));
                     }
                 }
                 catch (SqlProblemException)

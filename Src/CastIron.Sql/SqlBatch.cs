@@ -31,13 +31,32 @@ namespace CastIron.Sql
             return beingRead ? _executors.ToArray() : new Action<IExecutionContext, int>[0];
         }
 
-        public ISqlResultPromise<T> Add<T>(ISqlQuerySimple<T> query)
+        public ISqlResultPromise<T> Add<T>(ISqlQuerySimple query, ISqlQueryReader<T> reader)
         {
             Assert.ArgumentNotNull(query, nameof(query));
+            Assert.ArgumentNotNull(reader, nameof(reader));
             var promise = new SqlResultPromise<T>();
             AddExecutor((c, i) =>
             {
-                var result = new SqlQuerySimpleStrategy().Execute(query, c, i);
+                var result = new SqlQuerySimpleStrategy().Execute(query, reader, c, i);
+                promise.SetValue(result);
+            });
+            return promise;
+        }
+
+        public ISqlResultPromise<T> Add<T>(ISqlQuerySimple<T> query)
+        {
+            return Add<T>(query, query);
+        }
+
+        public ISqlResultPromise<T> Add<T>(ISqlQuery query, ISqlQueryReader<T> reader)
+        {
+            Assert.ArgumentNotNull(query, nameof(query));
+            Assert.ArgumentNotNull(reader, nameof(reader));
+            var promise = new SqlResultPromise<T>();
+            AddExecutor((c, i) =>
+            {
+                var result = new SqlQueryStrategy(_interactionFactory).Execute(query, reader, c, i);
                 promise.SetValue(result);
             });
             return promise;
@@ -45,14 +64,7 @@ namespace CastIron.Sql
 
         public ISqlResultPromise<T> Add<T>(ISqlQuery<T> query)
         {
-            Assert.ArgumentNotNull(query, nameof(query));
-            var promise = new SqlResultPromise<T>();
-            AddExecutor((c, i) =>
-            {
-                var result = new SqlQueryStrategy(_interactionFactory).Execute(query, c, i);
-                promise.SetValue(result);
-            });
-            return promise;
+            return Add<T>(query, query);
         }
 
         public ISqlResultPromise Add(ISqlCommandSimple command)
