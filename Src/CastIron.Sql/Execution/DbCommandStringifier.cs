@@ -1,4 +1,5 @@
-﻿using System.Data;
+﻿using System.Collections.Generic;
+using System.Data;
 using System.Data.SqlClient;
 using System.Text;
 
@@ -10,6 +11,20 @@ namespace CastIron.Sql.Execution
     public class DbCommandStringifier
     {
         private static readonly DbCommandStringifier _instance;
+
+        private static readonly HashSet<DbType> _quotedDbTypes = new HashSet<DbType>
+        {
+            DbType.String,
+            DbType.StringFixedLength,
+            DbType.AnsiStringFixedLength,
+            DbType.AnsiString,
+            DbType.Date,
+            DbType.DateTime,
+            DbType.DateTime2,
+            DbType.Guid,
+            DbType.DateTimeOffset,
+            DbType.Xml
+        };
 
         static DbCommandStringifier()
         {
@@ -51,7 +66,10 @@ namespace CastIron.Sql.Execution
                 if (param.Direction == ParameterDirection.Input || param.Direction == ParameterDirection.InputOutput)
                 {
                     sb.Append(" = ");
-                    sb.Append(param.SqlValue);
+                    var value = param.SqlValue;
+                    if (_quotedDbTypes.Contains(param.DbType))
+                        value = "'" + value.ToString().Replace("'", "''") + "'";
+                    sb.Append(value);
                 }
 
                 sb.AppendLine(";");

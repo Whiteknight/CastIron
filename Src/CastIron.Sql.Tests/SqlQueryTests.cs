@@ -1,6 +1,7 @@
 ﻿using System.Data;
 using System.Linq;
 using System.Threading.Tasks;
+using CastIron.Sql.Execution;
 using FluentAssertions;
 using NUnit.Framework;
 
@@ -89,6 +90,23 @@ namespace CastIron.Sql.Tests
             result.Value2.Should().Be(3.14f);
             result.Value3.Should().Be("TEST");
         }
+
+        [Test]
+        public void Query2_Stringify([Values("MSSQL")] string provider)
+        {
+            var runner = RunnerFactory.Create(provider);
+            var parameters = new Query2Values
+            {
+                Value1 = 5,
+                Value2 = 3.14f,
+                Value3 = "TEST"
+
+            };
+            var query = new Query2(parameters);
+            var result = runner.Stringifier.Stringify(query);
+            result.Should().NotBeNullOrEmpty();
+        }
+
 
 
         [Test]
@@ -204,7 +222,7 @@ namespace CastIron.Sql.Tests
             var rowsAffected = runner.Query(new QueryWithRowsAffected());
             rowsAffected.Should().Be(4);
         }
-
+        
         [Test]
         public void SqlQuery_Combine([Values("MSSQL", "SQLITE")] string provider)
         {
