@@ -28,7 +28,7 @@ namespace CastIron.Sql.Statements
                 prefix = $"[{prefix}].";
             foreach (var property in type.GetProperties(BindingFlags.Public | BindingFlags.Instance))
             {
-                var attrs = property.GetCustomAttributes();
+                var attrs = property.GetCustomAttributes().ToList();
                 if (attrs.Any(a => a is NotMappedAttribute))
                     continue;
 

@@ -65,7 +65,7 @@ namespace CastIron.Sql.Mapping
             typeof(ushort?),
         };
 
-        private static readonly MethodInfo GetValueMethod = typeof(IDataRecord).GetMethod(nameof(IDataRecord.GetValue));
+        private static readonly MethodInfo _getValueMethod = typeof(IDataRecord).GetMethod(nameof(IDataRecord.GetValue));
         private static readonly Expression _dbNullExp = Expression.Field(null, typeof(DBNull), nameof(DBNull.Value));
         private static readonly MethodInfo _convertMethod = typeof(Convert).GetMethod(nameof(Convert.ChangeType), new[] { typeof(object), typeof(Type) });
         private static readonly MethodInfo _guidParseMethod = typeof(Guid).GetMethod(nameof(Guid.Parse));
@@ -89,7 +89,7 @@ namespace CastIron.Sql.Mapping
         { 
             // Pull the value out of the reader into the rawVar
             var rawVar = context.AddVariable<object>("raw");
-            var getRawStmt = Expression.Assign(rawVar, Expression.Call(context.RecordParam, GetValueMethod, Expression.Constant(columnIdx)));
+            var getRawStmt = Expression.Assign(rawVar, Expression.Call(context.RecordParam, _getValueMethod, Expression.Constant(columnIdx)));
             context.AddStatement(getRawStmt);
 
             if (targetType == typeof(object))

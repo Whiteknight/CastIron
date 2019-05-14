@@ -18,7 +18,7 @@ namespace CastIron.Sql.Mapping
                 if (!preferredConstructor.IsPublic || preferredConstructor.IsStatic)
                     throw new Exception("Specified constructor is static or non-public and cannot be used");
                 if (preferredConstructor.DeclaringType != type)
-                    throw new Exception($"Specified constructor is for type {preferredConstructor.DeclaringType?.FullName} instead of the expected {type.FullName}");
+                    throw new Exception($"Specified constructor is for type {preferredConstructor.DeclaringType?.GetFriendlyName()} instead of the expected {type.GetFriendlyName()}");
 
                 return preferredConstructor;
             }
@@ -27,7 +27,7 @@ namespace CastIron.Sql.Mapping
             if (defaultConstructor != null && defaultConstructor.IsPublic)
                 return defaultConstructor;
 
-            throw new Exception($"Cannot find default constructor on type {type.Name}");
+            throw new Exception($"Cannot find default constructor on type {type.GetFriendlyName()}");
         }
     }
 
@@ -55,7 +55,7 @@ namespace CastIron.Sql.Mapping
                 if (!preferredConstructor.IsPublic || preferredConstructor.IsStatic)
                     throw new Exception("Specified constructor is static or non-public and cannot be used");
                 if (preferredConstructor.DeclaringType != type)
-                    throw new Exception($"Specified constructor is for type {preferredConstructor.DeclaringType?.FullName} instead of the expected {type.FullName}");
+                    throw new Exception($"Specified constructor is for type {preferredConstructor.DeclaringType?.GetFriendlyName()} instead of the expected {type.GetFriendlyName()}");
 
                 return preferredConstructor;
             }
@@ -69,7 +69,7 @@ namespace CastIron.Sql.Mapping
                 .OrderByDescending(x => x.Score)
                 .FirstOrDefault();
             if (best == null)
-                throw new Exception($"Cannot find a suitable constructor for type {type.FullName}");
+                throw new Exception($"Cannot find a suitable constructor for type {type.GetFriendlyName()}");
             return best.Constructor;
         }
 
