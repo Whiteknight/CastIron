@@ -171,13 +171,13 @@ namespace CastIron.Sql.Mapping
         {
             var typeParams = targetType.GenericTypeArguments;
             if (typeParams.Length == 0 || typeParams.Length > 7)
-                throw new Exception($"Cannot create a tuple with {typeParams.Length} parameters. Must be between 1 and 7");
+                throw MapCompilerException.InvalidTupleMap(typeParams.Length, targetType);
             var factoryMethod = typeof(Tuple).GetMethods(BindingFlags.Public | BindingFlags.Static)
                 .Where(m => m.Name == nameof(Tuple.Create) && m.GetParameters().Length == typeParams.Length)
                 .Select(m => m.MakeGenericMethod(typeParams))
                 .FirstOrDefault();
             if (factoryMethod == null)
-                throw new Exception($"Cannot find factory method for type {targetType.Name}");
+                throw MapCompilerException.InvalidTupleMap(typeParams.Length, targetType);
             var args = new Expression[typeParams.Length];
 
             for (var i = 0; i < typeParams.Length; i++)
@@ -201,20 +201,20 @@ namespace CastIron.Sql.Mapping
                 .Where(i => i.IsGenericType)
                 .FirstOrDefault(i => i.GetGenericTypeDefinition() == typeof(IDictionary<,>) && i.GenericTypeArguments[0] == typeof(string));
             if (idictType == null)
-                throw new Exception($"Dictionary type {targetType.Name} does not inherit from IDictionary<string,>");
+                throw MapCompilerException.InvalidDictionaryTargetType(targetType);
             var elementType = idictType.GetGenericArguments()[1];
 
             var dictType = typeof(IDictionary<,>).MakeGenericType(typeof(string), elementType);
             if (!dictType.IsAssignableFrom(targetType))
-                throw new Exception($"Cannot convert from requested type {targetType.Name} to dictionary type {dictType.Name}");
+                throw MapCompilerException.CannotConvertType(targetType, dictType);
 
             var constructor = targetType.GetConstructor(Type.EmptyTypes);
             if (constructor == null)
-                throw new Exception($"Collection type {targetType.FullName} must have a default parameterless constructor");
+                throw MapCompilerException.InvalidDictionaryTargetType(targetType);
 
             var addMethod = dictType.GetMethod(nameof(IDictionary<string, object>.Add));
             if (addMethod == null)
-                throw new Exception($".{nameof(IDictionary<string, object>.Add)}() Method missing from dictionary type {targetType.Name}");
+                throw MapCompilerException.InvalidDictionaryTargetType(targetType);
 
             var dictVar = context.AddVariable(targetType, "dict");
             context.AddStatement(Expression.Assign(dictVar, Expression.New(constructor)));
@@ -230,11 +230,11 @@ namespace CastIron.Sql.Mapping
 
             var dictType = typeof(Dictionary<,>).MakeGenericType(typeof(string), elementType);
             if (!targetType.IsAssignableFrom(dictType))
-                throw new Exception($"Cannot map to object of type {targetType.FullName}. Expected Dictionary<string, {elementType.Name}>.");
+                throw MapCompilerException.CannotConvertType(targetType, dictType);
 
             var constructor = dictType.GetConstructor(Type.EmptyTypes);
             if (constructor == null)
-                throw new Exception($"Collection type {dictType.FullName} must have a default parameterless constructor");
+                throw MapCompilerException.MissingParameterlessConstructor(dictType);
 
             var addMethod = dictType.GetMethod(nameof(Dictionary<string, object>.Add));
             if (addMethod == null)
@@ -283,19 +283,19 @@ namespace CastIron.Sql.Mapping
                 .GetInterfaces()
                 .FirstOrDefault(i => i.Namespace == "System.Collections.Generic" && i.IsGenericType && i.GetGenericTypeDefinition() == typeof(ICollection<>));
             if (icollectionType == null)
-                throw new Exception($"Cannot map to object of type {targetType.Name}. Expecting ICollection<>");
+                throw MapCompilerException.CannotConvertType(targetType, typeof(ICollection<>));
             var elementType = icollectionType.GenericTypeArguments[0];
 
             if (!icollectionType.IsAssignableFrom(targetType))
-                throw new Exception($"Cannot map to object of type {targetType.FullName}. Expected ICollection<{elementType.Name}>.");
+                throw MapCompilerException.CannotConvertType(targetType, icollectionType);
 
             var constructor = targetType.GetConstructor(Type.EmptyTypes);
             if (constructor == null)
-                throw new Exception($"Collection type {targetType.FullName} must have a default parameterless constructor");
+                throw MapCompilerException.MissingParameterlessConstructor(targetType);
 
             var addMethod = icollectionType.GetMethod(nameof(ICollection<object>.Add));
             if (addMethod == null)
-                throw new Exception($".{nameof(ICollection<object>.Add)}() Method missing from collection type {targetType.FullName}");
+                throw MapCompilerException.MissingMethod(targetType, nameof(ICollection<object>.Add), elementType);
 
             var listVar = context.AddVariable(targetType, "list");
             context.AddStatement(Expression.Assign(listVar, Expression.New(constructor)));
@@ -313,15 +313,15 @@ namespace CastIron.Sql.Mapping
             var elementType = targetType.GenericTypeArguments[0];
             var listType = typeof(List<>).MakeGenericType(elementType);
             if (!targetType.IsAssignableFrom(listType))
-                throw new Exception($"Cannot map to object of type {targetType.FullName}. Must be compatible with List<{elementType.Name}>.");
+                throw MapCompilerException.CannotConvertType(targetType, listType);
 
             var constructor = listType.GetConstructor(new Type[0]);
             if (constructor == null)
-                throw new Exception($"Collection type {listType.FullName} must have a default parameterless constructor");
+                throw MapCompilerException.MissingParameterlessConstructor(listType);
 
             var addMethod = listType.GetMethod(nameof(List<object>.Add));
             if (addMethod == null)
-                throw new Exception($".{nameof(List<object>.Add)}() Method missing from collection type {listType.FullName}");
+                throw MapCompilerException.MissingMethod(targetType, nameof(List<object>.Add), elementType);
 
             var listVar = context.AddVariable(listType, "list");
             context.AddStatement(Expression.Assign(listVar, Expression.New(constructor)));
@@ -360,7 +360,7 @@ namespace CastIron.Sql.Mapping
                 return;
             }
 
-            throw new Exception($"Cannot map collection with element type {elementType.Name} named '{name}'");
+            throw new MapCompilerException($"Cannot map collection with element type {elementType.Name} named '{name}'");
         }
 
         private static string GetColumnNameFromProperty(MapCompileContext context, string name, ICustomAttributeProvider attrs)
@@ -395,11 +395,11 @@ namespace CastIron.Sql.Mapping
         {
             var elementType = targetType.GetElementType();
             if (elementType == null)
-                throw new Exception($"Cannot find element type for arraytype {targetType.Name}");
+                throw MapCompilerException.CannotDetermineArrayElementType(targetType);
 
             var constructor = targetType.GetConstructor(new[] { typeof(int) });
             if (constructor == null)
-                throw new Exception($"Array type {targetType.FullName} must have a standard array constructor");
+                throw MapCompilerException.MissingArrayConstructor(targetType);
 
             if (DataRecordExpressions.IsMappableScalarType(elementType))
             {
@@ -429,7 +429,7 @@ namespace CastIron.Sql.Mapping
                 return arrayVar;
             }
 
-            throw new Exception($"Cannot map array of type {elementType.Name}[]");
+            throw MapCompilerException.TypeUnmappable(targetType);
         }
 
         private static void AddInstantiationExpressionForObjectInstance(MapCompileContext context)
