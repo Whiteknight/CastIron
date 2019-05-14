@@ -29,5 +29,28 @@ namespace CastIron.Sql.Tests
             var rowsAffected = runner.Query(new Query());
             rowsAffected.Should().Be(4);
         }
+
+        public class Command : ISqlCommandSimple<int>
+        {
+            public string GetSql()
+            {
+                return @"
+                    DECLARE @temp TABLE (X INT NOT NULL);
+                    INSERT INTO @temp(X) VALUES (1),(2),(3),(4);";
+            }
+
+            public int ReadOutputs(IDataResults result)
+            {
+                return result.RowsAffected;
+            }
+        }
+
+        [Test]
+        public void Execute_RowsAffected([Values("MSSQL")] string provider)
+        {
+            var runner = RunnerFactory.Create(provider);
+            var rowsAffected = runner.Execute(new Command());
+            rowsAffected.Should().Be(4);
+        }
     }
 }
