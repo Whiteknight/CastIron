@@ -35,7 +35,7 @@ namespace CastIron.Sql.Execution
                         return queryReader.Read(resultSet);
                     }
                 }
-                catch (SqlProblemException)
+                catch (SqlQueryException)
                 {
                     context.MarkAborted();
                     throw;
@@ -43,7 +43,7 @@ namespace CastIron.Sql.Execution
                 catch (Exception e)
                 {
                     context.MarkAborted();
-                    throw SqlProblemException.Wrap(e, command, index);
+                    throw SqlQueryException.Wrap(e, command, index);
                 }
             }
         }
@@ -69,7 +69,7 @@ namespace CastIron.Sql.Execution
                         return queryReader.Read(resultSet);
                     }
                 }
-                catch (SqlProblemException)
+                catch (SqlQueryException)
                 {
                     context.MarkAborted();
                     throw;
@@ -77,11 +77,10 @@ namespace CastIron.Sql.Execution
                 catch (Exception e)
                 {
                     context.MarkAborted();
-                    throw SqlProblemException.Wrap(e, command.Command, index);
+                    throw SqlQueryException.Wrap(e, command.Command, index);
                 }
             }
         }
-
 
         public IDataResultsStream ExecuteStream(ISqlQuery query, IExecutionContext context)
         {
@@ -103,7 +102,7 @@ namespace CastIron.Sql.Execution
                 context.StartAction(1, "Map Results");
                 return new SqlDataReaderResultsStream(command, context, reader);
             }
-            catch (SqlProblemException)
+            catch (SqlQueryException)
             {
                 context.MarkAborted();
                 command.Dispose();
@@ -113,7 +112,7 @@ namespace CastIron.Sql.Execution
             {
                 context.MarkAborted();
                 command.Dispose();
-                throw SqlProblemException.Wrap(e, command, 1);
+                throw SqlQueryException.Wrap(e, command, 1);
             }
         }
 
@@ -137,7 +136,7 @@ namespace CastIron.Sql.Execution
                 context.StartAction(1, "Map Results");
                 return new SqlDataReaderResultsStream(command.Command, context, reader);
             }
-            catch (SqlProblemException)
+            catch (SqlQueryException)
             {
                 context.MarkAborted();
                 command.Dispose();
@@ -147,7 +146,7 @@ namespace CastIron.Sql.Execution
             {
                 context.MarkAborted();
                 command.Dispose();
-                throw SqlProblemException.Wrap(e, command.Command, 1);
+                throw SqlQueryException.Wrap(e, command.Command, 1);
             }
         }
 

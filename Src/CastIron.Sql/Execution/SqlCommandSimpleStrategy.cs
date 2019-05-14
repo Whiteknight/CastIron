@@ -23,7 +23,7 @@ namespace CastIron.Sql.Execution
                     context.StartAction(index, "Execute");
                     dbCommand.ExecuteNonQuery();
                 }
-                catch (SqlProblemException)
+                catch (SqlQueryException)
                 {
                     context.MarkAborted();
                     throw;
@@ -31,7 +31,7 @@ namespace CastIron.Sql.Execution
                 catch (Exception e)
                 {
                     context.MarkAborted();
-                    throw SqlProblemException.Wrap(e, dbCommand, index);
+                    throw SqlQueryException.Wrap(e, dbCommand, index);
                 }
             }
         }
@@ -52,7 +52,7 @@ namespace CastIron.Sql.Execution
                     context.StartAction(index, "Execute");
                     await dbCommand.ExecuteNonQueryAsync();
                 }
-                catch (SqlProblemException)
+                catch (SqlQueryException)
                 {
                     context.MarkAborted();
                     throw;
@@ -60,7 +60,7 @@ namespace CastIron.Sql.Execution
                 catch (Exception e)
                 {
                     context.MarkAborted();
-                    throw SqlProblemException.Wrap(e, dbCommand.Command, index);
+                    throw SqlQueryException.Wrap(e, dbCommand.Command, index);
                 }
             }
         }
@@ -85,7 +85,7 @@ namespace CastIron.Sql.Execution
                     var resultSet = new SqlDataReaderResults(dbCommand, context, null, rowsAffected);
                     return command.ReadOutputs(resultSet);
                 }
-                catch (SqlProblemException)
+                catch (SqlQueryException)
                 {
                     context.MarkAborted();
                     throw;
@@ -93,7 +93,7 @@ namespace CastIron.Sql.Execution
                 catch (Exception e)
                 {
                     context.MarkAborted();
-                    throw SqlProblemException.Wrap(e, dbCommand, index);
+                    throw SqlQueryException.Wrap(e, dbCommand, index);
                 }
             }
         }
@@ -118,7 +118,7 @@ namespace CastIron.Sql.Execution
                     var resultSet = new SqlDataReaderResults(dbCommand.Command, context, null, rowsAffected);
                     return await Task.Run(() => command.ReadOutputs(resultSet));
                 }
-                catch (SqlProblemException)
+                catch (SqlQueryException)
                 {
                     context.MarkAborted();
                     throw;
@@ -126,7 +126,7 @@ namespace CastIron.Sql.Execution
                 catch (Exception e)
                 {
                     context.MarkAborted();
-                    throw SqlProblemException.Wrap(e, dbCommand.Command, index);
+                    throw SqlQueryException.Wrap(e, dbCommand.Command, index);
                 }
             }
         }

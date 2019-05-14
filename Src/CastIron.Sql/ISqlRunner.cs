@@ -229,11 +229,21 @@ namespace CastIron.Sql
             return runner.Execute(c => new SqlQueryStrategy(runner.InteractionFactory).Execute(query, reader, c, 0), build);
         }
 
+        public static T Query<T>(this ISqlRunner runner, ISqlQuery query, Func<IDataResults, T> reader, Action<IContextBuilder> build = null)
+        {
+            return Query(runner, query, new DelegateResultMaterializer<T>(reader), build);
+        }
+
         public static Task<T> QueryAsync<T>(this ISqlRunner runner, ISqlQuery query, IResultMaterializer<T> reader, Action<IContextBuilder> build = null)
         {
             Assert.ArgumentNotNull(runner, nameof(runner));
             Assert.ArgumentNotNull(query, nameof(query));
             return runner.ExecuteAsync(c => new SqlQueryStrategy(runner.InteractionFactory).ExecuteAsync(query, reader, c, 0), build);
+        }
+
+        public static Task<T> QueryAsync<T>(this ISqlRunner runner, ISqlQuery query, Func<IDataResults, T> reader, Action<IContextBuilder> build = null)
+        {
+            return QueryAsync(runner, query, new DelegateResultMaterializer<T>(reader), build);
         }
 
         /// <summary>

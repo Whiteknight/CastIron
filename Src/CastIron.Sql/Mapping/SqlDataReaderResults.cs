@@ -15,45 +15,53 @@ namespace CastIron.Sql.Mapping
     /// </summary>
     public class SqlDataReaderResults : IDataResults
     {
+        private const string StateInitial = "";
+        private const string StateRawReaderConsumed = "RawReaderConsumed";
+        private const string StateReaderConsuming = "ReaderConsuming";
+        private const string StateOutputParams = "OutputParams";
+        private const string StateDisposed = "Disposed";
+
+        private static readonly Dictionary<string, Func<IResultState>> _getState = new Dictionary<string, Func<IResultState>>
+        {
+            { StateRawReaderConsumed, () => new RawReaderConsumedState() },
+            { StateReaderConsuming, () => new ReaderConsumingState() },
+            { StateOutputParams, () => new OutputParametersState() },
+            { StateDisposed, () => new DisposedState() }
+        };
         private readonly IDbCommand _command;
         private readonly IExecutionContext _context;
         private readonly IDataReader _reader;
 
-        private bool _isConsumed;
-        private bool _isConsuming;
-        public int CurrentSet { get; private set; }
+        private IResultState _currentState;
 
         public SqlDataReaderResults(IDbCommand command, IExecutionContext context, IDataReader reader, int? rowsAffected = null)
         {
             _command = command;
             _context = context;
             _reader = reader;
-            _isConsumed = false;
-            _isConsuming = false;
+            _currentState = new InitialState();
             CurrentSet = 0;
             RowsAffected = rowsAffected ?? reader?.RecordsAffected ?? 0;
         }
 
+        public int CurrentSet { get; private set; }
         public int RowsAffected { get; }
 
         public IDataReader AsRawReader()
         {
-            AssertHasReader();
-            MarkRawReaderBeingConsumed();
+            TryTransitionToState(StateRawReaderConsumed);
             return _reader;
         }
 
         public IDataReader AsRawReaderWithBetterErrorMessages()
         {
-            AssertHasReader();
-            MarkRawReaderBeingConsumed();
+            TryTransitionToState(StateRawReaderConsumed);
             return new DataReaderWithBetterErrorMessages(_reader);
         }
 
         public IEnumerable<T> AsEnumerable<T>(Action<IMapCompilerBuilder<T>> setup = null)
         {
-            AssertHasReader();
-            MarkForInPlaceConsuming();
+            TryTransitionToState(StateReaderConsuming);
             if (CurrentSet == 0)
                 CurrentSet = 1;
             var context = new MapCompilerBuilder<T>();
@@ -64,6 +72,8 @@ namespace CastIron.Sql.Mapping
 
         public object GetOutputParameterValue(string name)
         {
+            TryTransitionToState(StateOutputParams);
+
             var parameterName = (name.StartsWith("@") ? name : "@" + name).ToLowerInvariant();
 
             var param = _command?.Parameters.Cast<DbParameter>()
@@ -101,10 +111,12 @@ namespace CastIron.Sql.Mapping
                 return (T) value;
             if (value is T asT)
                 return asT;
+            if (typeof(T) == typeof(string))
+                return (T)(object)value.ToString();
             if (value is IConvertible && typeof(IConvertible).IsAssignableFrom(typeof(T)))
                 return (T) Convert.ChangeType(value, typeof(T));
 
-            throw new Exception($"Cannot get value '{name}'. Expected type {typeof(T).FullName} but found {value.GetType().FullName}");
+            throw new Exception($"Cannot get output parameter '{name}' value. Expected type {typeof(T).FullName} but found {value.GetType().FullName} and no conversion can be found.");
         }
 
         public T GetOutputParameters<T>()
@@ -140,31 +152,27 @@ namespace CastIron.Sql.Mapping
 
         public IDataResults AdvanceToResultSet(int num)
         {
-            AssertHasReader();
+            TryTransitionToState(StateReaderConsuming);
 
             // TODO: Review all this logic to make sure it is sane and necessary
             if (CurrentSet > num)
-                throw new Exception("Cannot read result sets out of order. At Set=" + CurrentSet + " but requested Set=" + num);
-            if (CurrentSet == 0 )
+                throw new Exception($"Cannot read result sets out of order. At Set={CurrentSet} but requested Set={num}.");
+            if (CurrentSet == 0)
             {
-                if (num == 1)
-                {
-                    CurrentSet = num;
-                    return this;
-                }
-
                 CurrentSet = 1;
+                if (num == 1)
+                    return this;
             }
 
             while (CurrentSet < num)
             {
-                CurrentSet++;
                 if (!_reader.NextResult())
-                    throw new Exception("Could not read result Set=" + CurrentSet + " (requested result Set=" + num + ")");
+                    throw new Exception($"Could not read requested result set {num}. This stream only contains {CurrentSet} result sets.");
+                CurrentSet++;
             }
 
             if (CurrentSet != num)
-                throw new Exception("Could not find result Set=" + num);
+                throw new Exception($"Could not find result Set={num}. This should not happen.");
 
             return this;
         }
@@ -176,27 +184,23 @@ namespace CastIron.Sql.Mapping
 
         public bool TryAdvanceToResultSet(int num)
         {
-            AssertHasReader();
+            TryTransitionToState(StateReaderConsuming);
 
             if (CurrentSet > num)
                 return false;
 
             if (CurrentSet == 0)
             {
-                if (num == 1)
-                {
-                    CurrentSet = num;
-                    return true;
-                }
-
                 CurrentSet = 1;
+                if (num == 1)
+                    return true;
             }
 
             while (CurrentSet < num)
             {
-                CurrentSet++;
                 if (!_reader.NextResult())
                     return false;
+                CurrentSet++;
             }
 
             if (CurrentSet != num)
@@ -207,31 +211,162 @@ namespace CastIron.Sql.Mapping
 
         protected void DisposeHeldReferences()
         {
-            _context?.MarkComplete();
-            _reader.Dispose();
-            _command?.Dispose();
-            _context?.Dispose();
+            if (TryTransitionToState(StateDisposed))
+            {
+                _context?.MarkComplete();
+                _reader.Dispose();
+                _command?.Dispose();
+                _context?.Dispose();
+            }
         }
 
-        private void MarkRawReaderBeingConsumed()
+        private interface IResultState
         {
-            if (_isConsumed || _isConsuming)
-                throw new Exception("SqlDataReader cannot be consumed more than once. Have you accessed the reader already or have you started reading values from it already?");
-            _isConsumed = true;
+            string Name { get; }
+            void Enter(IDataReader reader);
+            void TryTransitionTo(string nextStateName);
         }
 
-        private void MarkForInPlaceConsuming()
+        private bool TryTransitionToState(string nextStateName)
         {
-            if (_isConsumed)
-                throw new Exception("SqlDataReader is being consumed and cannot be accessed again.");
-            _isConsuming = true;
+            _currentState.TryTransitionTo(nextStateName);
+            if (_currentState.Name != nextStateName)
+            {
+                _currentState = _getState[nextStateName]();
+                _currentState.Enter(_reader);
+                return true;
+            }
+
+            return false;
         }
 
-
-        private void AssertHasReader()
+        private class InitialState : IResultState
         {
-            if (_reader == null)
-                throw new Exception($"This result does not contain a data reader. Are you executing an {nameof(ISqlCommand)} variant?");
+            public string Name => StateInitial;
+
+            public void Enter(IDataReader reader)
+            {
+                throw new Exception("Cannot transition into the default state. Something is broken.");
+            }
+
+            public void TryTransitionTo(string nextStateName)
+            {
+            }
+        }
+
+        private class RawReaderConsumedState : IResultState
+        {
+            public string Name => StateRawReaderConsumed;
+            public void Enter(IDataReader reader)
+            {
+                if (reader == null)
+                    ThrowNullReaderException();
+            }
+
+            public void TryTransitionTo(string nextStateName)
+            {
+                switch (nextStateName)
+                {
+                    case StateRawReaderConsumed:
+                        ThrowRawReaderConsumedException();
+                        break;
+                    case StateReaderConsuming:
+                        ThrowRawReaderConsumedException();
+                        break;
+                    case StateOutputParams:
+                        ThrowRawReaderConsumedException();
+                        break;
+                }
+            }
+        }
+
+        private class ReaderConsumingState : IResultState
+        {
+            public string Name => StateReaderConsuming;
+            public void Enter(IDataReader reader)
+            {
+                if (reader == null)
+                    ThrowNullReaderException();
+            }
+
+            public void TryTransitionTo(string nextStateName)
+            {
+                switch (nextStateName)
+                {
+                    case StateRawReaderConsumed:
+                        ThrowConsumeAfterStreamingStartedException();
+                        break;
+                }
+            }
+        }
+
+        private class OutputParametersState : IResultState
+        {
+            public string Name => StateOutputParams;
+            public void Enter(IDataReader reader)
+            {
+                if (reader != null && !reader.IsClosed)
+                    reader.Close();
+            }
+
+            public void TryTransitionTo(string nextStateName)
+            {
+                switch (nextStateName)
+                {
+                    case StateRawReaderConsumed:
+                        ThrowReaderClosedException();
+                        break;
+                    case StateReaderConsuming:
+                        ThrowReaderClosedException();
+                        break;
+                }
+            }
+        }
+
+        private class DisposedState : IResultState
+        {
+            public string Name => StateDisposed;
+            public void Enter(IDataReader reader)
+            {
+            }
+
+            public void TryTransitionTo(string nextStateName)
+            {
+                throw new ObjectDisposedException($"The {nameof(SqlDataReaderResults)} and underlying {nameof(IDataReader)} objects have been disposed and cannot be used for any other purposes.");
+            }
+        }
+
+        private static void ThrowNullReaderException()
+        {
+            throw new NullReferenceException(
+                $"This result does not contain a data reader. Readers are not produced when executing an {nameof(ISqlCommand)} variant. " +
+                $"Depending on your command text, it may still be possible to read output parameters or connection metrics such as {nameof(IDataReader)}.{nameof(IDataReader.RecordsAffected)}");
+        }
+
+        private static void ThrowRawReaderConsumedException()
+        {
+            throw new InvalidOperationException(
+                $"The raw {nameof(IDataReader)} has already been consumed and cannot be consumed again. " +
+                $"Methods {nameof(IDataResults.AsRawReader)} and {nameof(IDataResults.AsRawReaderWithBetterErrorMessages)} relinquish ownership of the {nameof(IDataReader)}. " +
+                $"The code component which holds a reference to the {nameof(IDataReader)} has full control over that object, including reading values and calling {nameof(IDisposable.Dispose)} when necessary.");
+        }
+
+        private static void ThrowConsumeAfterStreamingStartedException()
+        {
+            throw new InvalidOperationException(
+                $"{nameof(IDataReader)} has already started streaming results. The raw reader cannot be consumed. " +
+                $"{nameof(IDataReader)} can either be consumed raw (using methods {nameof(IDataResults.AsRawReader)} and {nameof(IDataResults.AsRawReaderWithBetterErrorMessages)}) " +
+                $"or it can be consumed through this {nameof(IDataResults)} object (using methods like {nameof(IDataResults.AsEnumerable)} and {nameof(IDataResults.AdvanceToNextResultSet)}). " +
+                "Once the reader has been consumed, it cannot be consumed again.");
+        }
+
+        private static void ThrowReaderClosedException()
+        {
+            throw new InvalidOperationException(
+                $"The underlying {nameof(IDataReader)} has already been closed and cannot be consumed again. " +
+                $"The {nameof(IDataReader)} object monopolizes the database connection for streaming results while it is open. " +
+                $"The {nameof(IDataReader)} is closed to use the connection for other purposes, such as reading output parameters. " +
+                $"In your application, make sure to read all result set data from the {nameof(IDataReader)} before attempting to read output parameters to avoid this issue.");
         }
     }
 

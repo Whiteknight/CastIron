@@ -11,7 +11,7 @@ namespace CastIron.Sql.Execution
                 context.StartAction(index, "Execute");
                 accessor.Execute(context.Connection.Connection, context.Transaction);
             }
-            catch (SqlProblemException)
+            catch (SqlQueryException)
             {
                 context.MarkAborted();
                 throw;
@@ -21,7 +21,7 @@ namespace CastIron.Sql.Execution
                 context.MarkAborted();
                 // We can't do anything fancy with error handling, because we don't know what the user
                 // is trying to do
-                throw SqlProblemException.Wrap(e, null, index);
+                throw SqlQueryException.Wrap(e, null, index);
             }
         }
 
@@ -32,7 +32,7 @@ namespace CastIron.Sql.Execution
                 context.StartAction(index, "Execute");
                 return accessor.Query(context.Connection.Connection, context.Transaction);
             }
-            catch (SqlProblemException)
+            catch (SqlQueryException)
             {
                 context.MarkAborted();
                 throw;
@@ -42,7 +42,7 @@ namespace CastIron.Sql.Execution
                 context.MarkAborted();
                 // We can't do anything fancy with error handling, because we don't know what the user
                 // is trying to do
-                throw SqlProblemException.Wrap(e, null, index);
+                throw SqlQueryException.Wrap(e, null, index);
             }
         }
     }

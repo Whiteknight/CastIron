@@ -172,7 +172,7 @@ namespace CastIron.Sql.Debugging
         private void ThrowIfNullInsteadOfExpected<TExpected>(int i)
         {
             if (_inner.IsDBNull(i))
-                throw new SqlProblemException($"Value at column {i} is DBNull but expected value of type {typeof(TExpected).Namespace}.{typeof(TExpected).Name}");
+                throw new SqlQueryException($"Value at column {i} is DBNull but expected value of type {typeof(TExpected).Namespace}.{typeof(TExpected).Name}");
         }
 
         private T ExpectType<T>(int i)

@@ -36,8 +36,8 @@ namespace CastIron.Sql.Mapping
         {
             var attempt = Interlocked.Increment(ref _readAttempts);
             if (attempt > 1)
-                throw new Exception("Cannot read the same result set more than once. Please cache your results and read from the cache");
-            if (_context != null && _context.IsCompleted)
+                throw new Exception("Cannot read the same result set more than once.");
+            if ((_context != null && _context.IsCompleted) || _reader.IsClosed)
                 throw new Exception("The connection is closed and the result set cannot be read");
             return new ResultSetEnumerator(_reader, _context, _map);
         }
@@ -61,7 +61,7 @@ namespace CastIron.Sql.Mapping
 
             public bool MoveNext()
             {
-                if (_context.IsCompleted)
+                if (_context.IsCompleted || _reader.IsClosed)
                 {
                     Current = default(T);
                     return false;
