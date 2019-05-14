@@ -154,7 +154,7 @@ namespace CastIron.Sql
         /// <returns></returns>
         public static IDataResultsStream WrapAsResultStream(this ISqlRunner runner, IDataReader reader, IDbCommand command = null)
         {
-            return new SqlDataReaderResultsStream(command, null, reader);
+            return new DataReaderResultsStream(command, null, reader);
         }
 
         /// <summary>
@@ -168,7 +168,7 @@ namespace CastIron.Sql
         public static IDataResultsStream WrapAsResultStream(this ISqlRunner runner, DataTable table)
         {
             Assert.ArgumentNotNull(table, nameof(table));
-            return new SqlDataReaderResultsStream(null, null, table.CreateDataReader());
+            return new DataReaderResultsStream(null, null, table.CreateDataReader());
 
         }
 

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Reflection;
+using CastIron.Sql.Debugging;
 using CastIron.Sql.Mapping;
 using CastIron.Sql.Utility;
 
@@ -18,20 +19,15 @@ namespace CastIron.Sql
         /// </summary>
         int RowsAffected { get; }
 
+        int CurrentSet { get; }
+
         /// <summary>
         /// Get a reference to the raw IDataReader. Accessing the underlying reader consumes it and makes
-        /// other methods on this object unusable
+        /// other methods on this object unusable. WARNING if you call AsRawReader in a streaming context
+        /// you will need to .Dispose() the reader yourself.
         /// </summary>
         /// <returns></returns>
         IDataReader AsRawReader();
-
-        /// <summary>
-        /// Returns a reference to the raw IDataReader, decorated with better error messages for debugging
-        /// purposes. Accessing the underlying reader consumes it and makes other methods on this object
-        /// unusable
-        /// </summary>
-        /// <returns></returns>
-        IDataReader AsRawReaderWithBetterErrorMessages();
 
         /// <summary>
         /// Map the result set to objects
@@ -74,12 +70,6 @@ namespace CastIron.Sql
             where T : class, new();
 
         /// <summary>
-        /// Advance to the next result set in the reader, throws an exception if there is no result set
-        /// </summary>
-        /// <returns></returns>
-        IDataResults AdvanceToNextResultSet();
-
-        /// <summary>
         /// Advance to the result set in the reader by number, starting with the first result set as 1, 
         /// second result set as 2, etc. Result sets may only be accessed in order, though they can be
         /// skipped. Throws an exception if the specified result set number is lower than the current result
@@ -88,12 +78,6 @@ namespace CastIron.Sql
         /// <param name="num"></param>
         /// <returns></returns>
         IDataResults AdvanceToResultSet(int num);
-
-        /// <summary>
-        /// Try to advance to the next result set in the reader. Return true if successful, false otherwise.
-        /// </summary>
-        /// <returns></returns>
-        bool TryAdvanceToNextResultSet();
 
         /// <summary>
         /// Try to advance to the result set in the reader by number, starting with the first result set as
@@ -189,6 +173,7 @@ namespace CastIron.Sql
 
         public static IEnumerable<T> AsEnumerableNextSeveral<T>(this IDataResults results, int numResultSets, Action<IMapCompilerBuilder<T>> setup = null)
         {
+            Assert.ArgumentNotNull(results, nameof(results));
             if (numResultSets <= 0)
                 yield break;
 
@@ -207,6 +192,25 @@ namespace CastIron.Sql
                 foreach (var value in nextValues)
                     yield return value;
             }
+        }
+
+        public static IDataResults AdvanceToNextResultSet(this IDataResults results)
+        {
+            Assert.ArgumentNotNull(results, nameof(results));
+            return results.AdvanceToResultSet(results.CurrentSet + 1);
+        }
+
+        public static bool TryAdvanceToNextResultSet(this IDataResults results)
+        {
+            Assert.ArgumentNotNull(results, nameof(results));
+            return results.TryAdvanceToResultSet(results.CurrentSet + 1);
+        }
+
+        public static IDataReader AsRawReaderWithBetterErrorMessages(this IDataResults results)
+        {
+            Assert.ArgumentNotNull(results, nameof(results));
+            var reader = results.AsRawReader();
+            return new DataReaderWithBetterErrorMessages(reader);
         }
     }
 }
