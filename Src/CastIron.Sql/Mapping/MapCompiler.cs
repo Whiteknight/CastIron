@@ -90,7 +90,7 @@ namespace CastIron.Sql.Mapping
         {
             if (targetType == typeof(object))
                 return GetObjectConversionExpression(context, name, targetType, attrs);
-            if (DataRecordExpressions.IsSupportedPrimitiveType(targetType))
+            if (DataTypes.IsSupportedPrimitiveType(targetType))
                 return GetPrimitiveConversionExpression(context, name, targetType);
 
             if (targetType.IsArray && targetType.HasElementType)
@@ -333,7 +333,7 @@ namespace CastIron.Sql.Mapping
 
         private static void AddCollectionPopulateStatements(MapCompileContext context, string name, ICustomAttributeProvider attrs, Type elementType, Expression listVar, MethodInfo addMethod)
         {
-            if (DataRecordExpressions.IsMappableScalarType(elementType))
+            if (DataTypes.IsMappableScalarType(elementType))
             {
                 var columns = GetColumnsForProperty(context, name, attrs);
                 foreach (var column in columns)
@@ -401,7 +401,7 @@ namespace CastIron.Sql.Mapping
             if (constructor == null)
                 throw MapCompilerException.MissingArrayConstructor(targetType);
 
-            if (DataRecordExpressions.IsMappableScalarType(elementType))
+            if (DataTypes.IsMappableScalarType(elementType))
             {
                 var columns = GetColumnsForProperty(context, name, attrs).ToList();
                 var arrayVar = context.AddVariable(targetType, "array_" + context.GetNextVarNumber());

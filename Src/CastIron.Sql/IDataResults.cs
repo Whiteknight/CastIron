@@ -15,16 +15,19 @@ namespace CastIron.Sql
     public interface IDataResults
     {
         /// <summary>
-        /// Where available, the number of rows affected by the query
+        /// Where available, the number of rows affected by the query. Notice that this number may
+        /// not be accurate until all statements in the query have executed and all result sets
+        /// are read.
         /// </summary>
         int RowsAffected { get; }
 
         int CurrentSet { get; }
 
         /// <summary>
-        /// Get a reference to the raw IDataReader. Accessing the underlying reader consumes it and makes
-        /// other methods on this object unusable. WARNING if you call AsRawReader in a streaming context
-        /// you will need to .Dispose() the reader yourself.
+        /// Get a reference to the raw IDataReader. WARNING: When you access the underlying reader
+        /// object you assume complete control over it and this object will no longer be functional.
+        /// You cannot call any other methods on IDataResults and you must call .Dispose() on the
+        /// reader yourself to ensure resources are cleaned up.
         /// </summary>
         /// <returns></returns>
         IDataReader AsRawReader();
@@ -36,38 +39,6 @@ namespace CastIron.Sql
         /// <param name="setup">Setup the mapper or mapper compiler using a fluent interface</param>
         /// <returns></returns>
         IEnumerable<T> AsEnumerable<T>(Action<IMapCompilerBuilder<T>> setup = null);
-
-        /// <summary>
-        /// Get the value of the output parameter by name
-        /// </summary>
-        /// <param name="name"></param>
-        /// <returns></returns>
-        object GetOutputParameterValue(string name);
-
-        /// <summary>
-        /// Get the value of the output parameter by name, coerced to the specified type
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="name"></param>
-        /// <returns></returns>
-        T GetOutputParameter<T>(string name);
-
-        /// <summary>
-        /// Get the value of the output parameter by name, coerced to the specified type
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="name"></param>
-        /// <returns></returns>
-        T GetOutputParameterOrThrow<T>(string name);
-
-        /// <summary>
-        /// Map all output parameter values to the specified object type, where each parameter value is set
-        /// to a property of the same name, case-insensitive.
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <returns></returns>
-        T GetOutputParameters<T>()
-            where T : class, new();
 
         /// <summary>
         /// Advance to the result set in the reader by number, starting with the first result set as 1, 
@@ -88,6 +59,8 @@ namespace CastIron.Sql
         /// <param name="num"></param>
         /// <returns></returns>
         bool TryAdvanceToResultSet(int num);
+
+        ParameterCache GetParameters();
     }
 
     public interface IDataResultsStream : IDataResults, IDisposable
@@ -211,6 +184,31 @@ namespace CastIron.Sql
             Assert.ArgumentNotNull(results, nameof(results));
             var reader = results.AsRawReader();
             return new DataReaderWithBetterErrorMessages(reader);
+        }
+
+        public static object GetOutputParameterValue(this IDataResults results, string name)
+        {
+            Assert.ArgumentNotNull(results, nameof(results));
+            return results.GetParameters().GetValue(name);
+        }
+
+        public static T GetOutputParameter<T>(this IDataResults results, string name)
+        {
+            Assert.ArgumentNotNull(results, nameof(results));
+            return results.GetParameters().GetValue<T>(name);
+        }
+
+        public static T GetOutputParameterOrThrow<T>(this IDataResults results, string name)
+        {
+            Assert.ArgumentNotNull(results, nameof(results));
+            return results.GetParameters().GetOutputParameterOrThrow<T>(name);
+        }
+
+        public static T GetOutputParameters<T>(this IDataResults results)
+            where T : class, new()
+        {
+            Assert.ArgumentNotNull(results, nameof(results));
+            return results.GetParameters().GetOutputParameters<T>();
         }
     }
 }

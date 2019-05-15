@@ -49,7 +49,7 @@ namespace CastIron.Sql.Statements
             if (value is DateTime valueDt)
                 return "'" + valueDt.ToString("yyyy-MM-dd HH:mm:ss") + "'";
 
-            if (DataRecordExpressions.IsNumericType(value.GetType()))
+            if (DataTypes.IsNumericType(value.GetType()))
                 return value.ToString();
 
             if (value is byte[] valueBytes)

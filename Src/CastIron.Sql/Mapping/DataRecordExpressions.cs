@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Data;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -8,82 +7,10 @@ namespace CastIron.Sql.Mapping
 {
     public static class DataRecordExpressions
     {
-        private static readonly HashSet<Type> _numericTypes = new HashSet<Type>
-        {
-            typeof(byte),
-            typeof(byte?),
-            typeof(decimal),
-            typeof(decimal?),
-            typeof(double),
-            typeof(double?),
-            typeof(float),
-            typeof(float?),
-            typeof(int),
-            typeof(int?),
-            typeof(long),
-            typeof(long?),
-            typeof(short),
-            typeof(short?),
-            typeof(uint),
-            typeof(uint?),
-            typeof(ulong),
-            typeof(ulong?),
-            typeof(ushort),
-            typeof(ushort?),
-        };
-
-        private static readonly HashSet<Type> _primitiveTypes = new HashSet<Type>
-        {
-            // TODO: Are there any other types we can map from the DB?
-            typeof(bool),
-            typeof(bool?),
-            typeof(byte),
-            typeof(byte?),
-            typeof(byte[]),
-            typeof(DateTime),
-            typeof(DateTime?),
-            typeof(decimal),
-            typeof(decimal?),
-            typeof(double),
-            typeof(double?),
-            typeof(float),
-            typeof(float?),
-            typeof(Guid),
-            typeof(Guid?),
-            typeof(int),
-            typeof(int?),
-            typeof(long),
-            typeof(long?),
-            typeof(short),
-            typeof(short?),
-            typeof(string),
-            typeof(uint),
-            typeof(uint?),
-            typeof(ulong),
-            typeof(ulong?),
-            typeof(ushort),
-            typeof(ushort?),
-        };
-
         private static readonly MethodInfo _getValueMethod = typeof(IDataRecord).GetMethod(nameof(IDataRecord.GetValue));
         private static readonly Expression _dbNullExp = Expression.Field(null, typeof(DBNull), nameof(DBNull.Value));
         private static readonly MethodInfo _convertMethod = typeof(Convert).GetMethod(nameof(Convert.ChangeType), new[] { typeof(object), typeof(Type) });
         private static readonly MethodInfo _guidParseMethod = typeof(Guid).GetMethod(nameof(Guid.Parse));
-
-        public static bool IsSupportedPrimitiveType(Type t)
-        {
-            return _primitiveTypes.Contains(t);
-        }
-
-        public static bool IsNumericType(Type t)
-        {
-            return _numericTypes.Contains(t);
-        }
-
-        public static bool IsMappableScalarType(Type t)
-        {
-            return _primitiveTypes.Contains(t) || t == typeof(object);
-        }
 
         public static Expression GetScalarConversionExpression(int columnIdx, MapCompileContext context, Type columnType, Type targetType)
         { 
@@ -125,7 +52,7 @@ namespace CastIron.Sql.Mapping
             }
 
             // They are both numeric but not the same type. Unbox and convert
-            if (_numericTypes.Contains(columnType) && _numericTypes.Contains(targetType))
+            if (DataTypes.IsNumericType(columnType) && DataTypes.IsNumericType(targetType))
             {
                 return Expression.Condition(
                     Expression.NotEqual(_dbNullExp, rawVar),
@@ -137,7 +64,7 @@ namespace CastIron.Sql.Mapping
             }
 
             // Target is bool, source type is numeric. Try to coerce by comparing against 0
-            if ((targetType == typeof(bool) || targetType == typeof(bool?)) && _numericTypes.Contains(columnType))
+            if ((targetType == typeof(bool) || targetType == typeof(bool?)) && DataTypes.IsNumericType(columnType))
             {
                 // rawVar != DBNull.Instance ? ((targetType)rawVar != (targetType)0) : false
                 return Expression.Condition(
@@ -175,15 +102,12 @@ namespace CastIron.Sql.Mapping
             return GetDefaultValueExpression(targetType);
         }
 
-        public static object GetDefaultValue(Type t)
-        {
-            return t.IsValueType ? Activator.CreateInstance(t) : null;
-        }
+        
 
         public static Expression GetDefaultValueExpression(Type t)
         {
             // (t)default(t)
-            return Expression.Convert(Expression.Constant(GetDefaultValue(t)), t);
+            return Expression.Convert(Expression.Constant(DataTypes.GetDefaultValue(t)), t);
         }
 
         private static bool IsConvertible(Type t)

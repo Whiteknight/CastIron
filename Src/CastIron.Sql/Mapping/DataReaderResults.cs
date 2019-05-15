@@ -1,9 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
-using System.Data.Common;
-using System.Linq;
-using System.Reflection;
 using System.Runtime.Serialization;
 using CastIron.Sql.Execution;
 
@@ -33,6 +30,7 @@ namespace CastIron.Sql.Mapping
         private readonly IDataReader _reader;
 
         private IResultState _currentState;
+        private ParameterCache _parameterCache;
 
         public DataReaderResults(IDbCommand command, IExecutionContext context, IDataReader reader, int? rowsAffected = null)
         {
@@ -64,79 +62,12 @@ namespace CastIron.Sql.Mapping
             return new DataRecordMappingEnumerable<T>(_reader, _context, map);
         }
 
-        public object GetOutputParameterValue(string name)
+        public ParameterCache GetParameters()
         {
             TryTransitionToState(StateOutputParams);
-
-            var parameterName = (name.StartsWith("@") ? name : "@" + name).ToLowerInvariant();
-
-            var param = _command?.Parameters.Cast<DbParameter>()
-                .Where(p => p.Direction != ParameterDirection.Input)
-                .FirstOrDefault(p => p.ParameterName.ToLowerInvariant() == parameterName);
-            if (param == null)
-                return null;
-
-            if (param.Value == DBNull.Value)
-                return null;
-            return param.Value;
-        }
-
-        public T GetOutputParameter<T>(string name)
-        {
-            var value = GetOutputParameterValue(name);
-            if (value == null)
-                return default(T);
-            if (typeof(T) == typeof(object))
-                return (T) value;
-            if (value is T asT)
-                return asT;
-            if (value is IConvertible && typeof(IConvertible).IsAssignableFrom(typeof(T)))
-                return (T) Convert.ChangeType(value, typeof(T));
-
-            return default(T);
-        }
-
-        public T GetOutputParameterOrThrow<T>(string name)
-        {
-            var value = GetOutputParameterValue(name);
-            if (value == null)
-                return default(T);
-            if (typeof(T) == typeof(object))
-                return (T) value;
-            if (value is T asT)
-                return asT;
-            if (typeof(T) == typeof(string))
-                return (T)(object)value.ToString();
-            if (value is IConvertible && typeof(IConvertible).IsAssignableFrom(typeof(T)))
-                return (T) Convert.ChangeType(value, typeof(T));
-
-            throw new Exception($"Cannot get output parameter '{name}' value. Expected type {typeof(T).FullName} but found {value.GetType().FullName} and no conversion can be found.");
-        }
-
-        public T GetOutputParameters<T>()
-            where T : class, new()
-        {
-            // TODO: Can we introspect and get constructor parameters by name?
-            var t = new T();
-            if (_command == null)
-                return t;
-
-            var properties = typeof(T)
-                .GetProperties(BindingFlags.Public | BindingFlags.Instance)
-                .Where(p => p.CanWrite)
-                .Where(p => p.PropertyType == typeof(object) || typeof(IConvertible).IsAssignableFrom(p.PropertyType))
-                .ToList();
-            var getMethod = typeof(DataReaderResults).GetMethod(nameof(GetOutputParameter));
-            if (getMethod == null)
-                throw new Exception($"Cannot find method {nameof(DataReaderResults)}.{nameof(GetOutputParameter)}");
-            foreach (var property in properties)
-            {
-                var getMethodTyped = getMethod.MakeGenericMethod(property.PropertyType);
-                var value = getMethodTyped.Invoke(this, new object[] {property.Name});
-                property.SetValue(t, value);
-            }
-
-            return t;
+            if (_parameterCache == null)
+                _parameterCache = new ParameterCache(_command);
+            return _parameterCache;
         }
 
         public IDataResults AdvanceToResultSet(int num)
@@ -195,6 +126,10 @@ namespace CastIron.Sql.Mapping
 
         private void DisposeReferences(bool disposeReader)
         {
+            // This method is only called from the streaming context. Otherwise the dependency 
+            // lifecycles are managed elsewhere. When we're streaming, we have to manage everything
+            // here. Unless we call .AsRawReader(), then we manage everything EXCEPT the reader,
+            // which the user will need to manage manually.
             _context?.MarkComplete();
             if (disposeReader)
                 _reader.Dispose();
@@ -248,9 +183,7 @@ namespace CastIron.Sql.Mapping
                 switch (nextStateName)
                 {
                     case StateRawReaderConsumed:
-                        throw DataReaderException.ThrowRawReaderConsumedException();
                     case StateReaderConsuming:
-                        throw DataReaderException.ThrowRawReaderConsumedException();
                     case StateOutputParams:
                         throw DataReaderException.ThrowRawReaderConsumedException();
                     case StateDisposed:
@@ -296,7 +229,6 @@ namespace CastIron.Sql.Mapping
                 switch (nextStateName)
                 {
                     case StateRawReaderConsumed:
-                        throw DataReaderException.ThrowReaderClosedException();
                     case StateReaderConsuming:
                         throw DataReaderException.ThrowReaderClosedException();
                     case StateDisposed:
