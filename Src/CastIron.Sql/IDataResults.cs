@@ -17,10 +17,16 @@ namespace CastIron.Sql
         /// </summary>
         int RowsAffected { get; }
 
+        /// <summary>
+        /// The current index of the result set in the stream. This value is 0 when reading hasn't
+        /// started. The first result set will be 1. Streams are forward-only, so this number will
+        /// increase but never decrease.
+        /// </summary>
         int CurrentSet { get; }
 
         /// <summary>
-        /// Map the result set to objects
+        /// Map the result set to objects. This method consumes the reader, making it unavailable
+        /// to other methods such as AsRawReader.
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="setup">Setup the mapper or mapper compiler using a fluent interface</param>
@@ -30,8 +36,8 @@ namespace CastIron.Sql
         /// <summary>
         /// Advance to the result set in the reader by number, starting with the first result set as 1, 
         /// second result set as 2, etc. Result sets may only be accessed in order, though they can be
-        /// skipped. Throws an exception if the specified result set number is lower than the current result
-        /// set number, or if the result set with the given number does not exist.
+        /// skipped. Throws an exception if the request cannot be completed. The exception may contain
+        /// information to help understand the nature of the issue.
         /// </summary>
         /// <param name="num"></param>
         /// <returns></returns>
@@ -40,13 +46,20 @@ namespace CastIron.Sql
         /// <summary>
         /// Try to advance to the result set in the reader by number, starting with the first result set as
         /// 1, the second result set as 2, etc. Result sets may only be accessed in order, though they can
-        /// be skipped. Returns false if attempting to access a previous result set or if the specified
-        /// result set does not exist.
+        /// be skipped. Returns false if there is an error, though the exact nature of the error and
+        /// steps to remediate will not be communicated (use AdvanceToResultSet) instead.
         /// </summary>
         /// <param name="num"></param>
         /// <returns></returns>
         bool TryAdvanceToResultSet(int num);
 
+        /// <summary>
+        /// Retrieve an object representing output parameters. Output parameters require the reader
+        /// to be closed, so parameters should be read after all result sets are read and mapped.
+        /// When this method is called, other methods such as AsEnumerable and AsRawReader may not
+        /// be called.
+        /// </summary>
+        /// <returns></returns>
         ParameterCache GetParameters();
     }
 
@@ -151,11 +164,28 @@ namespace CastIron.Sql
             return results.AdvanceToNextResultSet().AsEnumerable<T>(setup);
         }
 
+        /// <summary>
+        /// Iterate through all remaining rows in all remaining result sets and map them all to
+        /// objects of the same type.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="results"></param>
+        /// <param name="setup"></param>
+        /// <returns></returns>
         public static IEnumerable<T> AsEnumerableAll<T>(this IDataResultsBase results, Action<IMapCompilerBuilder<T>> setup = null)
         {
             return AsEnumerableNextSeveral<T>(results, int.MaxValue, setup);
         }
 
+        /// <summary>
+        /// Iterate through all remaining rows in the next N result sets, mapping all rows to objects
+        /// of the given type.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="results"></param>
+        /// <param name="numResultSets">The number of result sets to consume</param>
+        /// <param name="setup"></param>
+        /// <returns></returns>
         public static IEnumerable<T> AsEnumerableNextSeveral<T>(this IDataResultsBase results, int numResultSets, Action<IMapCompilerBuilder<T>> setup = null)
         {
             Assert.ArgumentNotNull(results, nameof(results));
@@ -179,18 +209,35 @@ namespace CastIron.Sql
             }
         }
 
+        /// <summary>
+        /// Advance to the next result set, throwing an exception if the request fails
+        /// </summary>
+        /// <param name="results"></param>
+        /// <returns></returns>
         public static IDataResultsBase AdvanceToNextResultSet(this IDataResultsBase results)
         {
             Assert.ArgumentNotNull(results, nameof(results));
             return results.AdvanceToResultSet(results.CurrentSet + 1);
         }
 
+        /// <summary>
+        /// Try to advance to the next result set, returning false if the exception fails
+        /// </summary>
+        /// <param name="results"></param>
+        /// <returns></returns>
         public static bool TryAdvanceToNextResultSet(this IDataResultsBase results)
         {
             Assert.ArgumentNotNull(results, nameof(results));
             return results.TryAdvanceToResultSet(results.CurrentSet + 1);
         }
 
+        /// <summary>
+        /// Return the raw result reader, wrapped to provide better error messages. Error messages
+        /// come with some performance penalty, so consider using this for situations where
+        /// performance is not a critical concern.
+        /// </summary>
+        /// <param name="results"></param>
+        /// <returns></returns>
         public static IDataReader AsRawReaderWithBetterErrorMessages(this IDataResults results)
         {
             Assert.ArgumentNotNull(results, nameof(results));
@@ -198,6 +245,13 @@ namespace CastIron.Sql
             return new DataReaderWithBetterErrorMessages(reader);
         }
 
+        /// <summary>
+        /// Return the raw result reader, wrapped to provide better error messages. Error messages
+        /// come with some performance penalty, so consider using this for situations where
+        /// performance is not a critical concern.
+        /// </summary>
+        /// <param name="results"></param>
+        /// <returns></returns>
         public static IDataReader AsRawReaderWithBetterErrorMessages(this IDataResultsStream results)
         {
             Assert.ArgumentNotNull(results, nameof(results));
@@ -205,24 +259,56 @@ namespace CastIron.Sql
             return new DataReaderWithBetterErrorMessages(reader);
         }
 
+        /// <summary>
+        /// Get the value of the output parameter with the given name
+        /// </summary>
+        /// <param name="results"></param>
+        /// <param name="name"></param>
+        /// <returns></returns>
         public static object GetOutputParameterValue(this IDataResultsBase results, string name)
         {
             Assert.ArgumentNotNull(results, nameof(results));
             return results.GetParameters().GetValue(name);
         }
 
+        /// <summary>
+        /// Get the value of the output parameter with the given name, attempting to convert it
+        /// to the specified type if possible. If conversion is not possible, a default value
+        /// will be returned instead.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="results"></param>
+        /// <param name="name"></param>
+        /// <returns></returns>
         public static T GetOutputParameter<T>(this IDataResultsBase results, string name)
         {
             Assert.ArgumentNotNull(results, nameof(results));
             return results.GetParameters().GetValue<T>(name);
         }
 
+        /// <summary>
+        /// Get the value of the output parameter with the given name, attempting to convert it
+        /// to the specified type if possible. If conversion is not possible, an exception will
+        /// be thrown.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="results"></param>
+        /// <param name="name"></param>
+        /// <returns></returns>
         public static T GetOutputParameterOrThrow<T>(this IDataResultsBase results, string name)
         {
             Assert.ArgumentNotNull(results, nameof(results));
             return results.GetParameters().GetOutputParameterOrThrow<T>(name);
         }
 
+        /// <summary>
+        /// Get all output parameters as a single object, with each parameter being mapped to a
+        /// property with the same name (case invariant). Parameters will be mapped to property
+        /// types where possible. Otherwise default values will be assigned.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="results"></param>
+        /// <returns></returns>
         public static T GetOutputParameters<T>(this IDataResultsBase results)
             where T : class, new()
         {
