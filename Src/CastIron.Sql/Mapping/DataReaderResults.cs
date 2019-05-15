@@ -1,45 +1,144 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Linq;
 using System.Runtime.Serialization;
 using CastIron.Sql.Execution;
 
 namespace CastIron.Sql.Mapping
 {
-    /// <summary>
-    /// Encapsulates both the IDataReader and the IDbCommand to give unified access to all result
-    /// sets and output parameters from the command
-    /// </summary>
-    public class DataReaderResults : IDataResults
+    public class StringKeyedStateMachine
     {
         protected const string StateInitial = "";
+        private readonly Dictionary<string, State> _states;
+        private State _currentState;
+
+        public StringKeyedStateMachine()
+        {
+            _states = new Dictionary<string, State>();
+            _currentState = null;
+        }
+
+        public class StateBuilder
+        {
+            private readonly State _state;
+
+            public StateBuilder(State state)
+            {
+                _state = state;
+            }
+
+            public StateBuilder TransitionOnEvent(string key, string nextKey, Action onTransition = null)
+            {
+                _state.TransitionOnEvent(key, nextKey, onTransition);
+                return this;
+            }
+        }
+
+        public class State
+        {
+            public string Name { get; }
+            private readonly Dictionary<string, Transition> _transitions;
+
+            public State(string name)
+            {
+                Name = name;
+                _transitions = new Dictionary<string, Transition>();
+            }
+
+            public void TransitionOnEvent(string key, string nextKey, Action onTransition)
+            {
+                var transition = new Transition(nextKey, onTransition);
+                _transitions.Add(key, transition);
+            }
+
+            public Transition GetTransitionForKey(string key)
+            {
+                return _transitions.ContainsKey(key) ? _transitions[key] : null;
+            }
+        }
+
+        public class Transition
+        {
+            public Transition(string newKey, Action onTransition)
+            {
+                NewKey = newKey;
+                OnTransition = onTransition;
+            }
+
+            public string NewKey { get; }
+            public Action OnTransition { get; }
+        }
+
+        public StateBuilder AddState(string name)
+        {
+            var state = new State(name);
+            _states.Add(name, state);
+            var builder = new StateBuilder(state);
+            return builder;
+        }
+
+        public StateBuilder UpdateState(string name)
+        {
+            var state = _states.Values.FirstOrDefault(s => s.Name == name);
+            return new StateBuilder(state);
+        }
+
+        public void ReceiveEvent(string key)
+        {
+            if (_currentState == null)
+            {
+                _currentState = _states[key];
+                return;
+            }
+
+            var transition = _currentState.GetTransitionForKey(key);
+            if (transition == null)
+                throw new Exception($"Cannot transition from state {_currentState?.Name ?? "initial"} on key {key}");
+
+            transition.OnTransition?.Invoke();
+
+            if (transition.NewKey == null || transition.NewKey == StateInitial)
+                throw new Exception($"Cannot transition to the initial state from state {_currentState.Name} on key {key}");
+            _currentState = _states[transition.NewKey];
+        }
+    }
+
+    public abstract class DataReaderResultsBase : IDataResultsBase
+    {
+        
         protected const string StateRawReaderConsumed = "RawReaderConsumed";
         protected const string StateReaderConsuming = "ReaderConsuming";
         protected const string StateOutputParams = "OutputParams";
-        protected const string StateDisposed = "Disposed";
 
-        private static readonly Dictionary<string, Func<IResultState>> _getState = new Dictionary<string, Func<IResultState>>
-        {
-            { StateRawReaderConsumed, () => new RawReaderConsumedState() },
-            { StateReaderConsuming, () => new ReaderConsumingState() },
-            { StateOutputParams, () => new OutputParametersState() },
-            { StateDisposed, () => new DisposedState() }
-        };
-        private readonly IDbCommand _command;
-        private readonly IExecutionContext _context;
-        private readonly IDataReader _reader;
+        protected StringKeyedStateMachine StateMachine { get; }
 
-        private IResultState _currentState;
+        protected IDbCommand Command { get; }
+        protected IExecutionContext Context { get; }
+        protected IDataReader Reader { get;  }
+
         private ParameterCache _parameterCache;
 
-        public DataReaderResults(IDbCommand command, IExecutionContext context, IDataReader reader, int? rowsAffected = null)
+        protected DataReaderResultsBase(IDbCommand command, IExecutionContext context, IDataReader reader, int? rowsAffected)
         {
-            _command = command;
-            _context = context;
-            _reader = reader;
-            _currentState = new InitialState();
+            Command = command;
+            Context = context;
+            Reader = reader;
             CurrentSet = 0;
             RowsAffected = rowsAffected ?? reader?.RecordsAffected ?? 0;
+            StateMachine = new StringKeyedStateMachine();
+            StateMachine.AddState(StateRawReaderConsumed)
+                .TransitionOnEvent(StateRawReaderConsumed, null, () => throw DataReaderException.ThrowRawReaderConsumedException())
+                .TransitionOnEvent(StateReaderConsuming, null, () => throw DataReaderException.ThrowRawReaderConsumedException())
+                .TransitionOnEvent(StateOutputParams, null, () => throw DataReaderException.ThrowRawReaderConsumedException());
+            StateMachine.AddState(StateReaderConsuming)
+                .TransitionOnEvent(StateRawReaderConsumed, null, () => throw DataReaderException.ThrowConsumeAfterStreamingStartedException())
+                .TransitionOnEvent(StateReaderConsuming, StateReaderConsuming)
+                .TransitionOnEvent(StateOutputParams, StateOutputParams, EnableOutputParameters);
+            StateMachine.AddState(StateOutputParams)
+                .TransitionOnEvent(StateRawReaderConsumed, null, () => throw DataReaderException.ThrowReaderClosedException())
+                .TransitionOnEvent(StateReaderConsuming, null, () => throw DataReaderException.ThrowReaderClosedException())
+                .TransitionOnEvent(StateOutputParams, StateOutputParams, EnableOutputParameters);
         }
 
         public int CurrentSet { get; private set; }
@@ -47,32 +146,40 @@ namespace CastIron.Sql.Mapping
 
         public IDataReader AsRawReader()
         {
-            TryTransitionToState(StateRawReaderConsumed);
-            return _reader;
+            StateMachine.ReceiveEvent(StateRawReaderConsumed);
+            return Reader;
         }
 
-        public IEnumerable<T> AsEnumerable<T>(Action<IMapCompilerBuilder<T>> setup = null)
+        private void EnableOutputParameters()
         {
-            TryTransitionToState(StateReaderConsuming);
-            if (CurrentSet == 0)
-                CurrentSet = 1;
-            var context = new MapCompilerBuilder<T>();
-            setup?.Invoke(context);
-            var map = context.Compile(_reader);
-            return new DataRecordMappingEnumerable<T>(_reader, _context, map);
+            if (Reader == null)
+                return;
+            if (!Reader.IsClosed)
+                Reader.Close();
         }
 
         public ParameterCache GetParameters()
         {
-            TryTransitionToState(StateOutputParams);
+            StateMachine.ReceiveEvent(StateOutputParams);
             if (_parameterCache == null)
-                _parameterCache = new ParameterCache(_command);
+                _parameterCache = new ParameterCache(Command);
             return _parameterCache;
         }
 
-        public IDataResults AdvanceToResultSet(int num)
+        public IEnumerable<T> AsEnumerable<T>(Action<IMapCompilerBuilder<T>> setup = null)
         {
-            TryTransitionToState(StateReaderConsuming);
+            StateMachine.ReceiveEvent(StateReaderConsuming);
+            if (CurrentSet == 0)
+                CurrentSet = 1;
+            var context = new MapCompilerBuilder<T>();
+            setup?.Invoke(context);
+            var map = context.Compile(Reader);
+            return new DataRecordMappingEnumerable<T>(Reader, Context, map);
+        }
+
+        public IDataResultsBase AdvanceToResultSet(int num)
+        {
+            StateMachine.ReceiveEvent(StateReaderConsuming);
 
             // TODO: Review all this logic to make sure it is sane and necessary
             if (CurrentSet > num)
@@ -86,7 +193,7 @@ namespace CastIron.Sql.Mapping
 
             while (CurrentSet < num)
             {
-                if (!_reader.NextResult())
+                if (!Reader.NextResult())
                     throw new Exception($"Could not read requested result set {num}. This stream only contains {CurrentSet} result sets.");
                 CurrentSet++;
             }
@@ -99,7 +206,7 @@ namespace CastIron.Sql.Mapping
 
         public bool TryAdvanceToResultSet(int num)
         {
-            TryTransitionToState(StateReaderConsuming);
+            StateMachine.ReceiveEvent(StateReaderConsuming);
 
             if (CurrentSet > num)
                 return false;
@@ -113,7 +220,7 @@ namespace CastIron.Sql.Mapping
 
             while (CurrentSet < num)
             {
-                if (!_reader.NextResult())
+                if (!Reader.NextResult())
                     return false;
                 CurrentSet++;
             }
@@ -123,152 +230,61 @@ namespace CastIron.Sql.Mapping
 
             return true;
         }
+    }
 
-        private void DisposeReferences(bool disposeReader)
+    /// <summary>
+    /// Encapsulates both the IDataReader and the IDbCommand to give unified access to all result
+    /// sets and output parameters from the command
+    /// </summary>
+    public class DataReaderResults : DataReaderResultsBase, IDataResults
+    {
+
+        public DataReaderResults(IDbCommand command, IExecutionContext context, IDataReader reader, int? rowsAffected = null)
+            : base(command, context, reader, rowsAffected)
         {
-            // This method is only called from the streaming context. Otherwise the dependency 
-            // lifecycles are managed elsewhere. When we're streaming, we have to manage everything
-            // here. Unless we call .AsRawReader(), then we manage everything EXCEPT the reader,
-            // which the user will need to manage manually.
-            _context?.MarkComplete();
-            if (disposeReader)
-                _reader.Dispose();
-            _command?.Dispose();
-            _context?.Dispose();
-        }
-
-        private interface IResultState
-        {
-            string Name { get; }
-            void Enter(IDataReader reader);
-            void TryTransitionTo(string nextStateName, DataReaderResults results);
-        }
-
-        protected void TryTransitionToState(string nextStateName)
-        {
-            _currentState.TryTransitionTo(nextStateName, this);
-            if (_currentState.Name == nextStateName)
-                return;
-            _currentState = _getState[nextStateName]();
-            _currentState.Enter(_reader);
-        }
-
-        private class InitialState : IResultState
-        {
-            public string Name => StateInitial;
-
-            public void Enter(IDataReader reader)
-            {
-                throw new Exception("Cannot transition into the default state. Something is broken.");
-            }
-
-            public void TryTransitionTo(string nextStateName, DataReaderResults results)
-            {
-                if (nextStateName == StateDisposed)
-                    results.DisposeReferences(true);
-            }
-        }
-
-        private class RawReaderConsumedState : IResultState
-        {
-            public string Name => StateRawReaderConsumed;
-            public void Enter(IDataReader reader)
-            {
-                if (reader == null)
-                    throw DataReaderException.ThrowNullReaderException();
-            }
-
-            public void TryTransitionTo(string nextStateName, DataReaderResults results)
-            {
-                switch (nextStateName)
-                {
-                    case StateRawReaderConsumed:
-                    case StateReaderConsuming:
-                    case StateOutputParams:
-                        throw DataReaderException.ThrowRawReaderConsumedException();
-                    case StateDisposed:
-                        results.DisposeReferences(false);
-                        break;
-                }
-            }
-        }
-
-        private class ReaderConsumingState : IResultState
-        {
-            public string Name => StateReaderConsuming;
-            public void Enter(IDataReader reader)
-            {
-                if (reader == null)
-                    throw DataReaderException.ThrowNullReaderException();
-            }
-
-            public void TryTransitionTo(string nextStateName, DataReaderResults results)
-            {
-                switch (nextStateName)
-                {
-                    case StateRawReaderConsumed:
-                        throw DataReaderException.ThrowConsumeAfterStreamingStartedException();
-                    case StateDisposed:
-                        results.DisposeReferences(true);
-                        break;
-                }
-            }
-        }
-
-        private class OutputParametersState : IResultState
-        {
-            public string Name => StateOutputParams;
-            public void Enter(IDataReader reader)
-            {
-                if (reader != null && !reader.IsClosed)
-                    reader.Close();
-            }
-
-            public void TryTransitionTo(string nextStateName, DataReaderResults results)
-            {
-                switch (nextStateName)
-                {
-                    case StateRawReaderConsumed:
-                    case StateReaderConsuming:
-                        throw DataReaderException.ThrowReaderClosedException();
-                    case StateDisposed:
-                        results.DisposeReferences(true);
-                        break;
-                }
-            }
-        }
-
-        private class DisposedState : IResultState
-        {
-            public string Name => StateDisposed;
-            public void Enter(IDataReader reader)
-            {
-            }
-
-            public void TryTransitionTo(string nextStateName, DataReaderResults results)
-            {
-                if (nextStateName != StateDisposed)
-                {
-                    throw new ObjectDisposedException(
-                        $"The {nameof(DataReaderResults)} and underlying {nameof(IDataReader)} objects " +
-                        "have been disposed and cannot be used for any other purposes.");
-                }
-            }
         }
     }
 
-    public class DataReaderResultsStream : DataReaderResults, IDataResultsStream
+    public class DataReaderResultsStream : DataReaderResultsBase, IDataResultsStream
     {
-        public DataReaderResultsStream(IDbCommand command, IExecutionContext context, IDataReader reader)
-            : base(command, context, reader)
-        {
-        }
+        protected const string StateDisposed = "Disposed";
 
-        // TODO: .AsRawReader() will return the reader which the user can .Dispose(), but not dispose the connection or command
+        public DataReaderResultsStream(IDbCommand command, IExecutionContext context, IDataReader reader)
+            : base(command, context, reader, null)
+        {
+            StateMachine.AddState(StateDisposed)
+                .TransitionOnEvent(StateRawReaderConsumed, null, ThrowDisposedException)
+                .TransitionOnEvent(StateReaderConsuming, null, ThrowDisposedException)
+                .TransitionOnEvent(StateOutputParams, null, ThrowDisposedException)
+                .TransitionOnEvent(StateDisposed, StateDisposed);
+            StateMachine.UpdateState(StateRawReaderConsumed)
+                .TransitionOnEvent(StateDisposed, StateDisposed, () => DisposeReferences(false));
+            StateMachine.UpdateState(StateReaderConsuming)
+                .TransitionOnEvent(StateDisposed, StateDisposed, () => DisposeReferences(true));
+            StateMachine.UpdateState(StateOutputParams)
+                .TransitionOnEvent(StateDisposed, StateDisposed, () => DisposeReferences(true));
+        }
 
         public void Dispose()
         {
-            TryTransitionToState(StateDisposed);
+            StateMachine.ReceiveEvent(StateDisposed);
+        }
+
+
+        private static void ThrowDisposedException()
+        {
+            throw new ObjectDisposedException(
+                $"The {nameof(DataReaderResults)} and underlying {nameof(IDataReader)} objects " +
+                "have been disposed and cannot be used for any other purposes.");
+        }
+
+        private void DisposeReferences(bool disposeReader)
+        {
+            Context?.MarkComplete();
+            if (disposeReader)
+                Reader.Dispose();
+            Command?.Dispose();
+            Context?.Dispose();
         }
     }
 

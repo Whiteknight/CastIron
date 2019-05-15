@@ -8,11 +8,7 @@ using CastIron.Sql.Utility;
 
 namespace CastIron.Sql
 {
-    /// <summary>
-    /// Combined results from the completed database interaction. Acts as a wrapper around IDataReader and 
-    /// the output parameters (if any) from the IDbCommand.
-    /// </summary>
-    public interface IDataResults
+    public interface IDataResultsBase
     {
         /// <summary>
         /// Where available, the number of rows affected by the query. Notice that this number may
@@ -22,15 +18,6 @@ namespace CastIron.Sql
         int RowsAffected { get; }
 
         int CurrentSet { get; }
-
-        /// <summary>
-        /// Get a reference to the raw IDataReader. WARNING: When you access the underlying reader
-        /// object you assume complete control over it and this object will no longer be functional.
-        /// You cannot call any other methods on IDataResults and you must call .Dispose() on the
-        /// reader yourself to ensure resources are cleaned up.
-        /// </summary>
-        /// <returns></returns>
-        IDataReader AsRawReader();
 
         /// <summary>
         /// Map the result set to objects
@@ -48,7 +35,7 @@ namespace CastIron.Sql
         /// </summary>
         /// <param name="num"></param>
         /// <returns></returns>
-        IDataResults AdvanceToResultSet(int num);
+        IDataResultsBase AdvanceToResultSet(int num);
 
         /// <summary>
         /// Try to advance to the result set in the reader by number, starting with the first result set as
@@ -63,8 +50,33 @@ namespace CastIron.Sql
         ParameterCache GetParameters();
     }
 
-    public interface IDataResultsStream : IDataResults, IDisposable
+    /// <summary>
+    /// Combined results from the completed database interaction. Acts as a wrapper around IDataReader and 
+    /// the output parameters (if any) from the IDbCommand.
+    /// </summary>
+    public interface IDataResults : IDataResultsBase
     {
+        /// <summary>
+        /// Get a reference to the raw IDataReader. WARNING: When you access the underlying reader
+        /// object you assume complete control over it and this object will no longer be functional.
+        /// You cannot call any other methods on IDataResults but instead may only call methods on
+        /// the reader. 
+        /// </summary>
+        /// <returns></returns>
+        IDataReader AsRawReader();
+
+    }
+
+    public interface IDataResultsStream : IDataResultsBase, IDisposable
+    {
+        /// <summary>
+        /// Get a reference to the raw IDataReader. WARNING: When you access the underlying reader
+        /// object you assume complete control over it and this object will no longer be functional.
+        /// You cannot call any other methods on IDataResults and you MUST call .Dispose() on the
+        /// reader yourself to ensure resources are cleaned up.
+        /// </summary>
+        /// <returns></returns>
+        IDataReader AsRawReader();
     }
 
     /// <summary>
@@ -80,7 +92,7 @@ namespace CastIron.Sql
         /// <param name="results"></param>
         /// <param name="factory"></param>
         /// <returns></returns>
-        public static IEnumerable<T> AsEnumerable<T>(this IDataResults results, Func<T> factory)
+        public static IEnumerable<T> AsEnumerable<T>(this IDataResultsBase results, Func<T> factory)
         {
             Assert.ArgumentNotNull(results, nameof(results));
             return results.AsEnumerable<T>(b => b.UseFactoryMethod(factory));
@@ -94,7 +106,7 @@ namespace CastIron.Sql
         /// <param name="results"></param>
         /// <param name="preferredConstructor"></param>
         /// <returns></returns>
-        public static IEnumerable<T> AsEnumerable<T>(this IDataResults results, ConstructorInfo preferredConstructor)
+        public static IEnumerable<T> AsEnumerable<T>(this IDataResultsBase results, ConstructorInfo preferredConstructor)
         {
             Assert.ArgumentNotNull(results, nameof(results));
             return results.AsEnumerable<T>(b => b.UseConstructor(preferredConstructor));
@@ -108,7 +120,7 @@ namespace CastIron.Sql
         /// <param name="results"></param>
         /// <param name="factory"></param>
         /// <returns></returns>
-        public static IEnumerable<T> GetNextEnumerable<T>(this IDataResults results, Func<T> factory)
+        public static IEnumerable<T> GetNextEnumerable<T>(this IDataResultsBase results, Func<T> factory)
         {
             return GetNextEnumerable<T>(results, b => b.UseFactoryMethod(factory));
         }
@@ -120,7 +132,7 @@ namespace CastIron.Sql
         /// <param name="results"></param>
         /// <param name="preferredConstructor"></param>
         /// <returns></returns>
-        public static IEnumerable<T> GetNextEnumerable<T>(this IDataResults results, ConstructorInfo preferredConstructor)
+        public static IEnumerable<T> GetNextEnumerable<T>(this IDataResultsBase results, ConstructorInfo preferredConstructor)
         {
             return GetNextEnumerable<T>(results, b => b.UseConstructor(preferredConstructor));
         }
@@ -133,18 +145,18 @@ namespace CastIron.Sql
         /// <param name="results"></param>
         /// <param name="setup"></param>
         /// <returns></returns>
-        public static IEnumerable<T> GetNextEnumerable<T>(this IDataResults results, Action<IMapCompilerBuilder<T>> setup = null)
+        public static IEnumerable<T> GetNextEnumerable<T>(this IDataResultsBase results, Action<IMapCompilerBuilder<T>> setup = null)
         {
             Assert.ArgumentNotNull(results, nameof(results));
             return results.AdvanceToNextResultSet().AsEnumerable<T>(setup);
         }
 
-        public static IEnumerable<T> AsEnumerableAll<T>(this IDataResults results, Action<IMapCompilerBuilder<T>> setup = null)
+        public static IEnumerable<T> AsEnumerableAll<T>(this IDataResultsBase results, Action<IMapCompilerBuilder<T>> setup = null)
         {
             return AsEnumerableNextSeveral<T>(results, int.MaxValue, setup);
         }
 
-        public static IEnumerable<T> AsEnumerableNextSeveral<T>(this IDataResults results, int numResultSets, Action<IMapCompilerBuilder<T>> setup = null)
+        public static IEnumerable<T> AsEnumerableNextSeveral<T>(this IDataResultsBase results, int numResultSets, Action<IMapCompilerBuilder<T>> setup = null)
         {
             Assert.ArgumentNotNull(results, nameof(results));
             if (numResultSets <= 0)
@@ -167,13 +179,13 @@ namespace CastIron.Sql
             }
         }
 
-        public static IDataResults AdvanceToNextResultSet(this IDataResults results)
+        public static IDataResultsBase AdvanceToNextResultSet(this IDataResultsBase results)
         {
             Assert.ArgumentNotNull(results, nameof(results));
             return results.AdvanceToResultSet(results.CurrentSet + 1);
         }
 
-        public static bool TryAdvanceToNextResultSet(this IDataResults results)
+        public static bool TryAdvanceToNextResultSet(this IDataResultsBase results)
         {
             Assert.ArgumentNotNull(results, nameof(results));
             return results.TryAdvanceToResultSet(results.CurrentSet + 1);
@@ -186,25 +198,32 @@ namespace CastIron.Sql
             return new DataReaderWithBetterErrorMessages(reader);
         }
 
-        public static object GetOutputParameterValue(this IDataResults results, string name)
+        public static IDataReader AsRawReaderWithBetterErrorMessages(this IDataResultsStream results)
+        {
+            Assert.ArgumentNotNull(results, nameof(results));
+            var reader = results.AsRawReader();
+            return new DataReaderWithBetterErrorMessages(reader);
+        }
+
+        public static object GetOutputParameterValue(this IDataResultsBase results, string name)
         {
             Assert.ArgumentNotNull(results, nameof(results));
             return results.GetParameters().GetValue(name);
         }
 
-        public static T GetOutputParameter<T>(this IDataResults results, string name)
+        public static T GetOutputParameter<T>(this IDataResultsBase results, string name)
         {
             Assert.ArgumentNotNull(results, nameof(results));
             return results.GetParameters().GetValue<T>(name);
         }
 
-        public static T GetOutputParameterOrThrow<T>(this IDataResults results, string name)
+        public static T GetOutputParameterOrThrow<T>(this IDataResultsBase results, string name)
         {
             Assert.ArgumentNotNull(results, nameof(results));
             return results.GetParameters().GetOutputParameterOrThrow<T>(name);
         }
 
-        public static T GetOutputParameters<T>(this IDataResults results)
+        public static T GetOutputParameters<T>(this IDataResultsBase results)
             where T : class, new()
         {
             Assert.ArgumentNotNull(results, nameof(results));
