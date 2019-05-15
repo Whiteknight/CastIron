@@ -69,6 +69,7 @@ namespace CastIron.Sql.Mapping
             return _parameterCache;
         }
 
+        // TODO: Async variant to get an async enumerable
         public IEnumerable<T> AsEnumerable<T>(Action<IMapCompilerBuilder<T>> setup = null)
         {
             StateMachine.ReceiveEvent(StateReaderConsuming);

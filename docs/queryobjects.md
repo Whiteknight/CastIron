@@ -16,6 +16,10 @@ While it would be possible to build an explicit mapping layer from object names 
 
 ## Query Object Types and Tags
 
+### `IResultMaterializer<T>`
+
+The result materializer is a type which takes an `IDataResult` and maps that to a result object. Objects of this type can be used when we want a single query to be able to materialize into different types of objects depending on use-case.
+
 ### `ISqlCommand`
 
 A command on the database with no result sets or output parameters. The `SetupCommand()` method requires the manual setup of the `IDataInteraction` object, including setting the SQL text and any parameters which the command requires. `ISqlCommand` is executed with `IDbCommand.ExecuteNonQuery()` internally.
@@ -24,6 +28,8 @@ A command on the database with no result sets or output parameters. The `SetupCo
 
 A command on the database which expects to return a result. The `SetupCommand()` method requires the manual setup of the `IDataInteraction` object, including setting the SQL text and any parameters which the command requires. The result may come from output parameters or other contextual information or metadata. `ISqlCommand` is executed with `IDbCommand.ExecuteNonQuery()` internally.
 
+This type is a combination of `ISqlCommand` and `IResultMaterializer<T>`
+
 ### `ISqlCommandSimple`
 
 A simple command on the database with no result sets or output parameters. A raw string of SQL is returned from the `GetSql()` method. If parameters are required, they can be added using the `ISqlParameterized` interface (described below). This type expects to return no results. `ISqlCommandSimple` is executed with `IDbCommand.ExecuteNonQuery()` internally.
@@ -31,6 +37,8 @@ A simple command on the database with no result sets or output parameters. A raw
 ### `ISqlCommandSimple<T>`
 
 A simple command on the database with no result sets or output parameters. A raw string of SQL is returned from the `GetSql()` method. If parameters are required, they can be added using the `ISqlParameterized` interface (described below). This type expects to return results, which may come from output parameters, contextual information or metadata. `ISqlCommandSimple` is executed with `IDbCommand.ExecuteNonQuery()` internally.
+
+This type is a combination of `ISqlCommandSimple` and `IResultMaterializer<T>`
 
 ### `ISqlQuery`
 
@@ -42,6 +50,8 @@ This type does not have an explicit result type declared and will not return any
 
 A query on the database which is expected to return one more more result sets. This object uses the `SetupCommand()` method to manually setup the `IDataInteraction` object. Additional parameters may be added using the `ISqlParameterized` interface (described below). `ISqlQuery` is executed internally using the `IDbConnection.ExecuteReader()` method. 
 
+This type is a combination of `ISqlQuery` and `IResultMaterializer<T>`
+
 ### `ISqlQuerySimple`
 
 A simple query on the database which provides a string of raw SQL and is expected to return one or more result sets. This object uses the `GetSql()` method to get a string of raw SQL to execute. Parameters, if required, may be added using the `ISqlParameterized` interface (described below). `ISqlQuerySimple` is executed internally using the `IDbConnection.ExecuteReader()` method.
@@ -51,6 +61,8 @@ This type does not have an explicit result type declared and will not return any
 ### `ISqlQuerySimple<T>`
 
 A simple query on the database which provides a string of raw SQL and is expected to return one or more result sets. This object uses the `GetSql()` method to get a string of raw SQL to execute. Parameters, if required, may be added using the `ISqlParameterized` interface (described below). `ISqlQuerySimple` is executed internally using the `IDbConnection.ExecuteReader()` method.
+
+This type is a combination of `ISqlQuerySimple` and `IResultMaterializer<T>`
 
 ### `ISqlConnectionAccessor`
 

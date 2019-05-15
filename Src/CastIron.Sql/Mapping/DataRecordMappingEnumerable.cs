@@ -8,6 +8,7 @@ using CastIron.Sql.Utility;
 
 namespace CastIron.Sql.Mapping
 {
+    // TODO: IAsyncEnumerable implementation (may require a library or C# 8.0)
     public class DataRecordMappingEnumerable<T> : IEnumerable<T>
     {
         private readonly IDataReader _reader;
@@ -61,6 +62,8 @@ namespace CastIron.Sql.Mapping
 
             public bool MoveNext()
             {
+                // TODO: We need to keep track of the result set so that if the reader has advanced we cannot continue
+                // TODO: While this is enumerating we cannot do anything else with the reader.
                 if (_context.IsCompleted || _reader.IsClosed)
                 {
                     Current = default(T);
@@ -71,6 +74,20 @@ namespace CastIron.Sql.Mapping
                 Current = ok ? _read(_reader) : default(T);
                 return ok;
             }
+
+            //public async Task<bool> MoveNextAsync()
+            //{
+            //    if (_context.IsCompleted || _reader.IsClosed)
+            //    {
+            //        Current = default(T);
+            //        return false;
+            //    }
+
+            //    // TODO: Need to wrap IDataReader into a version which exposes ReadAsync
+            //    var ok = await _reader.ReadAsync();
+            //    Current = ok ? _read(_reader) : default(T);
+            //    return ok;
+            //}
 
             public void Reset()
             {

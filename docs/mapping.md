@@ -2,9 +2,15 @@
 
 Mapping results from an `System.Data.IDataReader` to an enumerable of values or objects is one of the core features of CastIron. However, this conversion is rarely a straight-forward task. CastIron provides a set of built-in mappers and mapper-builders to handle some of the complexities in a heuristic-based way. As with all other features of CastIron, the mappers are pluggable, so you can substitute your own implementation if you prefer.
 
-All result mapping starts with an `IDataResults` or `IDataResultsStream`, which encapsulates the `System.Data.IDataReader` and some additional details. An `IDataResults` instance is automatically passed to the `Read()` method of your `ISqlQuery` and certain `ISqlCommand<T>` variants. `IDataResultsStream` instances come from the `ISqlRunner.QueryStream()` method. In either case, the basics of mapping are the same.
+All result mapping starts with an `IDataResults` or `IDataResultsStream`, which encapsulates the `System.Data.IDataReader` and some additional details. An `IDataResults` instance is automatically passed to the `Read()` method of your `IResultMaterializer<T>` (inherited by things like `ISqlQuery<T>` and certain `ISqlCommand<T>` variants). `IDataResultsStream` instances come from the `ISqlRunner.QueryStream()` method. In either case, the basics of mapping are the same.
 
 If you would like to build up complex objects by mapping together multiple result sets, see the page on [Mapping Complex Objects](maponto.md) which shows several detailed examples.
+
+## Output Parameters
+
+`IDataResults` and `IDataResultsStream` provide access to output parameters from the query. However, due to the nature of the underlying `System.Data.IDataReader`, parameter values cannot be accessed until the reader (if any) is closed. If the command does not have a reader, output parameters can be accessed at any time.
+
+This means that if your query has a reader, you should read all result sets first before attempting to access output parameters. When you access your output parameters, the reader will be closed and additional mapping will not work and may throw an exception.
 
 ## Old-Fashioned Manual Mapping
 
@@ -14,7 +20,27 @@ The most "traditional" and backwards-compatible way to read results is to get th
 var reader = results.AsRawReader();
 ```
 
-Once you call `AsRawReader()` the reader is consumed and the `IDataResults` object cannot be used anymore. This is an excellent stepping stone for a migration from old `System.Data.Sql` primitives to CastIron: Wrap your queries into an appropriate `ISqlQuery` variant, and use the raw reader to map results until you're reading to upgrade to the more automated mappings.
+Once you call `AsRawReader()` the reader is consumed and the `IDataResults` object cannot be used anymore. This is an excellent stepping stone for a migration from old `System.Data.Sql` primitives to CastIron: Wrap your queries into an appropriate `ISqlQuery` variant, and use the raw reader to map results using your existing logic until you're reading to upgrade to the more automated mappings.
+
+Notice that if you are using a normal query, the reader lifecycle will be managed for you and you do not need to `.Dispose()` the reader yourself. However, if you are streaming and you call `.AsRawReader()` you will assume control over the reader and will need to call `.Dispose()` yourself.
+
+```csharp
+// In a query object
+public object Read(IDataResults results) {
+    var reader = results.AsRawReader();
+    ...
+    // DO NOT call reader.Dispose() here
+}
+```
+
+```csharp
+// to stream data
+using (var stream = runner.QueryStream(myQuery)) {
+    using (var reader = stream.AsRawReader()) {
+        ... 
+    }
+}
+```
 
 ## Primitive Types
 
@@ -38,11 +64,15 @@ CastIron defines a list of "primitive types" as the following, including the `Nu
 
 CastIron can typically convert almost all raw column values to any of the above primitive types so long as the data formats are convertible.
 
-## `AsEnumerable()`
+## `AsEnumerable<T>()`
 
 The method `IDataResults.AsEnumerable<T>()` is the most basic mechanism to map a results stream from the database into an enumerable of objects. This method has several options which can be leveraged for different use-cases, and allows plugging in custom implementations of various algorithms. We'll discuss some of these options below.
 
 ## Object Mappings
+
+```csharp
+var enumerable = results.AsEnumerable<object>();
+```
 
 Mapping to an `object` works a little differently depending on how and when the mapping occurs.
 
@@ -76,7 +106,7 @@ var name1 = names[0].ToString(); // 'A'
 var name2 = names[1].ToString(); // 'B'
 ```
 
-In general, for all but the most fast-and-dirty queries, you'll want more control over the data structure than this and you should use a proper custom class instead of `object`.
+CastIron does this because column name and ordering information is part of the metadata of the value and CastIron does not want to just throw data away if it doesn't know for sure the information will not be needed. In general, for all but the most fast-and-dirty queries, you'll want more control over the data structure than this and you should use a proper custom class instead of `object`.
 
 ### Nested `object` mapping
 
@@ -183,11 +213,18 @@ By default, CastIron can support arrays of primitive types, any interface type w
 * `HashSet<T>`
 * Custom types which inherit from `ICollection<T>` and have a default parameterless constructor
 
+In these situations, CastIron will map values from all columns to the specified primitive type and store all values form a single row into a single collection instance.
+
 ## Dictionary Mappings
 
-CastIron can map a row to a dictionary where the key is a `string` name of the column and the value is the value of that column. CastIron can support `Dictionary<string, T>`, any custom type which implements `IDictionary<string, T>` and has a default parameterless constructor, `IDictionary<string, T>` and `IReadOnlyDictionary<string, T>` (where `T` is any of the primitive types or `object`).
+CastIron can map a row to a dictionary where the key is a `string` name of the column and the value is the value of that column. CastIron can support:
 
-Some examples:
+1. `Dictionary<string, T>`
+1. Any custom type which implements `IDictionary<string, T>` and has a default parameterless constructor
+1. `IDictionary<string, T>`
+1. `IReadOnlyDictionary<string, T>` 
+
+(Where `T` is any of the primitive types or `object`). Some examples:
 
 ```csharp
 var dicts = result.AsEnumerable<Dictionary<string, int>>();
@@ -318,7 +355,9 @@ You can use a custom factory method to provide an instance.
 var objects = results.AsEnumerable<MyType>(c => c.UseFactory(r => new MyType()));
 ```
 
-Notice that, because factory methods are outside the control of CastIron and may change behavior, maps cannot be cached if factory methods are used.
+Notice that, because factory methods are outside the control of CastIron and may change behavior, maps cannot be cached if factory methods are used. 
+
+Also note that there's no way for CastIron to "consume" columns from the reader. If you use a value from the reader in the factory method, those columns will still be used to map properties later in the mapping algorithm. To avoid this issue, make sure you don't have writable properties with the same name as constructor parameters (match is case-insensitive).
 
 #### Preferred Constructors
 
@@ -330,7 +369,7 @@ var objects = results.AsEnumerable<MyType>(c => c.UseConstructor(constructorInfo
 var objects = results.AsEnumerable<MyType(c => c.UseConstructor(new Type[] { ... }));
 ```
 
-The constructor provided may not be `null`, may not be a `static`, `private` or `protected`. It must be the constructor for the class you are trying to map.
+The constructor provided may not be `null`, may not be a `static`, `private` or `protected`. It must be the constructor for the class you are trying to map. Failure of any of these checks will cause an exception to be thrown.
 
 ## Map Compilers
 
@@ -368,6 +407,7 @@ This method defaults to a global caching compiler:
 
 ```csharp
 var cachingInstance = CastIron.Sql.Mapping.MapCompilation.GetCachedInstance();
+```
 
 This `CachingMapCompiler` instance can be used directly and can be cleared like any other caching compiler instance to save memory space.
 

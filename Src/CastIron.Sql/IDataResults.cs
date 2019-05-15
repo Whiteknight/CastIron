@@ -188,6 +188,8 @@ namespace CastIron.Sql
         /// <returns></returns>
         public static IEnumerable<T> AsEnumerableNextSeveral<T>(this IDataResultsBase results, int numResultSets, Action<IMapCompilerBuilder<T>> setup = null)
         {
+            // TODO: Create an IEnumerable<T>/IEnumerator<T> object to hold this logic, so we can implement async variants
+            // TODO: We need to mark the IDataResultsBase object as "locked" so we can't start another read operation or move-next operation while this is running
             Assert.ArgumentNotNull(results, nameof(results));
             if (numResultSets <= 0)
                 yield break;
