@@ -5,7 +5,7 @@
     <AssemblyName>CastIron.Sql</AssemblyName>
     <RootNamespace>CastIron.Sql</RootNamespace>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <Version>0.7.3</Version>
+    <Version>0.7.4</Version>
     <Authors>Andrew F. Whitworth</Authors>
     <Company />
     <Description>Bare-metal SQL Micro-ORM with Query Object implementation</Description>
