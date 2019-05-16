@@ -10,9 +10,15 @@
     <Company />
     <Description>Bare-metal SQL Micro-ORM with Query Object implementation</Description>
     <Copyright>Copyright 2018</Copyright>
-    <PackageLicenseUrl>https://github.com/Whiteknight/CastIron/blob/master/LICENSE</PackageLicenseUrl>
     <PackageProjectUrl>https://github.com/Whiteknight/CastIron</PackageProjectUrl>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="LICENSE" Pack="true" PackagePath="">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 
   <PropertyGroup>
     <DefineConstants>CASTIRON_MSSQL</DefineConstants>
