@@ -112,7 +112,7 @@ namespace CastIron.Sql
         public ISqlResultPromise<IReadOnlyList<T>> Add<T>(string sql)
         {
             Assert.ArgumentNotNullOrEmpty(sql, nameof(sql));
-            return Add(SqlQuery.Simple<T>(sql));
+            return Add(SqlQuery.FromString<T>(sql));
         }
 
         private void AddExecutor(Action<IExecutionContext, int> executor)

@@ -31,11 +31,6 @@ namespace CastIron.Sql
         public QueryObjectStringifier Stringifier { get; }
         public ISqlStatementBuilder Statements { get; }
 
-        public SqlBatch CreateBatch()
-        {
-            return new SqlBatch(InteractionFactory);
-        }
-
         public ExecutionContext CreateExecutionContext(Action<IContextBuilder> build)
         {
             var context = new ExecutionContext(_connectionFactory);

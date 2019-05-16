@@ -18,7 +18,7 @@ namespace CastIron.Sql.Tests.Mapping
         public void TestQuery_ArrayOfCustomObject([Values("MSSQL", "SQLITE")] string provider)
         {
             var target = RunnerFactory.Create(provider);
-            var result = target.Query(SqlQuery.Simple<TestObject1[]>("SELECT 5 AS TestInt, 'TEST' AS TestString, CAST(1 AS BIT) AS TestBool;")).First();
+            var result = target.Query(SqlQuery.FromString<TestObject1[]>("SELECT 5 AS TestInt, 'TEST' AS TestString, CAST(1 AS BIT) AS TestBool;")).First();
             result.Length.Should().Be(1);
             result[0].TestString.Should().Be("TEST");
             result[0].TestInt.Should().Be(5);
