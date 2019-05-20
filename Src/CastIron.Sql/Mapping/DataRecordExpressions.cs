@@ -14,6 +14,8 @@ namespace CastIron.Sql.Mapping
 
         public static Expression GetScalarConversionExpression(int columnIdx, MapCompileContext context, Type columnType, Type targetType)
         { 
+            // TODO: If the column is a serialized type like XML or JSON, we should be able to deserialize that into an object.
+
             // Pull the value out of the reader into the rawVar
             var rawVar = context.AddVariable<object>("raw");
             var getRawStmt = Expression.Assign(rawVar, Expression.Call(context.RecordParam, _getValueMethod, Expression.Constant(columnIdx)));

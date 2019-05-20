@@ -3,6 +3,7 @@ using System.Data;
 
 namespace CastIron.Sql.Debugging
 {
+    // TODO: There may be other error conditions we want to catch here and re-wrap.
     public class DataReaderWithBetterErrorMessages : IDataReader
     {
         private readonly IDataReader _inner;
