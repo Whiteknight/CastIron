@@ -30,4 +30,8 @@
     <PackageReference Include="Npgsql" Version="4.0.2" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\CastIron.Sql\CastIron.Sql.csproj" />
+  </ItemGroup>
+
 </Project>

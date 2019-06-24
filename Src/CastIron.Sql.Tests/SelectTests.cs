@@ -25,7 +25,7 @@ namespace CastIron.Sql.Tests
         }
 
         [Test]
-        public void SqlQuery_Tests([Values("MSSQL", "SQLITE")] string provider)
+        public void SqlQuery_Tests([Values("MSSQL", "SQLITE", "POSTGRES")] string provider)
         {
             var runner = RunnerFactory.Create(provider);
             var result = runner.Query(new Query());
@@ -33,7 +33,7 @@ namespace CastIron.Sql.Tests
         }
 
         [Test]
-        public void SqlQuery_PerformanceReport([Values("MSSQL", "SQLITE")] string provider)
+        public void SqlQuery_PerformanceReport([Values("MSSQL", "SQLITE", "POSTGRES")] string provider)
         {
             string report = null;
             var runner = RunnerFactory.Create(provider);
@@ -43,7 +43,7 @@ namespace CastIron.Sql.Tests
         }
 
         [Test]
-        public void SqlQuery_Combine([Values("MSSQL", "SQLITE")] string provider)
+        public void SqlQuery_Combine([Values("MSSQL", "SQLITE", "POSTGRES")] string provider)
         {
             var runner = RunnerFactory.Create(provider);
             var query = SqlQuery.Combine("SELECT 'TEST'", r => r.AsEnumerable<string>().First());

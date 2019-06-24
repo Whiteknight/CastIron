@@ -24,7 +24,7 @@ namespace CastIron.Sql.Tests
         }
 
         [Test]
-        public void Query_Executed([Values("MSSQL", "SQLITE")] string provider)
+        public void Query_Executed([Values("MSSQL", "SQLITE", "POSTGRES")] string provider)
         {
             var runner = RunnerFactory.Create(provider);
             var result = runner.Query(new QueryExecuted());
@@ -46,7 +46,7 @@ namespace CastIron.Sql.Tests
         }
 
         [Test]
-        public void Query_NotExecuted([Values("MSSQL", "SQLITE")] string provider)
+        public void Query_NotExecuted([Values("MSSQL", "SQLITE", "POSTGRES")] string provider)
         {
             var runner = RunnerFactory.Create(provider);
             var result = runner.Query(new QueryNotExecuted());
@@ -69,7 +69,7 @@ namespace CastIron.Sql.Tests
         }
 
         [Test]
-        public void Execute_NotExecuted([Values("MSSQL")] string provider)
+        public void Execute_NotExecuted([Values("MSSQL", "POSTGRES")] string provider)
         {
             var runner = RunnerFactory.Create(provider);
             var result = runner.Execute(new CommandNotExecuted());

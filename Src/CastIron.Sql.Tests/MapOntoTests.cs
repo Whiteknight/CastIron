@@ -51,7 +51,7 @@ namespace CastIron.Sql.Tests.Mapping
         }
 
         [Test]
-        public void MapOnto_Test([Values("MSSQL", "SQLITE")] string provider)
+        public void MapOnto_Test([Values("MSSQL", "SQLITE", "POSTGRES")] string provider)
         {
             var target = RunnerFactory.Create(provider);
             var result = target.Query(new MapOntoQuery_RawRecord());
@@ -78,7 +78,7 @@ namespace CastIron.Sql.Tests.Mapping
         }
 
         [Test]
-        public void MapOnto_MappedTest([Values("MSSQL", "SQLITE")] string provider)
+        public void MapOnto_MappedTest([Values("MSSQL", "SQLITE", "POSTGRES")] string provider)
         {
             var target = RunnerFactory.Create(provider);
             var result = target.Query(new MapOntoQuery_MappedRecord());

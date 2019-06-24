@@ -9,7 +9,7 @@ namespace CastIron.Sql.Tests
     public class SqlQueryAsyncTests
     {
         [Test]
-        public async Task QueryAsync_Simple([Values("MSSQL", "SQLITE")] string provider)
+        public async Task QueryAsync_Simple([Values("MSSQL", "SQLITE", "POSTGRES")] string provider)
         {
             var runner = RunnerFactory.Create(provider);
             var result = await runner.QueryAsync<string>("SELECT 'TEST'");
@@ -31,7 +31,7 @@ namespace CastIron.Sql.Tests
         }
 
         [Test]
-        public async Task QueryAsync_QueryObject([Values("MSSQL", "SQLITE")] string provider)
+        public async Task QueryAsync_QueryObject([Values("MSSQL", "SQLITE", "POSTGRES")] string provider)
         {
             var runner = RunnerFactory.Create(provider);
             var result = await runner.QueryAsync(new Query());

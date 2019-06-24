@@ -32,6 +32,9 @@ namespace CastIron.Sql.Tests
                 case "MSSQL":
                     return Sql.RunnerFactory.Create(_configuration["MSSQL"]);
 
+                case "POSTGRES":
+                    return Postgres.RunnerFactory.Create(_configuration["POSTGRES"]);
+
                 default:
                     Assert.Inconclusive("Unknown or unsupported provider " + provider);
                     break;

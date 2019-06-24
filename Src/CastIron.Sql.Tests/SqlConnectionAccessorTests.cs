@@ -31,7 +31,7 @@ namespace CastIron.Sql.Tests
         }
 
         [Test]
-        public void SqlQuery_Tests([Values("MSSQL", "SQLITE")] string provider)
+        public void SqlQuery_Tests([Values("MSSQL", "SQLITE", "POSTGRES")] string provider)
         {
             var runner = RunnerFactory.Create(provider);
             var result = runner.Access(new Accessor1());
