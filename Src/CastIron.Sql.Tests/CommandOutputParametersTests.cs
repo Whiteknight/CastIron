@@ -24,9 +24,9 @@ namespace CastIron.Sql.Tests
 
         // Sqlite doesn't support output parameters?
         [Test]
-        public void Execute_UntypedOutputParameter([Values("MSSQL")] string provider)
+        public void Execute_UntypedOutputParameter()
         {
-            var runner = RunnerFactory.Create(provider);
+            var runner = RunnerFactory.Create();
             var result = runner.Execute(new CommandWithUntypedOutputParameter());
             result.Should().Be("TEST");
         }
@@ -48,9 +48,9 @@ namespace CastIron.Sql.Tests
 
         // Sqlite doesn't support output parameters?
         [Test]
-        public void Execute_TypedOutputParameter([Values("MSSQL")] string provider)
+        public void Execute_TypedOutputParameter()
         {
-            var runner = RunnerFactory.Create(provider);
+            var runner = RunnerFactory.Create();
             var result = runner.Execute(new CommandWithTypedOutputParameter());
             result.Should().Be("TEST");
         }

@@ -38,9 +38,9 @@ INSERT INTO #TestObject (TestInt, TestString, SecondInt)
         }
 
         [Test]
-        public void ToSql_Test([Values("MSSQL")] string provider)
+        public void ToSql_Test()
         {
-            var runner = RunnerFactory.Create(provider);
+            var runner = RunnerFactory.Create();
 
             var batch = runner.CreateBatch();
 

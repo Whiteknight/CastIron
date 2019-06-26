@@ -1,19 +1,10 @@
-﻿<Project>
-
-  <PropertyGroup>
-    <BaseIntermediateOutputPath>obj\$(MSBuildProjectName)</BaseIntermediateOutputPath>
-  </PropertyGroup>
-
-  <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>netcoreapp2.0</TargetFramework>
 
     <IsPackable>false</IsPackable>
-    <OutputPath>bin\$(Configuration)\$(TargetFramework)\$(MSBuildProjectName)</OutputPath>
   </PropertyGroup>
-
-  <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
 
   <ItemGroup>
     <PackageReference Include="FluentAssertions" Version="5.1.1" />
@@ -26,20 +17,13 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="2.0.0" />
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\CastIron.Postgres\CastIron.Postgres.csproj" />
-    <ProjectReference Include="..\CastIron.Sqlite\CastIron.Sqlite.csproj" />
+  <ItemGroup>    
     <ProjectReference Include="..\CastIron.Sql\CastIron.Sql.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <None Update="appsettings.linux.json" CopyToOutputDirectory="PreserveNewest" />
     <None Update="appsettings.windows.json" CopyToOutputDirectory="PreserveNewest" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Compile Remove="obj\\**\*" />
-    <!--<Compile Include="obj\$(MSBuildProjectName)\**\$(MSBuildProjectName).AssemblyInfo.cs" />-->
   </ItemGroup>
 
 </Project>

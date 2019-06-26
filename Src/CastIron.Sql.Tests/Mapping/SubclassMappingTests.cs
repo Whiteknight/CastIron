@@ -42,9 +42,9 @@ namespace CastIron.Sql.Tests.Mapping
         }
 
         [Test]
-        public void CanInstantiateSubclasses_Test([Values("MSSQL")] string provider)
+        public void CanInstantiateSubclasses_Test()
         {
-            var runner = RunnerFactory.Create(provider);
+            var runner = RunnerFactory.Create();
             var result = runner.Query(new MSSQLTestNumberQuery());
 
             result.Count.Should().Be(5);
@@ -86,9 +86,9 @@ namespace CastIron.Sql.Tests.Mapping
         }
 
         [Test]
-        public void CanInstantiateSubclasses_Test_Sqlite([Values("SQLITE")] string provider)
+        public void CanInstantiateSubclasses_Test_Sqlite()
         {
-            var runner = RunnerFactory.Create(provider);
+            var runner = RunnerFactory.Create();
             var result = runner.Query(new SQLiteTestNumberQuery());
 
             result.Count.Should().Be(5);

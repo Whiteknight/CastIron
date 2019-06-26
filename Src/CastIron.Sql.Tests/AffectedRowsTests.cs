@@ -25,9 +25,9 @@ namespace CastIron.Sql.Tests
         // TODO: Postgres uses TEMPORARY TABLE instead of table variables like this
 
         [Test]
-        public void Query_RowsAffected([Values("MSSQL")] string provider)
+        public void Query_RowsAffected()
         {
-            var runner = RunnerFactory.Create(provider);
+            var runner = RunnerFactory.Create();
             var rowsAffected = runner.Query(new Query());
             rowsAffected.Should().Be(4);
         }
@@ -48,9 +48,9 @@ namespace CastIron.Sql.Tests
         }
 
         [Test]
-        public void Execute_RowsAffected([Values("MSSQL")] string provider)
+        public void Execute_RowsAffected()
         {
-            var runner = RunnerFactory.Create(provider);
+            var runner = RunnerFactory.Create();
             var rowsAffected = runner.Execute(new Command());
             rowsAffected.Should().Be(4);
         }

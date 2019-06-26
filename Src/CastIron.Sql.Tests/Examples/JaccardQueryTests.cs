@@ -157,11 +157,9 @@ SELECT
         }
 
         [Test]
-        public void Jaccard_Test([Values("MSSQL", "SQLITE")] string provider)
+        public void Jaccard_Test()
         {
-            TestUtilities.NeedsFixesFor("SQLITE", provider);
-
-            var runner = RunnerFactory.Create(provider);
+            var runner = RunnerFactory.Create();
             var batch = runner.CreateBatch();
             batch.Add(new CreateJaccardTableCommand());
             batch.Add(new PopulateRelationsTable(new Dictionary<int, List<int>> {

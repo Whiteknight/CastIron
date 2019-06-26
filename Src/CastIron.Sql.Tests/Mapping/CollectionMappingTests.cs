@@ -24,9 +24,9 @@ namespace CastIron.Sql.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery_MapToStringArray_MSSQL([Values("MSSQL")] string provider)
+        public void TestQuery_MapToStringArray_MSSQL()
         {
-            var target = RunnerFactory.Create(provider);
+            var target = RunnerFactory.Create();
             var result = target.Query(new TestQuery_StringArray());
             result.Length.Should().Be(3);
             result[0].Should().Be("5");
@@ -35,9 +35,9 @@ namespace CastIron.Sql.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery_MapToStringArray_SQLITE([Values("SQLITE")] string provider)
+        public void TestQuery_MapToStringArray_SQLITE()
         {
-            var target = RunnerFactory.Create(provider);
+            var target = RunnerFactory.Create();
             var result = target.Query(new TestQuery_StringArray());
             result.Length.Should().Be(3);
             result[0].Should().Be("5");
@@ -65,9 +65,9 @@ namespace CastIron.Sql.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery_MapToStringListProperty([Values("MSSQL", "SQLITE")] string provider)
+        public void TestQuery_MapToStringListProperty()
         {
-            var target = RunnerFactory.Create(provider);
+            var target = RunnerFactory.Create();
             var result = target.Query(new TestQuery_StringList<TestObjectStringList>());
             result.TestString.Count.Should().Be(3);
             result.TestString[0].Should().Be("5");
@@ -86,9 +86,9 @@ namespace CastIron.Sql.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery_MapToStringListCtorParam([Values("MSSQL", "SQLITE")] string provider)
+        public void TestQuery_MapToStringListCtorParam()
         {
-            var target = RunnerFactory.Create(provider);
+            var target = RunnerFactory.Create();
             var result = target.Query(new TestQuery_StringList<TestObjectStringListCtor>());
             result.TestString.Count.Should().Be(3);
             result.TestString[0].Should().Be("5");
@@ -102,9 +102,9 @@ namespace CastIron.Sql.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery_MapToStringArrayProperty([Values("MSSQL", "SQLITE")] string provider)
+        public void TestQuery_MapToStringArrayProperty()
         {
-            var target = RunnerFactory.Create(provider);
+            var target = RunnerFactory.Create();
             var result = target.Query(new TestQuery_StringList<TestObjectStringArray>());
             result.TestString.Length.Should().Be(3);
             result.TestString[0].Should().Be("5");
@@ -123,9 +123,9 @@ namespace CastIron.Sql.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery_MapToStringArrayCtorParam([Values("MSSQL", "SQLITE")] string provider)
+        public void TestQuery_MapToStringArrayCtorParam()
         {
-            var target = RunnerFactory.Create(provider);
+            var target = RunnerFactory.Create();
             var result = target.Query(new TestQuery_StringList<TestObjectStringArrayCtor>());
             result.TestString.Length.Should().Be(3);
             result.TestString[0].Should().Be("5");
@@ -139,9 +139,9 @@ namespace CastIron.Sql.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery_MapToStringIListProperty([Values("MSSQL", "SQLITE")] string provider)
+        public void TestQuery_MapToStringIListProperty()
         {
-            var target = RunnerFactory.Create(provider);
+            var target = RunnerFactory.Create();
             var result = target.Query(new TestQuery_StringList<TestObjectStringIList>());
             result.TestString.Count.Should().Be(3);
             result.TestString[0].Should().Be("5");
@@ -160,9 +160,9 @@ namespace CastIron.Sql.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery_MapToStringIListCtorParam([Values("MSSQL", "SQLITE")] string provider)
+        public void TestQuery_MapToStringIListCtorParam()
         {
-            var target = RunnerFactory.Create(provider);
+            var target = RunnerFactory.Create();
             var result = target.Query(new TestQuery_StringList<TestObjectStringIListCtor>());
             result.TestString.Count.Should().Be(3);
             result.TestString[0].Should().Be("5");
@@ -171,9 +171,9 @@ namespace CastIron.Sql.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery_MapToRawIntArray([Values("MSSQL", "SQLITE")] string provider)
+        public void TestQuery_MapToRawIntArray()
         {
-            var target = RunnerFactory.Create(provider);
+            var target = RunnerFactory.Create();
             var result = target.Query<List<int>>("SELECT 5, 6, '7'").First();
             result.Count.Should().Be(3);
             result[0].Should().Be(5);
@@ -182,9 +182,9 @@ namespace CastIron.Sql.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery_MapStringToDateTimeList([Values("MSSQL", "SQLITE")] string provider)
+        public void TestQuery_MapStringToDateTimeList()
         {
-            var target = RunnerFactory.Create(provider);
+            var target = RunnerFactory.Create();
             var result = target.Query<List<DateTime>>("SELECT '2018-12-11 17:01:02'").First();
             result.Count.Should().Be(1);
             result[0].Should().Be(new DateTime(2018, 12, 11, 17, 1, 2));
@@ -224,9 +224,9 @@ namespace CastIron.Sql.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery_CustomCollectionType([Values("MSSQL", "SQLITE")] string provider)
+        public void TestQuery_CustomCollectionType()
         {
-            var target = RunnerFactory.Create(provider);
+            var target = RunnerFactory.Create();
             var result = target.Query<TestCollectionType>("SELECT 'A', 'B', 'C'").First().ToList();
             result[0].Should().Be("A");
             result[1].Should().Be("B");

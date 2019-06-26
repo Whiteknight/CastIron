@@ -11,9 +11,9 @@ namespace CastIron.Sql.Tests.Mapping
     public class ObjectAndObjectArrayMappingTests
     {
         [Test]
-        public void TestQuery_MapToObject([Values("MSSQL", "SQLITE")] string provider)
+        public void TestQuery_MapToObject()
         {
-            var target = RunnerFactory.Create(provider);
+            var target = RunnerFactory.Create();
             var result = target.Query<object>("SELECT 5 AS TestInt, 'TEST' AS TestString, CAST(1 AS BIT) AS TestBool;").First();
             result.Should().BeOfType<Dictionary<string, object>>();
 
@@ -25,9 +25,9 @@ namespace CastIron.Sql.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery_MapToObjectWithDuplicates([Values("MSSQL", "SQLITE")] string provider)
+        public void TestQuery_MapToObjectWithDuplicates()
         {
-            var target = RunnerFactory.Create(provider);
+            var target = RunnerFactory.Create();
             var result = target.Query<object>("SELECT 5 AS TestInt, 'A' AS TestString, 'B' AS TestString;").First();
             result.Should().BeOfType<Dictionary<string, object>>();
 
@@ -41,9 +41,9 @@ namespace CastIron.Sql.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery_MapToObjectArray([Values("MSSQL", "SQLITE")] string provider)
+        public void TestQuery_MapToObjectArray()
         {
-            var target = RunnerFactory.Create(provider);
+            var target = RunnerFactory.Create();
             var result = target.Query<object[]>("SELECT 5 AS TestInt, 'TEST' AS TestString, CAST(1 AS BIT) AS TestBool;").First();
             result.Should().BeOfType<object[]>();
 
@@ -54,9 +54,9 @@ namespace CastIron.Sql.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery_dynamic([Values("MSSQL", "SQLITE")] string provider)
+        public void TestQuery_dynamic()
         {
-            var target = RunnerFactory.Create(provider);
+            var target = RunnerFactory.Create();
             dynamic result = target.Query<ExpandoObject>("SELECT 5 AS TestInt, 'TEST' AS TestString;").First();
             string testString = result.TestString;
             testString.Should().Be("TEST");
@@ -66,9 +66,9 @@ namespace CastIron.Sql.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery_MapToIList([Values("MSSQL", "SQLITE")] string provider)
+        public void TestQuery_MapToIList()
         {
-            var target = RunnerFactory.Create(provider);
+            var target = RunnerFactory.Create();
             var result = target.Query<IList>("SELECT 5 AS TestInt, 'TEST' AS TestString, CAST(1 AS BIT) AS TestBool;").First();
             result.Should().BeOfType<object[]>();
 
@@ -79,9 +79,9 @@ namespace CastIron.Sql.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery_MapToICollection([Values("MSSQL", "SQLITE")] string provider)
+        public void TestQuery_MapToICollection()
         {
-            var target = RunnerFactory.Create(provider);
+            var target = RunnerFactory.Create();
             var result = target.Query<ICollection>("SELECT 5 AS TestInt, 'TEST' AS TestString, CAST(1 AS BIT) AS TestBool;").First();
             result.Should().BeOfType<object[]>();
 
@@ -93,9 +93,9 @@ namespace CastIron.Sql.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery_MapToIEnumerable([Values("MSSQL", "SQLITE")] string provider)
+        public void TestQuery_MapToIEnumerable()
         {
-            var target = RunnerFactory.Create(provider);
+            var target = RunnerFactory.Create();
             var result = target.Query<IEnumerable>("SELECT 5 AS TestInt, 'TEST' AS TestString, CAST(1 AS BIT) AS TestBool;").First();
             result.Should().BeOfType<object[]>();
 
@@ -107,9 +107,9 @@ namespace CastIron.Sql.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery_MapToIEnumerableOfObject([Values("MSSQL", "SQLITE")] string provider)
+        public void TestQuery_MapToIEnumerableOfObject()
         {
-            var target = RunnerFactory.Create(provider);
+            var target = RunnerFactory.Create();
             var result = target.Query<IEnumerable<object>>("SELECT 5 AS TestInt, 'TEST' AS TestString, CAST(1 AS BIT) AS TestBool;").First();
             result.Should().BeOfType<List<object>>();
 

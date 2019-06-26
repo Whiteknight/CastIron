@@ -37,9 +37,9 @@ namespace CastIron.Sql.Tests
         }
 
         [Test]
-        public void ParameterObject_Test([Values("MSSQL", "SQLITE", "POSTGRES")] string provider)
+        public void ParameterObject_Test()
         {
-            var runner = RunnerFactory.Create(provider);
+            var runner = RunnerFactory.Create();
             var parameters = new QueryValues
             {
                 Value1 = 5,
@@ -54,9 +54,9 @@ namespace CastIron.Sql.Tests
         }
 
         [Test]
-        public void Query2_Stringify([Values("MSSQL", "POSTGRES")] string provider)
+        public void Query2_Stringify()
         {
-            var runner = RunnerFactory.Create(provider);
+            var runner = RunnerFactory.Create();
             var parameters = new QueryValues
             {
                 Value1 = 5,

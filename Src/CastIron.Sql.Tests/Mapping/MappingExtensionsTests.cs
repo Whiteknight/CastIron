@@ -14,9 +14,9 @@ namespace CastIron.Sql.Tests.Mapping
             SELECT 5 UNION ALL SELECT 6;";
 
         [Test]
-        public void AsEnumerableAll_Test([Values("MSSQL", "SQLITE")] string provider)
+        public void AsEnumerableAll_Test()
         {
-            var target = RunnerFactory.Create(provider);
+            var target = RunnerFactory.Create();
             using (var stream = target.QueryStream(Query))
             {
                 var results = stream.AsEnumerableAll<int>().ToList();
@@ -26,9 +26,9 @@ namespace CastIron.Sql.Tests.Mapping
         }
 
         [Test]
-        public void AsEnumerableNextSeveral_Test([Values("MSSQL", "SQLITE")] string provider)
+        public void AsEnumerableNextSeveral_Test()
         {
-            var target = RunnerFactory.Create(provider);
+            var target = RunnerFactory.Create();
             using (var stream = target.QueryStream(Query))
             {
                 var results = stream.AsEnumerableNextSeveral<int>(3).ToList();

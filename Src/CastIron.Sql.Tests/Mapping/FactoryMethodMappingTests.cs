@@ -28,9 +28,9 @@ namespace CastIron.Sql.Tests.Mapping
         }
 
         [Test]
-        public void FactoryMethod_ReturnsNull([Values("MSSQL", "SQLITE")] string provider)
+        public void FactoryMethod_ReturnsNull()
         {
-            var target = RunnerFactory.Create(provider);
+            var target = RunnerFactory.Create();
             Action func = () =>
             {
                 var result = target.Query(new FactoryMethodReturnsNullQuery());
@@ -52,9 +52,9 @@ namespace CastIron.Sql.Tests.Mapping
         }
 
         [Test]
-        public void FactoryMethod_ReturnsNonNull([Values("MSSQL", "SQLITE")] string provider)
+        public void FactoryMethod_ReturnsNonNull()
         {
-            var target = RunnerFactory.Create(provider);
+            var target = RunnerFactory.Create();
             var result = target.Query(new FactoryMethodReturnsNonNullQuery());
             result.Id.Should().Be(1);
             result.Name.Should().Be("TEST");

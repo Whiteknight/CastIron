@@ -28,7 +28,7 @@ namespace CastIron.Sql.Tests
         }
 
         [Test]
-        public void GetResultEnumerable_Parameter_Map([Values("MSSQL", "POSTGRES")] string provider)
+        public void GetResultEnumerable_Parameter_Map()
         {
             Result Read(IDataResults result)
             {
@@ -63,7 +63,7 @@ namespace CastIron.Sql.Tests
         }
 
         [Test]
-        public void GetResultEnumerable_Map_Parameter([Values("MSSQL", "POSTGRES")] string provider)
+        public void GetResultEnumerable_Map_Parameter()
         {
             var runner = RunnerFactory.Create();
             var result = runner.Query(new QueryWithResultSetAndParameterQuery(), new EnumerateMapParameterMaterializer());

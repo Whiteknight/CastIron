@@ -23,9 +23,9 @@ namespace CastIron.Sql.Tests.Mapping
         }
 
         [Test]
-        public void GetOutputParameter_Test([Values("MSSQL")] string provider)
+        public void GetOutputParameter_Test()
         {
-            var target = RunnerFactory.Create(provider);
+            var target = RunnerFactory.Create();
             var result = target.Execute(new TestCommand_OutputParameter());
             result.Should().Be("TEST");
         }
@@ -46,9 +46,9 @@ namespace CastIron.Sql.Tests.Mapping
         }
 
         [Test]
-        public void GetOutputParameter_ConvertType([Values("MSSQL")] string provider)
+        public void GetOutputParameter_ConvertType()
         {
-            var target = RunnerFactory.Create(provider);
+            var target = RunnerFactory.Create();
             var result = target.Execute(new TestCommand_OutputParameterConverted());
             result.Should().Be("5");
         }

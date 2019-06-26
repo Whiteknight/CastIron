@@ -1,7 +1,6 @@
 ﻿using System.IO;
 using System.Runtime.InteropServices;
 using Microsoft.Extensions.Configuration;
-using NUnit.Framework;
 
 namespace CastIron.Sql.Tests
 {
@@ -22,25 +21,9 @@ namespace CastIron.Sql.Tests
             _configuration = builder.Build();
         }
 
-        public static ISqlRunner Create(string provider = "MSSQL")
+        public static ISqlRunner Create()
         {
-            switch (provider)
-            {
-                case "SQLITE":
-                    return Sqlite.RunnerFactory.Create(_configuration["SQLITE"]);
-
-                case "MSSQL":
-                    return Sql.RunnerFactory.Create(_configuration["MSSQL"]);
-
-                case "POSTGRES":
-                    return Postgres.RunnerFactory.Create(_configuration["POSTGRES"]);
-
-                default:
-                    Assert.Inconclusive("Unknown or unsupported provider " + provider);
-                    break;
-            }
-
-            return null;
+            return Sql.RunnerFactory.Create(_configuration["MSSQL"]);
         }
     }
 }

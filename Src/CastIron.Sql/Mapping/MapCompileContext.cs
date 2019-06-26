@@ -154,6 +154,7 @@ namespace CastIron.Sql.Mapping
             {
                 // TODO: Specify list of prefixes to ignore. If the column starts with a prefix, remove those chars from the front
                 // e.g. "Table_ID" with prefix "Table_" becomes "ID"
+                // TODO: Need to be able to specify the name of "unnamed" columns. In SqlServer it's null, but in Postgres it's '?column?'
                 var name = (reader.GetName(i) ?? "");
                 var info = new ColumnInfo(i, name, reader.GetFieldType(i));
                 if (!_columnNames.ContainsKey(info.CanonicalName))

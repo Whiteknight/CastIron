@@ -58,9 +58,9 @@ namespace CastIron.Sql.Tests.Examples
         }
 
         [Test]
-        public void TestProductGroup([Values("MSSQL", "SQLITE")] string provider)
+        public void TestProductGroup()
         {
-            var runner = RunnerFactory.Create(provider);
+            var runner = RunnerFactory.Create();
             var result = runner.Query(new GetProductGroupQuery());
             result.Products.Count.Should().Be(0);
         }

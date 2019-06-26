@@ -28,9 +28,9 @@ namespace CastIron.Sql.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery_MapToUnnamedValuesCollection([Values("MSSQL")] string provider)
+        public void TestQuery_MapToUnnamedValuesCollection()
         {
-            var target = RunnerFactory.Create(provider);
+            var target = RunnerFactory.Create();
             var result = target.Query(new TestQuery_UnnamedColumns<TestObjectUnnamedValues>());
             result.UnnamedValues.Count.Should().Be(3);
             result.UnnamedValues[0].Should().Be("5");
@@ -49,9 +49,9 @@ namespace CastIron.Sql.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery_MapToUnnamedValuesCollectionCtor([Values("MSSQL")] string provider)
+        public void TestQuery_MapToUnnamedValuesCollectionCtor()
         {
-            var target = RunnerFactory.Create(provider);
+            var target = RunnerFactory.Create();
             var result = target.Query(new TestQuery_UnnamedColumns<TestObjectUnnamedValuesCtor>());
             result.UnnamedValues.Count.Should().Be(3);
             result.UnnamedValues[0].Should().Be("5");
@@ -79,9 +79,9 @@ namespace CastIron.Sql.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery_MapToUnnamedValuesCollection_None([Values("MSSQL", "SQLITE")] string provider)
+        public void TestQuery_MapToUnnamedValuesCollection_None()
         {
-            var target = RunnerFactory.Create(provider);
+            var target = RunnerFactory.Create();
             var result = target.Query(new TestQuery_AllNamedColumns<TestObjectUnnamedValues2>());
             result.UnnamedValues.Count.Should().Be(0);
         }
@@ -97,9 +97,9 @@ namespace CastIron.Sql.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery_MapToUnnamedValuesCollectionCtor_None([Values("MSSQL", "SQLITE")] string provider)
+        public void TestQuery_MapToUnnamedValuesCollectionCtor_None()
         {
-            var target = RunnerFactory.Create(provider);
+            var target = RunnerFactory.Create();
             var result = target.Query(new TestQuery_AllNamedColumns<TestObjectUnnamedValuesCtor2>());
             result.UnnamedValues.Count.Should().Be(0);
         }

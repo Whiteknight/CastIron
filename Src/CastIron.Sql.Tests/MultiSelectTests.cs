@@ -2,7 +2,7 @@ using System.Linq;
 using FluentAssertions;
 using NUnit.Framework;
 
-namespace CastIron.Sql.Tests.Mapping
+namespace CastIron.Sql.Tests
 {
     [TestFixture]
     public class MultiSelectTests
@@ -32,9 +32,9 @@ namespace CastIron.Sql.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery1_Test([Values("MSSQL", "SQLITE", "POSTGRES")] string provider)
+        public void TestQuery1_Test()
         {
-            var target = RunnerFactory.Create(provider);
+            var target = RunnerFactory.Create();
             var result = target.Query(new TestQuery1());
             result.TestInt.Should().Be(5);
             result.TestString.Should().Be("TEST");

@@ -29,9 +29,9 @@ namespace CastIron.Sql.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery1_Properties([Values("MSSQL", "SQLITE")] string provider)
+        public void TestQuery1_Properties()
         {
-            var target = RunnerFactory.Create(provider);
+            var target = RunnerFactory.Create();
             var result = target.Query(new TestQuery1());
             result.TestInt.Should().Be(5);
             result.TestString.Should().Be("TEST");
@@ -39,9 +39,9 @@ namespace CastIron.Sql.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery1_ConstructorParams_Test([Values("MSSQL", "SQLITE")] string provider)
+        public void TestQuery1_ConstructorParams_Test()
         {
-            var target = RunnerFactory.Create(provider);
+            var target = RunnerFactory.Create();
             var result = target.Query(new TestQuery1());
             result.TestInt.Should().Be(5);
             result.TestString.Should().Be("TEST");
@@ -62,9 +62,9 @@ namespace CastIron.Sql.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery_UnboxProperties([Values("MSSQL", "SQLITE")] string provider)
+        public void TestQuery_UnboxProperties()
         {
-            var target = RunnerFactory.Create(provider);
+            var target = RunnerFactory.Create();
             var result = target.Query(new TestQuery_Unbox());
             result.TestInt.Should().Be(5);
             result.TestString.Should().Be("6");
@@ -72,9 +72,9 @@ namespace CastIron.Sql.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery_MapStringToDateTime([Values("MSSQL", "SQLITE")] string provider)
+        public void TestQuery_MapStringToDateTime()
         {
-            var target = RunnerFactory.Create(provider);
+            var target = RunnerFactory.Create();
             var result = target.Query<DateTime>("SELECT '2018-12-11 17:01:02'").First();
             result.Should().Be(new DateTime(2018, 12, 11, 17, 1, 2));
         }
@@ -100,65 +100,65 @@ namespace CastIron.Sql.Tests.Mapping
         }
 
         [Test]
-        public void Primitive_String([Values("MSSQL", "SQLITE")] string provider)
+        public void Primitive_String()
         {
-            var target = RunnerFactory.Create(provider);
+            var target = RunnerFactory.Create();
             var result = target.Query(new TestQuery<string>("SELECT 'TEST' AS TestString;"));
             result.Should().Be("TEST");
         }
 
         [Test]
-        public void Primitive_StringNull([Values("MSSQL", "SQLITE")] string provider)
+        public void Primitive_StringNull()
         {
-            var target = RunnerFactory.Create(provider);
+            var target = RunnerFactory.Create();
             var result = target.Query(new TestQuery<string>("SELECT NULL AS TestString;"));
             result.Should().BeNull();
         }
 
         [Test]
-        public void Primitive_int([Values("MSSQL", "SQLITE")] string provider)
+        public void Primitive_int()
         {
-            var target = RunnerFactory.Create(provider);
+            var target = RunnerFactory.Create();
             var result = target.Query(new TestQuery<int>("SELECT 5 AS TestInt;"));
             result.Should().Be(5);
         }
 
         [Test]
-        public void Primitive_intToLong([Values("MSSQL", "SQLITE")] string provider)
+        public void Primitive_intToLong()
         {
-            var target = RunnerFactory.Create(provider);
+            var target = RunnerFactory.Create();
             var result = target.Query(new TestQuery<long>("SELECT 5 AS TestInt;"));
             result.Should().Be(5L);
         }
 
         [Test]
-        public void Primitive_longToint([Values("MSSQL", "SQLITE")] string provider)
+        public void Primitive_longToint()
         {
-            var target = RunnerFactory.Create(provider);
+            var target = RunnerFactory.Create();
             var result = target.Query(new TestQuery<int>("SELECT CAST(5 AS BIGINT) AS TestInt;"));
             result.Should().Be(5);
         }
 
         [Test]
-        public void Primitive_int_NoColumnName([Values("MSSQL", "SQLITE")] string provider)
+        public void Primitive_int_NoColumnName()
         {
-            var target = RunnerFactory.Create(provider);
+            var target = RunnerFactory.Create();
             var result = target.Query(new TestQuery<int>("SELECT 5;"));
             result.Should().Be(5);
         }
 
         [Test]
-        public void Primitive_int_Null([Values("MSSQL", "SQLITE")] string provider)
+        public void Primitive_int_Null()
         {
-            var target = RunnerFactory.Create(provider);
+            var target = RunnerFactory.Create();
             var result = target.Query(new TestQuery<int>("SELECT NULL AS TestInt;"));
             result.Should().Be(0);
         }
 
         [Test]
-        public void Primitive_int_Nullable([Values("MSSQL", "SQLITE")] string provider)
+        public void Primitive_int_Nullable()
         {
-            var target = RunnerFactory.Create(provider);
+            var target = RunnerFactory.Create();
             var result = target.Query(new TestQuery<int?>("SELECT 5 AS TestInt;"));
             result.Should().Be(5);
 
@@ -167,26 +167,25 @@ namespace CastIron.Sql.Tests.Mapping
         }
 
         [Test]
-        public void Primitive_double([Values("MSSQL", "SQLITE")] string provider)
+        public void Primitive_double()
         {
-            var target = RunnerFactory.Create(provider);
+            var target = RunnerFactory.Create();
             var result = target.Query(new TestQuery<double>("SELECT 5.67 AS Test;"));
             result.Should().Be(5.67);
         }
 
         [Test]
-        public void Primitive_decimal([Values("MSSQL", "SQLITE")] string provider)
+        public void Primitive_decimal()
         {
-            var target = RunnerFactory.Create(provider);
+            var target = RunnerFactory.Create();
             var result = target.Query(new TestQuery<decimal>("SELECT 5.67 AS TestDecimal;"));
             result.Should().Be(5.67M);
         }
 
         [Test]
-        public void Primitive_binary_ByteArray([Values("MSSQL", "SQLITE")] string provider)
+        public void Primitive_binary_ByteArray()
         {
-            TestUtilities.NeedsFixesFor("SQLITE", provider, "brings back result as int64 instead of byte[]");
-            var target = RunnerFactory.Create(provider);
+            var target = RunnerFactory.Create();
             var result = target.Query(new TestQuery<byte[]>("SELECT CAST(0x0102030405 AS Binary(5)) AS TestBinary"));
             result.Should().NotBeNull();
             result.Length.Should().Be(5);
@@ -195,19 +194,17 @@ namespace CastIron.Sql.Tests.Mapping
 
         // SQLite doesn't support UUID natively
         [Test]
-        public void Primitive_Guid_Null([Values("MSSQL", "SQLITE")] string provider)
+        public void Primitive_Guid_Null()
         {
-            TestUtilities.NeedsFixesFor("SQLITE", provider, "Doesn't have a NEWID function");
-            var target = RunnerFactory.Create(provider);
+            var target = RunnerFactory.Create();
             var result = target.Query(new TestQuery<Guid>("SELECT NEWID() AS TestId;"));
             result.Should().NotBe(Guid.Empty);
         }
 
         [Test]
-        public void Primitive_Guid_Nullable([Values("MSSQL", "SQLITE")] string provider)
+        public void Primitive_Guid_Nullable()
         {
-            TestUtilities.NeedsFixesFor("SQLITE", provider, "Doesn't have a NEWID function");
-            var target = RunnerFactory.Create(provider);
+            var target = RunnerFactory.Create();
             var result = target.Query(new TestQuery<Guid?>("SELECT NEWID() AS TestId;"));
             result.Should().NotBe(Guid.Empty);
 
@@ -216,9 +213,9 @@ namespace CastIron.Sql.Tests.Mapping
         }
 
         [Test]
-        public void Primitive_string_Guid([Values("MSSQL", "SQLITE")] string provider)
+        public void Primitive_string_Guid()
         {
-            var target = RunnerFactory.Create(provider);
+            var target = RunnerFactory.Create();
             var result = target.Query(new TestQuery<Guid>("SELECT '12345678-1234-1234-1234-123456789012' AS TestId;"));
             result.Should().NotBe(Guid.Empty);
 

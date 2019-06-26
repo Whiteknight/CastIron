@@ -25,27 +25,27 @@ namespace CastIron.Sql.Tests
         }
 
         [Test]
-        public void SqlQuery_Tests([Values("MSSQL", "SQLITE", "POSTGRES")] string provider)
+        public void SqlQuery_Tests()
         {
-            var runner = RunnerFactory.Create(provider);
+            var runner = RunnerFactory.Create();
             var result = runner.Query(new Query());
             result.Should().Be("TEST");
         }
 
         [Test]
-        public void SqlQuery_PerformanceReport([Values("MSSQL", "SQLITE", "POSTGRES")] string provider)
+        public void SqlQuery_PerformanceReport()
         {
             string report = null;
-            var runner = RunnerFactory.Create(provider);
+            var runner = RunnerFactory.Create();
             var result = runner.Query(new Query(), b => b.MonitorPerformance(s => report = s));
             result.Should().Be("TEST");
             report.Should().NotBeNull();
         }
 
         [Test]
-        public void SqlQuery_Combine([Values("MSSQL", "SQLITE", "POSTGRES")] string provider)
+        public void SqlQuery_Combine()
         {
-            var runner = RunnerFactory.Create(provider);
+            var runner = RunnerFactory.Create();
             var query = SqlQuery.Combine("SELECT 'TEST'", r => r.AsEnumerable<string>().First());
             var result = runner.Query(query);
             result.Should().Be("TEST");

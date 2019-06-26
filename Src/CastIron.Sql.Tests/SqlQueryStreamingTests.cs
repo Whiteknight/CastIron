@@ -10,9 +10,9 @@ namespace CastIron.Sql.Tests
     {
 
         [Test]
-        public void StreamingResults_Test([Values("MSSQL", "SQLITE", "POSTGRES")] string provider)
+        public void StreamingResults_Test()
         {
-            var runner = RunnerFactory.Create(provider);
+            var runner = RunnerFactory.Create();
             var stream = runner.QueryStream("SELECT 1 UNION SELECT 2 UNION SELECT 3");
             var result = stream.AsEnumerable<int>().ToList();
             result.Should().ContainInOrder(1, 2, 3);
@@ -29,9 +29,9 @@ namespace CastIron.Sql.Tests
         }
 
         [Test]
-        public void StreamingResults_Query([Values("MSSQL", "SQLITE", "POSTGRES")] string provider)
+        public void StreamingResults_Query()
         {
-            var runner = RunnerFactory.Create(provider);
+            var runner = RunnerFactory.Create();
             var stream = runner.QueryStream(new Query());
             var result = stream.AsEnumerable<int>().ToList();
             result.Should().ContainInOrder(1, 2, 3);
@@ -39,9 +39,9 @@ namespace CastIron.Sql.Tests
         }
 
         [Test]
-        public async Task StreamingResultsSimpleAsync([Values("MSSQL", "SQLITE", "POSTGRES")] string provider)
+        public async Task StreamingResultsSimpleAsync()
         {
-            var runner = RunnerFactory.Create(provider);
+            var runner = RunnerFactory.Create();
             var stream = await runner.QueryStreamAsync("SELECT 1 UNION SELECT 2 UNION SELECT 3");
             var result = stream.AsEnumerable<int>().ToList();
             result.Should().ContainInOrder(1, 2, 3);
@@ -49,9 +49,9 @@ namespace CastIron.Sql.Tests
         }
 
         [Test]
-        public async Task StreamingResults_QueryAsync([Values("MSSQL", "SQLITE", "POSTGRES")] string provider)
+        public async Task StreamingResults_QueryAsync()
         {
-            var runner = RunnerFactory.Create(provider);
+            var runner = RunnerFactory.Create();
             var stream = await runner.QueryStreamAsync(new Query());
             var result = stream.AsEnumerable<int>().ToList();
             result.Should().ContainInOrder(1, 2, 3);

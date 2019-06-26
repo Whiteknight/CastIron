@@ -2,7 +2,7 @@
 using FluentAssertions;
 using NUnit.Framework;
 
-namespace CastIron.Sql.Tests.Mapping
+namespace CastIron.Sql.Tests
 {
     [TestFixture]
     public class MapOntoTests
@@ -51,9 +51,9 @@ namespace CastIron.Sql.Tests.Mapping
         }
 
         [Test]
-        public void MapOnto_Test([Values("MSSQL", "SQLITE", "POSTGRES")] string provider)
+        public void MapOnto_Test()
         {
-            var target = RunnerFactory.Create(provider);
+            var target = RunnerFactory.Create();
             var result = target.Query(new MapOntoQuery_RawRecord());
             result.Id.Should().Be(1);
             result.Name.Should().Be("TEST");
@@ -78,9 +78,9 @@ namespace CastIron.Sql.Tests.Mapping
         }
 
         [Test]
-        public void MapOnto_MappedTest([Values("MSSQL", "SQLITE", "POSTGRES")] string provider)
+        public void MapOnto_MappedTest()
         {
-            var target = RunnerFactory.Create(provider);
+            var target = RunnerFactory.Create();
             var result = target.Query(new MapOntoQuery_MappedRecord());
             result.Id.Should().Be(1);
             result.Name.Should().Be("TEST");

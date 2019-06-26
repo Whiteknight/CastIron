@@ -9,9 +9,9 @@ namespace CastIron.Sql.Tests.Mapping
     public class DictionaryMappingTests
     {
         [Test]
-        public void Map_DictionaryOfObject([Values("MSSQL", "SQLITE")] string provider)
+        public void Map_DictionaryOfObject()
         {
-            var target = RunnerFactory.Create(provider);
+            var target = RunnerFactory.Create();
             var result = target.Query<Dictionary<string, object>>("SELECT 5 AS TestInt, 'TEST' AS TestString, CAST(1 AS BIT) AS TestBool;").First();
             result.Count.Should().Be(3);
             result["TestString"].Should().Be("TEST");
@@ -20,9 +20,9 @@ namespace CastIron.Sql.Tests.Mapping
         }
 
         [Test]
-        public void Map_DictionaryOfObjectWithDuplicates([Values("MSSQL", "SQLITE")] string provider)
+        public void Map_DictionaryOfObjectWithDuplicates()
         {
-            var target = RunnerFactory.Create(provider);
+            var target = RunnerFactory.Create();
             var dict = target.Query<Dictionary<string, object>>("SELECT 5 AS TestInt, 'A' AS TestString, 'B' AS TestString;").First();
 
             dict.Count.Should().Be(2);
@@ -34,9 +34,9 @@ namespace CastIron.Sql.Tests.Mapping
         }
 
         [Test]
-        public void Map_IDictionaryOfObject([Values("MSSQL", "SQLITE")] string provider)
+        public void Map_IDictionaryOfObject()
         {
-            var target = RunnerFactory.Create(provider);
+            var target = RunnerFactory.Create();
             var result = target.Query<IDictionary<string, object>>("SELECT 5 AS TestInt, 'TEST' AS TestString, CAST(1 AS BIT) AS TestBool;").First();
             result.Count.Should().Be(3);
             result["TestString"].Should().Be("TEST");
@@ -45,9 +45,9 @@ namespace CastIron.Sql.Tests.Mapping
         }
 
         [Test]
-        public void Map_IDictionaryOfObjectWithDuplicates([Values("MSSQL", "SQLITE")] string provider)
+        public void Map_IDictionaryOfObjectWithDuplicates()
         {
-            var target = RunnerFactory.Create(provider);
+            var target = RunnerFactory.Create();
             var dict = target.Query<IDictionary<string, object>>("SELECT 5 AS TestInt, 'A' AS TestString, 'B' AS TestString;").First();
 
             dict.Count.Should().Be(2);
@@ -59,9 +59,9 @@ namespace CastIron.Sql.Tests.Mapping
         }
 
         [Test]
-        public void Map_IReadOnlyDictionaryOfObject([Values("MSSQL", "SQLITE")] string provider)
+        public void Map_IReadOnlyDictionaryOfObject()
         {
-            var target = RunnerFactory.Create(provider);
+            var target = RunnerFactory.Create();
             var result = target.Query<IReadOnlyDictionary<string, object>>("SELECT 5 AS TestInt, 'TEST' AS TestString, CAST(1 AS BIT) AS TestBool;").First();
             result.Count.Should().Be(3);
             result["TestString"].Should().Be("TEST");
@@ -76,9 +76,9 @@ namespace CastIron.Sql.Tests.Mapping
         }
 
         [Test]
-        public void Map_IReadOnlyDictionaryOfObjectWithDuplicates([Values("MSSQL", "SQLITE")] string provider)
+        public void Map_IReadOnlyDictionaryOfObjectWithDuplicates()
         {
-            var target = RunnerFactory.Create(provider);
+            var target = RunnerFactory.Create();
             var dict = target.Query<IReadOnlyDictionary<string, object>>("SELECT 5 AS TestInt, 'A' AS TestString, 'B' AS TestString;").First();
 
             dict.Count.Should().Be(2);
@@ -90,9 +90,9 @@ namespace CastIron.Sql.Tests.Mapping
         }
 
         [Test]
-        public void Map_DictionaryOfListOfInt([Values("MSSQL", "SQLITE")] string provider)
+        public void Map_DictionaryOfListOfInt()
         {
-            var target = RunnerFactory.Create(provider);
+            var target = RunnerFactory.Create();
             var dict = target.Query<Dictionary<string, List<int>>>("SELECT 1 AS A, 2 AS A, 3 AS B, 4 AS B, 5 AS C;").First();
 
             dict.Count.Should().Be(3);
@@ -102,9 +102,9 @@ namespace CastIron.Sql.Tests.Mapping
         }
 
         [Test]
-        public void Map_CustomObjectWithChildDictionary([Values("MSSQL", "SQLITE")] string provider)
+        public void Map_CustomObjectWithChildDictionary()
         {
-            var target = RunnerFactory.Create(provider);
+            var target = RunnerFactory.Create();
             var result = target.Query<TestObject_ChildDict>("SELECT 5 AS Id, 'TEST' AS Child_String, 6 AS Child_Int;").First();
             result.Id.Should().Be(5);
             result.Child.Count.Should().Be(2);
@@ -119,9 +119,9 @@ namespace CastIron.Sql.Tests.Mapping
         }
 
         [Test]
-        public void Map_CustomObjectWithChildIDictionary([Values("MSSQL", "SQLITE")] string provider)
+        public void Map_CustomObjectWithChildIDictionary()
         {
-            var target = RunnerFactory.Create(provider);
+            var target = RunnerFactory.Create();
             var result = target.Query<TestObject_ChildIDict>("SELECT 5 AS Id, 'TEST' AS Child_String, 6 AS Child_Int;").First();
             result.Id.Should().Be(5);
             result.Child.Count.Should().Be(2);

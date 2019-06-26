@@ -17,6 +17,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Adapters", "Adapters", "{DF
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CastIron.Postgres", "CastIron.Postgres\CastIron.Postgres.csproj", "{2F86D8AD-76D2-461B-B711-B5B293511879}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CastIron.Sqlite.Tests", "CastIron.Sqlite.Tests\CastIron.Sqlite.Tests.csproj", "{CA9008A9-6FEF-48F2-A93C-C95667823CC3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CastIron.Postgres.Tests", "CastIron.Postgres.Tests\CastIron.Postgres.Tests.csproj", "{402CD203-76D1-43FD-B851-5D0B34152B25}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{7CBEBF17-72AB-43E6-B773-D0A6A1D06DC4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -47,14 +53,25 @@ Global
 		{2F86D8AD-76D2-461B-B711-B5B293511879}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2F86D8AD-76D2-461B-B711-B5B293511879}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2F86D8AD-76D2-461B-B711-B5B293511879}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CA9008A9-6FEF-48F2-A93C-C95667823CC3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CA9008A9-6FEF-48F2-A93C-C95667823CC3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CA9008A9-6FEF-48F2-A93C-C95667823CC3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CA9008A9-6FEF-48F2-A93C-C95667823CC3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{402CD203-76D1-43FD-B851-5D0B34152B25}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{402CD203-76D1-43FD-B851-5D0B34152B25}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{402CD203-76D1-43FD-B851-5D0B34152B25}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{402CD203-76D1-43FD-B851-5D0B34152B25}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
+		{C389127F-12DE-411F-A4D2-D20DF64673C6} = {7CBEBF17-72AB-43E6-B773-D0A6A1D06DC4}
 		{85D9ED43-B883-427F-8C0B-F863D6DEC4F4} = {DFCF8801-CF0D-47BB-BFC6-E1C406B7720F}
 		{E804A483-C7E2-4A7D-8D79-09C194DC3C2B} = {DFCF8801-CF0D-47BB-BFC6-E1C406B7720F}
 		{2F86D8AD-76D2-461B-B711-B5B293511879} = {DFCF8801-CF0D-47BB-BFC6-E1C406B7720F}
+		{CA9008A9-6FEF-48F2-A93C-C95667823CC3} = {7CBEBF17-72AB-43E6-B773-D0A6A1D06DC4}
+		{402CD203-76D1-43FD-B851-5D0B34152B25} = {7CBEBF17-72AB-43E6-B773-D0A6A1D06DC4}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {78C186B3-EF95-4703-9B32-AD60FEE1E70E}

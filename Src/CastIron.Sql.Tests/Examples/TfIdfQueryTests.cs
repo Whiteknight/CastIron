@@ -157,11 +157,9 @@ SELECT
 
         // TODO SQLite doesn't use the same syntax for temp tables.
         [Test]
-        public void TfIdf_Test([Values("MSSQL", "SQLITE")] string provider)
+        public void TfIdf_Test()
         {
-            TestUtilities.NeedsFixesFor("SQLITE", provider);
-
-            var runner = RunnerFactory.Create(provider);
+            var runner = RunnerFactory.Create();
             var batch = runner.CreateBatch();
             batch.Add(new CreateTfIdfTableCommand());
             batch.Add(new PopulateTermsTableCommand(new[]

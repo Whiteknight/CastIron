@@ -42,9 +42,9 @@ namespace CastIron.Sql.Tests.Mapping
 
 
         [Test]
-        public void Map_ConstructorWithUnusedParameter([Values("MSSQL", "SQLITE")] string provider)
+        public void Map_ConstructorWithUnusedParameter()
         {
-            var target = RunnerFactory.Create(provider);
+            var target = RunnerFactory.Create();
 
             var result = target.Query(new TestQuerySpecifySecondConstructor()).First();
             result.Id.Should().Be(5);
