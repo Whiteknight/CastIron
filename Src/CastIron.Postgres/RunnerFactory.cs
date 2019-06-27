@@ -11,7 +11,9 @@ namespace CastIron.Postgres
                 new PostgresDbConnectionFactory(connectionString),
                 // TODO: Do we need a custom one of these for Postgres?
                 new SqlServerStatementBuilder(),
-                new PostgresDataInteractionFactory());
+                new PostgresDataInteractionFactory(),
+                new PostgresConfiguration()
+                );
         }
     }
 }

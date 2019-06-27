@@ -335,7 +335,7 @@ namespace CastIron.Sql.Mapping
         {
             if (DataTypes.IsMappableScalarType(elementType))
             {
-                var columns = GetColumnsForProperty(context, name, attrs);
+                var columns = context.GetColumnsForProperty(name, attrs);
                 foreach (var column in columns)
                 {
                     // TODO: Is it possible to try recurse here? 
@@ -362,35 +362,7 @@ namespace CastIron.Sql.Mapping
 
             throw new MapCompilerException($"Cannot map collection with element type {elementType.Name} named '{name}'");
         }
-
-        private static string GetColumnNameFromProperty(MapCompileContext context, string name, ICustomAttributeProvider attrs)
-        {
-            var propertyName = name.ToLowerInvariant();
-            if (context.HasColumn(propertyName))
-                return propertyName;
-            if (attrs == null)
-                return null;
-            var columnName = attrs.GetTypedAttributes<ColumnAttribute>()
-                .Select(c => c.Name.ToLowerInvariant())
-                .FirstOrDefault();
-            if (context.HasColumn(columnName))
-                return columnName;
-            var acceptsUnnamed = attrs.GetTypedAttributes<UnnamedColumnsAttribute>().Any();
-            if (acceptsUnnamed)
-                return string.Empty;
-            return null;
-        }
-
-        private static IEnumerable<ColumnInfo> GetColumnsForProperty(MapCompileContext context, string name, ICustomAttributeProvider attrs)
-        {
-            if (name == null)
-                return context.GetColumns(null);
-            var columnName = GetColumnNameFromProperty(context, name, attrs);
-            if (columnName == null)
-                return Enumerable.Empty<ColumnInfo>();
-            return context.GetColumns(columnName);
-        }
-
+        
         private static Expression GetArrayConversionExpression(MapCompileContext context, string name, Type targetType, ICustomAttributeProvider attrs)
         {
             var elementType = targetType.GetElementType();
@@ -403,7 +375,7 @@ namespace CastIron.Sql.Mapping
 
             if (DataTypes.IsMappableScalarType(elementType))
             {
-                var columns = GetColumnsForProperty(context, name, attrs).ToList();
+                var columns = context.GetColumnsForProperty(name, attrs).ToList();
                 var arrayVar = context.AddVariable(targetType, "array_" + context.GetNextVarNumber());
                 context.AddStatement(Expression.Assign(arrayVar, Expression.New(constructor, Expression.Constant(columns.Count))));
                 for (var i = 0; i < columns.Count; i++)

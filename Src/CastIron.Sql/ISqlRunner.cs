@@ -16,6 +16,11 @@ namespace CastIron.Sql
     public interface ISqlRunner
     {
         /// <summary>
+        /// Information and configuration about the particular database provider
+        /// </summary>
+        IProviderConfiguration Provider { get; }
+
+        /// <summary>
         /// A stringifier object which can be used to turn an ISqlCommand or ISqlQuery into human-readable
         /// SQL code for debugging and auditing purposes.
         /// </summary>
@@ -158,7 +163,7 @@ namespace CastIron.Sql
         /// <returns></returns>
         public static IDataResultsStream WrapAsResultStream(this ISqlRunner runner, IDataReader reader, IDbCommand command = null)
         {
-            return new DataReaderResultsStream(command, null, reader);
+            return new DataReaderResultsStream(runner.Provider, command, null, reader);
         }
 
         /// <summary>
@@ -172,7 +177,7 @@ namespace CastIron.Sql
         public static IDataResultsStream WrapAsResultStream(this ISqlRunner runner, DataTable table)
         {
             Assert.ArgumentNotNull(table, nameof(table));
-            return new DataReaderResultsStream(null, null, table.CreateDataReader());
+            return new DataReaderResultsStream(runner.Provider, null, null, table.CreateDataReader());
 
         }
 

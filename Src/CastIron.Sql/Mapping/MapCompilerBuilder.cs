@@ -8,97 +8,13 @@ namespace CastIron.Sql.Mapping
 {
     public class MapCompilerBuilder<T> : IMapCompilerBuilder<T>
     {
+        private readonly IProviderConfiguration _provider;
         private readonly List<SubclassPredicate> _subclasses;
         private readonly SubclassPredicate _defaultCase;
 
-        private class SubclassPredicate
+        public MapCompilerBuilder(IProviderConfiguration provider)
         {
-            public Type Type { get; set; }
-            public Func<IDataRecord, bool> Predicate { get; set; }
-            public IMapCompiler Compiler { get; private set; }
-            public IConstructorFinder ConstructorFinder { get; private set; }
-            public Func<T> Factory { get; private set; }
-            public ConstructorInfo Constructor { get; private set; }
-            public Func<IDataRecord, T> Mapper { get; set; }
-            public string Separator { get; private set; }
-
-            private static void ThrowMappingAlreadyConfiguredException()
-            {
-                throw new InvalidOperationException(
-                    $"A Mapping has already been configured and a second mapping may not be configured for the same type {typeof(T).Name}. " +
-                    $"Method {nameof(SetMap)} may not be called in conjunction with any of {nameof(SetCompiler)}, {nameof(SetConstructor)}, {nameof(SetConstructorFinder)} and {nameof(SetFactoryMethod)}). " +
-                    $"Methods {nameof(SetConstructor)}, {nameof(SetConstructorFinder)} and {nameof(SetFactoryMethod)} are exclusive and at most one of these may be called once."
-                );
-            }
-
-            public void SetMap(Func<IDataRecord, T> map)
-            {
-                if (Mapper != null || Compiler != null || Factory != null || Constructor != null)
-                    ThrowMappingAlreadyConfiguredException();
-                Mapper = map;
-            }
-
-            public void SetCompiler(IMapCompiler compiler)
-            {
-                if (Mapper != null || Compiler != null)
-                    ThrowMappingAlreadyConfiguredException();
-                Compiler = compiler;
-            }
-
-            public void SetConstructor(ConstructorInfo constructor)
-            {
-                if (Mapper != null || Constructor != null || Factory != null)
-                    ThrowMappingAlreadyConfiguredException();
-                var type = Type ?? typeof(T);
-                if (!type.IsAssignableFrom(constructor.DeclaringType))
-                    throw new Exception("The specified constructor does not create the correct type of object");
-                Constructor = constructor;
-            }
-
-            public void SetConstructorFinder(IConstructorFinder finder)
-            {
-                if (Mapper != null)
-                    throw new Exception("May not specify a explicit mapping and compiler details at the same time");
-                if (ConstructorFinder != null)
-                    throw new Exception("May not specify two constructor finders");
-                ConstructorFinder = finder;
-            }
-
-            public void SetFactoryMethod(Func<T> factory)
-            {
-                if (Mapper != null || Constructor != null || Factory != null)
-                    ThrowMappingAlreadyConfiguredException();
-                Factory = factory;
-            }
-
-            public void SetType(Type t)
-            {
-                AssertValidType(t);
-                if (Type != null && Type != typeof(T))
-                    throw new Exception("Cannot specify more than one specific class");
-                if (Factory != null)
-                    throw new Exception("May not specify a specific subclass and a factory method at the same time");
-                if (Constructor != null)
-                    throw new Exception("May not specify a particular constructor before specifying the subclass");
-                Type = t;
-            }
-
-            public void SetSeparator(string separator)
-            {
-                Separator = separator;
-            }
-        }
-
-        private static void AssertValidType(Type t)
-        {
-            if (t == null)
-                throw new ArgumentNullException(nameof(t), $"The specified output type used for this compiler may not be null. It must be a valid, concrete class assignable to {typeof(T).Name}");
-            if (t.IsAbstract || t.IsInterface || !typeof(T).IsAssignableFrom(t))
-                throw new InvalidOperationException($"Type {t.Name} must be a concrete class type which is assignable to {typeof(T).Name}.");
-        }
-
-        public MapCompilerBuilder()
-        {
+            _provider = provider;
             _subclasses = new List<SubclassPredicate>();
             _defaultCase = new SubclassPredicate
             {
@@ -232,11 +148,97 @@ namespace CastIron.Sql.Mapping
                 throw new InvalidOperationException($"Type {subclass.Type.Name} must be a concrete class type which is assignable to {typeof(T).Name}.");
             if (subclass.Mapper == null)
             {
-                var context = new MapCompileContext(reader, subclass.Type, subclass.Type, subclass.Factory as Func<object>, subclass.Constructor, subclass.ConstructorFinder, null, subclass.Separator);
+                var context = new MapCompileContext(_provider, reader, subclass.Type, subclass.Type, subclass.Factory as Func<object>, subclass.Constructor, subclass.ConstructorFinder, null, subclass.Separator);
                 subclass.Mapper = (subclass.Compiler ?? defaultCompiler).CompileExpression<T>(context);
             }
 
             newSubclasses.Add(subclass);
+        }
+
+        private static void AssertValidType(Type t)
+        {
+            if (t == null)
+                throw new ArgumentNullException(nameof(t), $"The specified output type used for this compiler may not be null. It must be a valid, concrete class assignable to {typeof(T).Name}");
+            if (t.IsAbstract || t.IsInterface || !typeof(T).IsAssignableFrom(t))
+                throw new InvalidOperationException($"Type {t.Name} must be a concrete class type which is assignable to {typeof(T).Name}.");
+        }
+
+        private class SubclassPredicate
+        {
+            public Type Type { get; set; }
+            public Func<IDataRecord, bool> Predicate { get; set; }
+            public IMapCompiler Compiler { get; private set; }
+            public IConstructorFinder ConstructorFinder { get; private set; }
+            public Func<T> Factory { get; private set; }
+            public ConstructorInfo Constructor { get; private set; }
+            public Func<IDataRecord, T> Mapper { get; set; }
+            public string Separator { get; private set; }
+
+            private static void ThrowMappingAlreadyConfiguredException()
+            {
+                throw new InvalidOperationException(
+                    $"A Mapping has already been configured and a second mapping may not be configured for the same type {typeof(T).Name}. " +
+                    $"Method {nameof(SetMap)} may not be called in conjunction with any of {nameof(SetCompiler)}, {nameof(SetConstructor)}, {nameof(SetConstructorFinder)} and {nameof(SetFactoryMethod)}). " +
+                    $"Methods {nameof(SetConstructor)}, {nameof(SetConstructorFinder)} and {nameof(SetFactoryMethod)} are exclusive and at most one of these may be called once."
+                );
+            }
+
+            public void SetMap(Func<IDataRecord, T> map)
+            {
+                if (Mapper != null || Compiler != null || Factory != null || Constructor != null)
+                    ThrowMappingAlreadyConfiguredException();
+                Mapper = map;
+            }
+
+            public void SetCompiler(IMapCompiler compiler)
+            {
+                if (Mapper != null || Compiler != null)
+                    ThrowMappingAlreadyConfiguredException();
+                Compiler = compiler;
+            }
+
+            public void SetConstructor(ConstructorInfo constructor)
+            {
+                if (Mapper != null || Constructor != null || Factory != null)
+                    ThrowMappingAlreadyConfiguredException();
+                var type = Type ?? typeof(T);
+                if (!type.IsAssignableFrom(constructor.DeclaringType))
+                    throw new Exception("The specified constructor does not create the correct type of object");
+                Constructor = constructor;
+            }
+
+            public void SetConstructorFinder(IConstructorFinder finder)
+            {
+                if (Mapper != null)
+                    throw new Exception("May not specify a explicit mapping and compiler details at the same time");
+                if (ConstructorFinder != null)
+                    throw new Exception("May not specify two constructor finders");
+                ConstructorFinder = finder;
+            }
+
+            public void SetFactoryMethod(Func<T> factory)
+            {
+                if (Mapper != null || Constructor != null || Factory != null)
+                    ThrowMappingAlreadyConfiguredException();
+                Factory = factory;
+            }
+
+            public void SetType(Type t)
+            {
+                AssertValidType(t);
+                if (Type != null && Type != typeof(T))
+                    throw new Exception("Cannot specify more than one specific class");
+                if (Factory != null)
+                    throw new Exception("May not specify a specific subclass and a factory method at the same time");
+                if (Constructor != null)
+                    throw new Exception("May not specify a particular constructor before specifying the subclass");
+                Type = t;
+            }
+
+            public void SetSeparator(string separator)
+            {
+                Separator = separator;
+            }
         }
     }
 }

@@ -13,13 +13,15 @@ namespace CastIron.Sql.Execution
         private int _completed;
         private int _opened;
 
-        public ExecutionContext(IDbConnectionFactory factory)
+        public ExecutionContext(IDbConnectionFactory factory, IProviderConfiguration provider)
         {
+            Provider = provider;
             _completed = 0;
             _opened = 0;
             Connection = factory.CreateForAsync();
         }
 
+        public IProviderConfiguration Provider { get; }
         public IDbConnectionAsync Connection { get; }
         public IDbTransaction Transaction { get; private set; }
         public PerformanceMonitor Monitor { get; private set; }

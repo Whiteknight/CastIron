@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Data;
 using System.Diagnostics;
 using System.Linq;
@@ -50,6 +51,7 @@ namespace CastIron.Sql.Mapping
 
     public class MapCompileContext
     {
+        private readonly IProviderConfiguration _provider;
         private readonly IConstructorFinder _constructorFinder;
         private readonly Dictionary<string, List<ColumnInfo>> _columnNames;
         private readonly List<ParameterExpression> _variables;
@@ -57,7 +59,8 @@ namespace CastIron.Sql.Mapping
         private readonly VariableNumberSource _variableNumbers;
         private readonly string _separator;
 
-        public MapCompileContext(IDataReader reader, Type parent, Type specific, Func<object> factory, ConstructorInfo preferredConstructor, IConstructorFinder constructorFinder, VariableNumberSource numberSource = null, string separator = "_")
+        // TODO: Reduce the size of this parameter list
+        public MapCompileContext(IProviderConfiguration provider, IDataReader reader, Type parent, Type specific, Func<object> factory, ConstructorInfo preferredConstructor, IConstructorFinder constructorFinder, VariableNumberSource numberSource = null, string separator = "_")
         {
             Assert.ArgumentNotNull(reader, nameof(reader));
             Assert.ArgumentNotNull(parent, nameof(parent));
@@ -72,6 +75,7 @@ namespace CastIron.Sql.Mapping
             RecordParam = Expression.Parameter(typeof(IDataRecord), "record");
             
             PreferredConstructor = preferredConstructor;
+            _provider = provider;
             _constructorFinder = constructorFinder;
             
             _variableNumbers = numberSource ?? new VariableNumberSource();
@@ -92,6 +96,7 @@ namespace CastIron.Sql.Mapping
             _separator = separator;
             Parent = type;
             Specific = type;
+            _provider = parent._provider;
 
             Reader = parent.Reader;
             RecordParam = parent.RecordParam;
@@ -155,9 +160,6 @@ namespace CastIron.Sql.Mapping
                 // TODO: Specify list of prefixes to ignore. If the column starts with a prefix, remove those chars from the front
                 // e.g. "Table_ID" with prefix "Table_" becomes "ID"
                 var name = (reader.GetName(i) ?? "");
-                // TODO: Postgres helpfully names unnamed columns '?column?'. Get details like this from the top-level provider
-                //if (name == "?column?")
-                //    name = "";
                 var info = new ColumnInfo(i, name, reader.GetFieldType(i));
                 if (!_columnNames.ContainsKey(info.CanonicalName))
                     _columnNames.Add(info.CanonicalName, new List<ColumnInfo>());
@@ -241,6 +243,30 @@ namespace CastIron.Sql.Mapping
         public IReadOnlyDictionary<string, int> GetColumnNameCounts()
         {
             return _columnNames.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.Count);
+        }
+
+        public IEnumerable<ColumnInfo> GetColumnsForProperty(string name, ICustomAttributeProvider attrs)
+        {
+            if (name == null)
+                return GetColumns(null);
+
+            var propertyName = name.ToLowerInvariant();
+            if (HasColumn(propertyName))
+                return GetColumns(propertyName);
+
+            if (attrs == null)
+                return Enumerable.Empty<ColumnInfo>();
+
+            var columnName = attrs.GetTypedAttributes<ColumnAttribute>()
+                .Select(c => c.Name.ToLowerInvariant())
+                .FirstOrDefault();
+            if (HasColumn(columnName))
+                return GetColumns(columnName);
+
+            var acceptsUnnamed = attrs.GetTypedAttributes<UnnamedColumnsAttribute>().Any();
+            if (acceptsUnnamed)
+                return GetColumns(_provider.UnnamedColumnName);
+            return Enumerable.Empty<ColumnInfo>();
         }
     }
 }

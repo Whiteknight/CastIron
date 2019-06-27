@@ -15,7 +15,7 @@ namespace CastIron.Sql
         /// <returns></returns>
         public static ISqlRunner Create(string connectionString)
         {
-            return new SqlRunner(new SqlServerDbConnectionFactory(connectionString), new SqlServerStatementBuilder(), new SqlServerDataInteractionFactory());
+            return new SqlRunner(new SqlServerDbConnectionFactory(connectionString), new SqlServerStatementBuilder(), new SqlServerDataInteractionFactory(), new SqlServerConfiguration());
         }
     }
 }

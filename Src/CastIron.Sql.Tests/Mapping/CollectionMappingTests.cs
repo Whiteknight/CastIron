@@ -24,7 +24,7 @@ namespace CastIron.Sql.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery_MapToStringArray_MSSQL()
+        public void TestQuery_MapToStringArray()
         {
             var target = RunnerFactory.Create();
             var result = target.Query(new TestQuery_StringArray());
@@ -32,18 +32,6 @@ namespace CastIron.Sql.Tests.Mapping
             result[0].Should().Be("5");
             result[1].Should().Be("TEST");
             result[2].Should().Be("True");
-        }
-
-        [Test]
-        public void TestQuery_MapToStringArray_SQLITE()
-        {
-            var target = RunnerFactory.Create();
-            var result = target.Query(new TestQuery_StringArray());
-            result.Length.Should().Be(3);
-            result[0].Should().Be("5");
-            result[1].Should().Be("TEST");
-            // TODO: Can we (and should we) try to force BIT->Boolean?
-            result[2].Should().Be("1");
         }
 
         public class TestQuery_StringList<T> : ISqlQuerySimple<T>

@@ -6,7 +6,11 @@ A micro-ORM with the Query Object Pattern for C#
 
 CastIron is a micro-ORM which focuses on power, flexibility, modularity, usability, and the **Query Object** pattern. These are the central design goals, the relative prioritization of which separates it from other Micro-ORMs. 
 
-CastIron is written in a provider-agnostic way using abstractions from `System.Data` instead of concrete classes. The CastIron project offers providers for multiple database types. **CastIron.Sql** targets Microsoft SQL Server and **CastIron.Sqlite** targets SQLite. Other providers are in development.
+CastIron is written in a provider-agnostic way using abstractions from `System.Data` instead of concrete classes. The CastIron project offers providers for multiple database types:
+
+1. **CastIron.Sql** targets Microsoft SQL Server
+1. **CastIron.Sqlite** targets SQLite. 
+1. **CastIron.Postgres** targets PostgreSQL
 
 ## Get Started
 
@@ -59,4 +63,4 @@ Providers for other databases such as MySql, SQLite and PostgreSQL are all in de
 
 ## Status
 
-CastIron.Sql has all major features and is undergoing testing and usability improvements.
+CastIron.Sql has all major features and is undergoing testing and usability improvements. During pre-1.0 development many interfaces are still fluid and undergoing change.

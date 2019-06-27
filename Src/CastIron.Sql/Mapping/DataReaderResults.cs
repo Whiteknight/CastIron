@@ -16,16 +16,18 @@ namespace CastIron.Sql.Mapping
         protected IDbCommand Command { get; }
         protected IExecutionContext Context { get; }
         protected IDataReader Reader { get;  }
+        private readonly IProviderConfiguration _provider;
         private readonly int? _rowsAffected;
 
         private ParameterCache _parameterCache;
 
-        protected DataReaderResultsBase(IDbCommand command, IExecutionContext context, IDataReader reader, int? rowsAffected)
+        protected DataReaderResultsBase(IProviderConfiguration provider, IDbCommand command, IExecutionContext context, IDataReader reader, int? rowsAffected)
         {
             Command = command;
             Context = context;
             Reader = reader;
             CurrentSet = 0;
+            _provider = provider;
             _rowsAffected = rowsAffected;
 
             StateMachine = new StringKeyedStateMachine();
@@ -75,7 +77,7 @@ namespace CastIron.Sql.Mapping
             StateMachine.ReceiveEvent(StateReaderConsuming);
             if (CurrentSet == 0)
                 CurrentSet = 1;
-            var context = new MapCompilerBuilder<T>();
+            var context = new MapCompilerBuilder<T>(_provider);
             setup?.Invoke(context);
             var map = context.Compile(Reader);
             return new DataRecordMappingEnumerable<T>(Reader, Context, map);
@@ -142,8 +144,8 @@ namespace CastIron.Sql.Mapping
     /// </summary>
     public class DataReaderResults : DataReaderResultsBase, IDataResults
     {
-        public DataReaderResults(IDbCommand command, IExecutionContext context, IDataReader reader, int? rowsAffected = null)
-            : base(command, context, reader, rowsAffected)
+        public DataReaderResults(IProviderConfiguration provider, IDbCommand command, IExecutionContext context, IDataReader reader, int? rowsAffected = null)
+            : base(provider, command, context, reader, rowsAffected)
         {
         }
     }
@@ -152,8 +154,8 @@ namespace CastIron.Sql.Mapping
     {
         protected const string StateDisposed = "Disposed";
 
-        public DataReaderResultsStream(IDbCommand command, IExecutionContext context, IDataReader reader)
-            : base(command, context, reader, null)
+        public DataReaderResultsStream(IProviderConfiguration provider, IDbCommand command, IExecutionContext context, IDataReader reader)
+            : base(provider, command, context, reader, null)
         {
             StateMachine.AddState(StateDisposed)
                 .TransitionOnEvent(StateRawReaderConsumed, null, ThrowDisposedException)

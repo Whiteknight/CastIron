@@ -8,6 +8,9 @@ var runner = CastIron.Sql.RunnerFactory.Create(connectionString);
 
 // SQLite, requires CastIron.Sqlite package
 var runner = CastIron.Sqlite.RunnerFactory.Create(connectionString);
+
+// PostgreSQL, requires CastIron.Postgres package
+var runner = CastIron.Postgres.RunnerFactory.Create(connectionString);
 ```
 
 ## I want to...

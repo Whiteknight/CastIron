@@ -9,6 +9,7 @@ namespace CastIron.Sql.Execution
     /// </summary>
     public interface IExecutionContext : IDisposable
     {
+        IProviderConfiguration Provider { get; }
         IDbConnectionAsync Connection { get; }
 
         IDbTransaction Transaction { get; }

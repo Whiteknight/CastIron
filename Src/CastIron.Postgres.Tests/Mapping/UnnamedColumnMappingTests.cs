@@ -31,8 +31,6 @@ namespace CastIron.Postgres.Tests.Mapping
         [Test]
         public void TestQuery_MapToUnnamedValuesCollection()
         {
-            // TODO: This
-            Assert.Inconclusive("Postgres 'helpfully' names unnamed columns '?column?'");
             var target = RunnerFactory.Create();
             var result = target.Query(new TestQuery_UnnamedColumns<TestObjectUnnamedValues>());
             result.UnnamedValues.Count.Should().Be(3);
@@ -54,8 +52,6 @@ namespace CastIron.Postgres.Tests.Mapping
         [Test]
         public void TestQuery_MapToUnnamedValuesCollectionCtor()
         {
-            // TODO: This
-            Assert.Inconclusive("Postgres 'helpfully' names unnamed columns '?column?'");
             var target = RunnerFactory.Create();
             var result = target.Query(new TestQuery_UnnamedColumns<TestObjectUnnamedValuesCtor>());
             result.UnnamedValues.Count.Should().Be(3);

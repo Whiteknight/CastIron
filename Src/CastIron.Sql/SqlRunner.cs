@@ -14,13 +14,14 @@ namespace CastIron.Sql
         // TODO: Interception mechanism so we can inspect and modify the sql code in passing
         private readonly IDbConnectionFactory _connectionFactory;
 
-        public SqlRunner(IDbConnectionFactory connectionFactory, ISqlStatementBuilder statementBuilder, IDataInteractionFactory interactionFactory)
+        public SqlRunner(IDbConnectionFactory connectionFactory, ISqlStatementBuilder statementBuilder, IDataInteractionFactory interactionFactory, IProviderConfiguration providerConfiguration)
         {
             Assert.ArgumentNotNull(connectionFactory, nameof(connectionFactory));
             Assert.ArgumentNotNull(statementBuilder, nameof(statementBuilder));
             Assert.ArgumentNotNull(interactionFactory, nameof(interactionFactory));
 
             _connectionFactory = connectionFactory;
+            Provider = providerConfiguration;
             InteractionFactory = interactionFactory;
             Statements = statementBuilder;
 
@@ -28,12 +29,13 @@ namespace CastIron.Sql
         }
 
         public IDataInteractionFactory InteractionFactory { get; }
+        public IProviderConfiguration Provider { get; }
         public QueryObjectStringifier Stringifier { get; }
         public ISqlStatementBuilder Statements { get; }
 
         public ExecutionContext CreateExecutionContext(Action<IContextBuilder> build)
         {
-            var context = new ExecutionContext(_connectionFactory);
+            var context = new ExecutionContext(_connectionFactory, Provider);
             build?.Invoke(context);
             return context;
         }

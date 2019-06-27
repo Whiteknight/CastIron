@@ -103,5 +103,14 @@ namespace CastIron.Sql.Tests.Mapping
             var result = target.Query(new TestQuery_AllNamedColumns<TestObjectUnnamedValuesCtor2>());
             result.UnnamedValues.Count.Should().Be(0);
         }
+
+        [Test]
+        public void DoNotTreatPostgresColumnAsUnnamed()
+        {
+            var target = RunnerFactory.Create();
+            var result = target.Query<TestObjectUnnamedValues>("SELECT 5 AS [?column?];");
+            result.Count.Should().Be(1);
+            result[0].UnnamedValues.Count.Should().Be(0);
+        }
     }
 }

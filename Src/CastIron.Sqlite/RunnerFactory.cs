@@ -14,7 +14,9 @@ namespace CastIron.Sqlite
                 new SqliteDbConnectionFactory(connectionString), 
                 // TODO: Do we need a custom one of these for SQLite?
                 new SqlServerStatementBuilder(), 
-                new SqliteDataInteractionFactory());
+                new SqliteDataInteractionFactory(),
+                new SqliteConfiguration()
+                );
         }
     }
 }
