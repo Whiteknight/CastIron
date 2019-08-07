@@ -1,5 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Data;
+using CastIron.Sql.Utility;
 
 namespace CastIron.Sql
 {
@@ -76,5 +78,20 @@ namespace CastIron.Sql
         /// Returns true if the interaction has been successfully setup, false otherwise
         /// </summary>
         bool IsValid { get; }
+    }
+
+    public static class DataInteractionExtensions
+    {
+        public static void SetTimeoutSeconds(this IDataInteraction interaction, int seconds)
+        {
+            Assert.ArgumentNotNull(interaction, nameof(interaction));
+            interaction.Command.CommandTimeout = seconds;
+        }
+
+        public static void SetTimeout(this IDataInteraction interaction, TimeSpan timeSpan)
+        {
+            Assert.ArgumentNotNull(interaction, nameof(interaction));
+            interaction.Command.CommandTimeout = (int)timeSpan.TotalSeconds;
+        }
     }
 }

@@ -33,6 +33,8 @@ namespace CastIron.Sql
         public QueryObjectStringifier Stringifier { get; }
         public ISqlStatementBuilder Statements { get; }
 
+        // TODO: Mechanism to set top-level settings which will be used for all connections/commands such as timeout
+
         public ExecutionContext CreateExecutionContext(Action<IContextBuilder> build)
         {
             var context = new ExecutionContext(_connectionFactory, Provider);

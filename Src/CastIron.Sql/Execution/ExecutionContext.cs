@@ -12,6 +12,7 @@ namespace CastIron.Sql.Execution
         private bool _aborted;
         private int _completed;
         private int _opened;
+        private int _timeoutSeconds;
 
         public ExecutionContext(IDbConnectionFactory factory, IProviderConfiguration provider)
         {
@@ -57,6 +58,8 @@ namespace CastIron.Sql.Execution
             var command = Connection.Connection.CreateCommand();
             if (Transaction != null)
                 command.Transaction = Transaction;
+            if (_timeoutSeconds > 0)
+                command.CommandTimeout = _timeoutSeconds;
             return command;
         }
 
@@ -67,6 +70,9 @@ namespace CastIron.Sql.Execution
             var command = Connection.CreateAsyncCommand();
             if (Transaction != null)
                 command.Command.Transaction = Transaction;
+            // Set this, even though in async contexts it will probably be ignored
+            if (_timeoutSeconds > 0)
+                command.Command.CommandTimeout = _timeoutSeconds;
             return command;
         }
 
@@ -88,6 +94,17 @@ namespace CastIron.Sql.Execution
         {
             Monitor = new PerformanceMonitor(onReport);
             return this;
+        }
+
+        public IContextBuilder SetTimeoutSeconds(int seconds)
+        {
+            _timeoutSeconds = seconds;
+            return this;
+        }
+
+        public IContextBuilder SetTimeout(TimeSpan timeSpan)
+        {
+            return SetTimeoutSeconds((int) timeSpan.TotalSeconds);
         }
 
         public void StartAction(string actionName)

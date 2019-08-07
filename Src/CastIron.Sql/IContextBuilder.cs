@@ -31,5 +31,21 @@ namespace CastIron.Sql
         /// <param name="onReport"></param>
         /// <returns></returns>
         IContextBuilder MonitorPerformance(Action<IReadOnlyList<IPerformanceEntry>> onReport);
+
+        /// <summary>
+        /// Set the timeout for the connection. This value may be overridden by the user in other
+        /// locations.
+        /// </summary>
+        /// <param name="seconds"></param>
+        /// <returns></returns>
+        IContextBuilder SetTimeoutSeconds(int seconds);
+
+        /// <summary>
+        /// Set the timeout for the connection. This value may be overridden by the user in other
+        /// locations.
+        /// </summary>
+        /// <param name="timeSpan"></param>
+        /// <returns></returns>
+        IContextBuilder SetTimeout(TimeSpan timeSpan);
     }
 }
