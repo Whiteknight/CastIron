@@ -70,9 +70,32 @@ namespace CastIron.Sql
         /// <param name="build"></param>
         void Execute(Action<IExecutionContext> executor, Action<IContextBuilder> build);
 
+        /// <summary>
+        /// Open a connection to the database and execute an executor on the open connection
+        /// asynchronously.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="executor"></param>
+        /// <param name="build"></param>
+        /// <returns></returns>
         Task<T> ExecuteAsync<T>(Func<IExecutionContext, Task<T>> executor, Action<IContextBuilder> build);
 
+        /// <summary>
+        /// Open a connection to the database and execute an executor on the open connection
+        /// asynchronously. The executor is not expected to return a result.
+        /// </summary>
+        /// <param name="executor"></param>
+        /// <param name="build"></param>
+        /// <returns></returns>
         Task ExecuteAsync(Func<IExecutionContext, Task> executor, Action<IContextBuilder> build);
+
+        /// <summary>
+        /// Set an initialization routine which will be executed to build every context. Settings
+        /// set in this builder may be overridden in later stages of the execution pipeline.
+        /// </summary>
+        /// <param name="defaultBuilder"></param>
+        /// <returns></returns>
+        ISqlRunner SetDefaultContextBuilder(Action<IContextBuilder> defaultBuilder);
     }
 
     public static class SqlRunnerExtensions

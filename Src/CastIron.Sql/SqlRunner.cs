@@ -13,6 +13,7 @@ namespace CastIron.Sql
     {
         // TODO: Interception mechanism so we can inspect and modify the sql code in passing
         private readonly IDbConnectionFactory _connectionFactory;
+        private Action<IContextBuilder> _buildDefault;
 
         public SqlRunner(IDbConnectionFactory connectionFactory, ISqlStatementBuilder statementBuilder, IDataInteractionFactory interactionFactory, IProviderConfiguration providerConfiguration)
         {
@@ -33,11 +34,16 @@ namespace CastIron.Sql
         public QueryObjectStringifier Stringifier { get; }
         public ISqlStatementBuilder Statements { get; }
 
-        // TODO: Mechanism to set top-level settings which will be used for all connections/commands such as timeout
+        public ISqlRunner SetDefaultContextBuilder(Action<IContextBuilder> defaultBuilder)
+        {
+            _buildDefault = defaultBuilder;
+            return this;
+        }
 
         public ExecutionContext CreateExecutionContext(Action<IContextBuilder> build)
         {
             var context = new ExecutionContext(_connectionFactory, Provider);
+            _buildDefault?.Invoke(context);
             build?.Invoke(context);
             return context;
         }
