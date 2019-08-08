@@ -9,7 +9,7 @@ namespace CastIron.Sql.Statements
 
         public DelegateResultMaterializer(Func<IDataResults, T> materialize)
         {
-            Assert.ArgumentNotNull(materialize, nameof(materialize));
+            Argument.NotNull(materialize, nameof(materialize));
             _materialize = materialize;
         }
 

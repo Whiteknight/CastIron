@@ -24,7 +24,7 @@ namespace CastIron.Sql.Mapping
 
         public Func<IDataRecord, T> CompileExpression<T>(MapCompileContext context)
         {
-            Assert.ArgumentNotNull(context, nameof(context));
+            Argument.NotNull(context, nameof(context));
 
             // We cannot cache if a custom factory is provided. The internals of the factory can change
             if (context.Factory != null)

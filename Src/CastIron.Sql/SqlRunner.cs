@@ -11,104 +11,61 @@ namespace CastIron.Sql
     /// </summary>
     public class SqlRunner : ISqlRunner
     {
-        // TODO: Interception mechanism so we can inspect and modify the sql code in passing
+        private readonly Action<IContextBuilder> _defaultBuilder;
+        private readonly SqlRunnerCore _core;
         private readonly IDbConnectionFactory _connectionFactory;
-        private Action<IContextBuilder> _buildDefault;
 
-        public SqlRunner(IDbConnectionFactory connectionFactory, ISqlStatementBuilder statementBuilder, IDataInteractionFactory interactionFactory, IProviderConfiguration providerConfiguration)
+        public SqlRunner(SqlRunnerCore core, IDbConnectionFactory connectionFactory, Action<IContextBuilder> defaultBuilder)
         {
-            Assert.ArgumentNotNull(connectionFactory, nameof(connectionFactory));
-            Assert.ArgumentNotNull(statementBuilder, nameof(statementBuilder));
-            Assert.ArgumentNotNull(interactionFactory, nameof(interactionFactory));
+            Argument.NotNull(core, nameof(core));
+            Argument.NotNull(connectionFactory, nameof(connectionFactory));
 
+            _core = core;
             _connectionFactory = connectionFactory;
-            Provider = providerConfiguration;
-            InteractionFactory = interactionFactory;
-            Statements = statementBuilder;
-
-            Stringifier = new QueryObjectStringifier(InteractionFactory);
+            _defaultBuilder = defaultBuilder;
         }
 
-        public IDataInteractionFactory InteractionFactory { get; }
-        public IProviderConfiguration Provider { get; }
-        public QueryObjectStringifier Stringifier { get; }
-        public ISqlStatementBuilder Statements { get; }
+        public IDataInteractionFactory InteractionFactory => _core.InteractionFactory;
 
-        public ISqlRunner SetDefaultContextBuilder(Action<IContextBuilder> defaultBuilder)
-        {
-            _buildDefault = defaultBuilder;
-            return this;
-        }
+        public IProviderConfiguration Provider => _core.Provider;
 
-        public ExecutionContext CreateExecutionContext(Action<IContextBuilder> build)
+        public QueryObjectStringifier ObjectStringifier => _core.ObjectStringifier;
+
+        public ExecutionContext CreateExecutionContext()
         {
-            var context = new ExecutionContext(_connectionFactory, Provider);
-            _buildDefault?.Invoke(context);
-            build?.Invoke(context);
+            var context = new ExecutionContext(_connectionFactory, Provider, _core.CommandStringifier);
+            _defaultBuilder?.Invoke(context);
             return context;
         }
 
-        public void Execute(IReadOnlyList<Action<IExecutionContext, int>> executors, Action<IContextBuilder> build)
+        public void Execute(IReadOnlyList<Action<IExecutionContext, int>> executors)
         {
-            Assert.ArgumentNotNull(executors, nameof(executors));
-            using (var context = CreateExecutionContext(build))
-            {
-                context.StartAction("Open connection");
-                context.OpenConnection();
-                for (var i = 0; i < executors.Count; i++)
-                    executors[i](context, i);
-                context.MarkComplete();
-            }
+            using (var context = CreateExecutionContext())
+                _core.Execute(context, executors);
         }
 
-        public T Execute<T>(Func<IExecutionContext, T> executor, Action<IContextBuilder> build)
+        public T Execute<T>(Func<IExecutionContext, T> executor)
         {
-            Assert.ArgumentNotNull(executor, nameof(executor));
-            using (var context = CreateExecutionContext(build))
-            {
-                context.StartAction("Open connection");
-                context.OpenConnection();
-                var result = executor(context);
-                context.MarkComplete();
-                return result;
-            }
+            using (var context = CreateExecutionContext())
+                return _core.Execute(context, executor);
         }
 
-        public async Task<T> ExecuteAsync<T>(Func<IExecutionContext, Task<T>> executor, Action<IContextBuilder> build)
+        public void Execute(Action<IExecutionContext> executor)
         {
-            Assert.ArgumentNotNull(executor, nameof(executor));
-            using (var context = CreateExecutionContext(build))
-            {
-                context.StartAction("Open connection");
-                await context.OpenConnectionAsync();
-                var result = await executor(context);
-                context.MarkComplete();
-                return result;
-            }
+            using (var context = CreateExecutionContext())
+                _core.Execute(context, executor);
         }
 
-        public void Execute(Action<IExecutionContext> executor, Action<IContextBuilder> build)
+        public async Task<T> ExecuteAsync<T>(Func<IExecutionContext, Task<T>> executor)
         {
-            Assert.ArgumentNotNull(executor, nameof(executor));
-            using (var context = CreateExecutionContext(build))
-            {
-                context.StartAction("Open connection");
-                context.OpenConnection();
-                executor(context);
-                context.MarkComplete();
-            }
+            using (var context = CreateExecutionContext())
+                return await _core.ExecuteAsync(context, executor);
         }
 
-        public async Task ExecuteAsync(Func<IExecutionContext, Task> executor, Action<IContextBuilder> build)
+        public async Task ExecuteAsync(Func<IExecutionContext, Task> executor)
         {
-            Assert.ArgumentNotNull(executor, nameof(executor));
-            using (var context = CreateExecutionContext(build))
-            {
-                context.StartAction("Open connection");
-                await context.OpenConnectionAsync();
-                await executor(context);
-                context.MarkComplete();
-            }
+            using (var context = CreateExecutionContext())
+                await _core.ExecuteAsync(context, executor);
         }
     }
 }

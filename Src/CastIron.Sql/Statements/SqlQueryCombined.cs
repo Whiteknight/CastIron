@@ -9,8 +9,8 @@ namespace CastIron.Sql.Statements
 
         public SqlQueryCombined(ISqlQuery query, IResultMaterializer<T> materializer)
         {
-            Assert.ArgumentNotNull(query, nameof(query));
-            Assert.ArgumentNotNull(materializer, nameof(materializer));
+            Argument.NotNull(query, nameof(query));
+            Argument.NotNull(materializer, nameof(materializer));
             _query = query;
             _materializer = materializer;
         }

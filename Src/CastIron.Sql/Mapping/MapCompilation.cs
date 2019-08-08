@@ -42,7 +42,7 @@ namespace CastIron.Sql.Mapping
 
         public static void SetDefaultInstance(IMapCompiler compiler)
         {
-            Assert.ArgumentNotNull(compiler, nameof(compiler));
+            Argument.NotNull(compiler, nameof(compiler));
             _defaultInstance = compiler;
         }
     }

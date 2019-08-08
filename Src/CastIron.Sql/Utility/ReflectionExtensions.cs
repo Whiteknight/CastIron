@@ -10,7 +10,7 @@ namespace CastIron.Sql.Utility
         public static IEnumerable<T> GetTypedAttributes<T>(this ICustomAttributeProvider reflectable, bool inherit = true)
             where T : Attribute
         {
-            Assert.ArgumentNotNull(reflectable, nameof(reflectable));
+            Argument.NotNull(reflectable, nameof(reflectable));
             return reflectable.GetCustomAttributes(typeof(T), inherit).Cast<T>();
         }
     }

@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Runtime.InteropServices;
 using Microsoft.Extensions.Configuration;
 
@@ -21,9 +22,9 @@ namespace CastIron.Sql.Tests
             _configuration = builder.Build();
         }
 
-        public static ISqlRunner Create()
+        public static ISqlRunner Create(Action<IContextBuilder> defaultBuilder = null)
         {
-            return Sql.RunnerFactory.Create(_configuration["MSSQL"]);
+            return Sql.RunnerFactory.Create(_configuration["MSSQL"], defaultBuilder);
         }
     }
 }

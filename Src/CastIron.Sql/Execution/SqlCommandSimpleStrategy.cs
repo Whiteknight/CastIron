@@ -20,6 +20,7 @@ namespace CastIron.Sql.Execution
 
                 try
                 {
+                    context.BeforeExecution(dbCommand);
                     context.StartAction(index, "Execute");
                     dbCommand.ExecuteNonQuery();
                 }
@@ -31,7 +32,8 @@ namespace CastIron.Sql.Execution
                 catch (Exception e)
                 {
                     context.MarkAborted();
-                    throw SqlQueryException.Wrap(e, dbCommand, index);
+                    var sql = context.Stringifier.Stringify(dbCommand);
+                    throw SqlQueryException.Wrap(e, sql, index);
                 }
             }
         }
@@ -49,6 +51,7 @@ namespace CastIron.Sql.Execution
 
                 try
                 {
+                    context.BeforeExecution(dbCommand.Command);
                     context.StartAction(index, "Execute");
                     await dbCommand.ExecuteNonQueryAsync();
                 }
@@ -60,7 +63,8 @@ namespace CastIron.Sql.Execution
                 catch (Exception e)
                 {
                     context.MarkAborted();
-                    throw SqlQueryException.Wrap(e, dbCommand.Command, index);
+                    var sql = context.Stringifier.Stringify(dbCommand.Command);
+                    throw SqlQueryException.Wrap(e, sql, index);
                 }
             }
         }
@@ -78,6 +82,7 @@ namespace CastIron.Sql.Execution
 
                 try
                 {
+                    context.BeforeExecution(dbCommand);
                     context.StartAction(index, "Execute");
                     var rowsAffected = dbCommand.ExecuteNonQuery();
 
@@ -93,7 +98,8 @@ namespace CastIron.Sql.Execution
                 catch (Exception e)
                 {
                     context.MarkAborted();
-                    throw SqlQueryException.Wrap(e, dbCommand, index);
+                    var sql = context.Stringifier.Stringify(dbCommand);
+                    throw SqlQueryException.Wrap(e, sql, index);
                 }
             }
         }
@@ -111,6 +117,7 @@ namespace CastIron.Sql.Execution
 
                 try
                 {
+                    context.BeforeExecution(dbCommand.Command);
                     context.StartAction(index, "Execute");
                     var rowsAffected = await dbCommand.ExecuteNonQueryAsync();
 
@@ -126,7 +133,8 @@ namespace CastIron.Sql.Execution
                 catch (Exception e)
                 {
                     context.MarkAborted();
-                    throw SqlQueryException.Wrap(e, dbCommand.Command, index);
+                    var sql = context.Stringifier.Stringify(dbCommand.Command);
+                    throw SqlQueryException.Wrap(e, sql, index);
                 }
             }
         }

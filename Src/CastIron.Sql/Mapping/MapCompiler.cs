@@ -17,7 +17,7 @@ namespace CastIron.Sql.Mapping
         // TODO: Ability to take the IDataRecord in the factory and consume some columns for constructor params so they aren't used later for properties?
         public Func<IDataRecord, T> CompileExpression<T>(MapCompileContext context)
         {
-            Assert.ArgumentNotNull(context, nameof(context));
+            Argument.NotNull(context, nameof(context));
 
             var targetType = context.Specific;
             context.PopulateColumnLookups(context.Reader);

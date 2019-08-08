@@ -9,6 +9,7 @@ namespace CastIron.Sql.Execution
     /// </summary>
     public interface IExecutionContext : IDisposable
     {
+        IDbCommandStringifier Stringifier { get; }
         IProviderConfiguration Provider { get; }
         IDbConnectionAsync Connection { get; }
 
@@ -17,6 +18,8 @@ namespace CastIron.Sql.Execution
         IDbCommand CreateCommand();
 
         IDbCommandAsync CreateAsyncCommand();
+
+        void BeforeExecution(IDbCommand command);
 
         void StartAction(string actionName);
         void StartAction(int statementIndex, string actionName);

@@ -2,6 +2,9 @@
 
 namespace CastIron.Sqlite
 {
+    /// <summary>
+    /// Sqlite configuration
+    /// </summary>
     public class SqliteConfiguration : IProviderConfiguration
     {
         // TODO: Sqlite names the column by the expression which produces it, so this won't work

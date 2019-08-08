@@ -2,8 +2,9 @@
 using System.Data;
 using System.Data.SqlClient;
 using System.Text;
+using CastIron.Sql.Execution;
 
-namespace CastIron.Sql.Execution
+namespace CastIron.Sql.SqlServer
 {
     // TODO: Unit testing and more use-cases
     // TODO: Is this general-purpose or do we need to have one per provider?
@@ -13,9 +14,10 @@ namespace CastIron.Sql.Execution
     /// may not be valid and complete, but should be sufficient for debugging and auditing
     /// purposes. 
     /// </summary>
-    public class DbCommandStringifier
+
+    public class SqlServerDbCommandStringifier : IDbCommandStringifier
     {
-        private static readonly DbCommandStringifier _instance;
+        private static readonly SqlServerDbCommandStringifier _instance;
 
         private static readonly HashSet<DbType> _quotedDbTypes = new HashSet<DbType>
         {
@@ -31,12 +33,12 @@ namespace CastIron.Sql.Execution
             DbType.Xml
         };
 
-        static DbCommandStringifier()
+        static SqlServerDbCommandStringifier()
         {
-            _instance = new DbCommandStringifier();
+            _instance = new SqlServerDbCommandStringifier();
         }
 
-        public static DbCommandStringifier GetDefaultInstance()
+        public static SqlServerDbCommandStringifier GetDefaultInstance()
         {
             return _instance;
         }

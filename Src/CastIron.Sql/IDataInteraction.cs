@@ -84,13 +84,13 @@ namespace CastIron.Sql
     {
         public static void SetTimeoutSeconds(this IDataInteraction interaction, int seconds)
         {
-            Assert.ArgumentNotNull(interaction, nameof(interaction));
+            Argument.NotNull(interaction, nameof(interaction));
             interaction.Command.CommandTimeout = seconds;
         }
 
         public static void SetTimeout(this IDataInteraction interaction, TimeSpan timeSpan)
         {
-            Assert.ArgumentNotNull(interaction, nameof(interaction));
+            Argument.NotNull(interaction, nameof(interaction));
             interaction.Command.CommandTimeout = (int)timeSpan.TotalSeconds;
         }
     }

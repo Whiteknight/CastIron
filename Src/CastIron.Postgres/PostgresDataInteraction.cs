@@ -7,11 +7,14 @@ using CastIron.Sql.Utility;
 
 namespace CastIron.Postgres
 {
+    /// <summary>
+    /// Postgres-specific IDataInteraction. 
+    /// </summary>
     public class PostgresDataInteraction : IDataInteraction
     {
         public PostgresDataInteraction(IDbCommand command)
         {
-            Assert.ArgumentNotNull(command, nameof(command));
+            Argument.NotNull(command, nameof(command));
             Command = command;
         }
 
@@ -21,7 +24,7 @@ namespace CastIron.Postgres
 
         public IDataInteraction AddParameterWithValue(string name, object value)
         {
-            Assert.ArgumentNotNullOrEmpty(name, nameof(name));
+            Argument.NotNullOrEmpty(name, nameof(name));
 
             var param = Command.CreateParameter();
             param.Direction = ParameterDirection.Input;
@@ -33,7 +36,7 @@ namespace CastIron.Postgres
 
         public IDataInteraction AddParametersWithValues(IEnumerable<KeyValuePair<string, object>> parameters)
         {
-            Assert.ArgumentNotNull(parameters, nameof(parameters));
+            Argument.NotNull(parameters, nameof(parameters));
 
             foreach (var parameter in parameters)
                 AddParameterWithValue(parameter.Key, parameter.Value);
@@ -42,7 +45,7 @@ namespace CastIron.Postgres
 
         public IDataInteraction AddParametersWithValues(object parameters)
         {
-            Assert.ArgumentNotNull(parameters, nameof(parameters));
+            Argument.NotNull(parameters, nameof(parameters));
 
             var properties = parameters.GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public).ToDictionary(p => p.Name, p => p.GetValue(parameters));
             return AddParametersWithValues(properties);
@@ -50,7 +53,7 @@ namespace CastIron.Postgres
 
         public IDataInteraction AddOutputParameter(string name, DbType dbType, int size)
         {
-            Assert.ArgumentNotNullOrEmpty(name, nameof(name));
+            Argument.NotNullOrEmpty(name, nameof(name));
             var param = Command.CreateParameter();
             param.Direction = ParameterDirection.Output;
             param.ParameterName = NormalizeParameterName(name);
@@ -63,7 +66,7 @@ namespace CastIron.Postgres
 
         public IDataInteraction AddInputOutputParameter(string name, object value, DbType dbType, int size)
         {
-            Assert.ArgumentNotNullOrEmpty(name, nameof(name));
+            Argument.NotNullOrEmpty(name, nameof(name));
             var param = Command.CreateParameter();
             param.Direction = ParameterDirection.InputOutput;
             param.ParameterName = NormalizeParameterName(name);
@@ -77,7 +80,7 @@ namespace CastIron.Postgres
 
         public IDataInteraction ExecuteText(string sqlText)
         {
-            Assert.ArgumentNotNullOrEmpty(sqlText, nameof(sqlText));
+            Argument.NotNullOrEmpty(sqlText, nameof(sqlText));
 
             Command.CommandType = CommandType.Text;
             Command.CommandText = sqlText;
@@ -86,7 +89,7 @@ namespace CastIron.Postgres
 
         public IDataInteraction CallStoredProc(string procedureName)
         {
-            Assert.ArgumentNotNullOrEmpty(procedureName, nameof(procedureName));
+            Argument.NotNullOrEmpty(procedureName, nameof(procedureName));
 
             Command.CommandType = CommandType.StoredProcedure;
             Command.CommandText = procedureName;

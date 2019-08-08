@@ -1,5 +1,6 @@
 ﻿using System.Data.SqlClient;
 using CastIron.Sql.Execution;
+using CastIron.Sql.Utility;
 
 namespace CastIron.Sql
 {
@@ -10,12 +11,15 @@ namespace CastIron.Sql
     public class QueryObjectStringifier
     {
         private readonly IDataInteractionFactory _interactionFactory;
-        private readonly DbCommandStringifier _stringifier;
+        private readonly IDbCommandStringifier _stringifier;
 
-        public QueryObjectStringifier(IDataInteractionFactory interactionFactory)
+        public QueryObjectStringifier(IDbCommandStringifier commandStringifier, IDataInteractionFactory interactionFactory)
         {
+            Argument.NotNull(commandStringifier, nameof(commandStringifier));
+            Argument.NotNull(interactionFactory, nameof(interactionFactory));
+
             _interactionFactory = interactionFactory;
-            _stringifier = DbCommandStringifier.GetDefaultInstance();
+            _stringifier = commandStringifier;
         }
 
         public string Stringify<T>(ISqlQuerySimple<T> query)

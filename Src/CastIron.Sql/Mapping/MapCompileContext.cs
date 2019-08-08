@@ -62,8 +62,8 @@ namespace CastIron.Sql.Mapping
         // TODO: Reduce the size of this parameter list
         public MapCompileContext(IProviderConfiguration provider, IDataReader reader, Type parent, Type specific, Func<object> factory, ConstructorInfo preferredConstructor, IConstructorFinder constructorFinder, VariableNumberSource numberSource = null, string separator = "_")
         {
-            Assert.ArgumentNotNull(reader, nameof(reader));
-            Assert.ArgumentNotNull(parent, nameof(parent));
+            Argument.NotNull(reader, nameof(reader));
+            Argument.NotNull(parent, nameof(parent));
 
             _separator = (separator ?? "_").ToLowerInvariant();
             Parent = parent;
@@ -90,8 +90,8 @@ namespace CastIron.Sql.Mapping
 
         public MapCompileContext(MapCompileContext parent, Type type, string prefix, string separator)
         {
-            Assert.ArgumentNotNull(parent, nameof(parent));
-            Assert.ArgumentNotNullOrEmpty(separator, nameof(_separator));
+            Argument.NotNull(parent, nameof(parent));
+            Argument.NotNullOrEmpty(separator, nameof(_separator));
 
             _separator = separator;
             Parent = type;

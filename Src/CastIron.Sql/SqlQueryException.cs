@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Data;
-using CastIron.Sql.Execution;
 
 namespace CastIron.Sql
 {
@@ -33,12 +31,11 @@ namespace CastIron.Sql
         /// Wrap an Exception and IDbCommand into a new exception which contains helpful details
         /// </summary>
         /// <param name="e"></param>
-        /// <param name="command"></param>
+        /// <param name="sql"></param>
         /// <param name="index"></param>
         /// <returns></returns>
-        public static SqlQueryException Wrap(Exception e, IDbCommand command, int index = -1)
+        public static SqlQueryException Wrap(Exception e, string sql, int index = -1)
         {
-            var sql = DbCommandStringifier.GetDefaultInstance().Stringify(command);
             var message = e.Message;
             if (index >= 0)
                 message = $"Error executing statement {index}\n{e.Message}";

@@ -1,5 +1,5 @@
-﻿using CastIron.Sql;
-using CastIron.Sql.Statements;
+﻿using System;
+using CastIron.Sql;
 
 namespace CastIron.Sqlite
 {
@@ -8,15 +8,12 @@ namespace CastIron.Sqlite
     /// </summary>
     public static class RunnerFactory
     {
-        public static ISqlRunner Create(string connectionString)
+        private static readonly SqlRunnerCore _core = new SqlRunnerCore(new SqliteDataInteractionFactory(), new SqliteConfiguration(), new SqliteDbCommandStringifier());
+
+        public static ISqlRunner Create(string connectionString, Action<IContextBuilder> defaultBuilder = null)
         {
-            return new SqlRunner(
-                new SqliteDbConnectionFactory(connectionString), 
-                // TODO: Do we need a custom one of these for SQLite?
-                new SqlServerStatementBuilder(), 
-                new SqliteDataInteractionFactory(),
-                new SqliteConfiguration()
-                );
+            var connectionFactory = new SqliteDbConnectionFactory(connectionString);
+            return new SqlRunner(_core, connectionFactory, defaultBuilder);
         }
     }
 }

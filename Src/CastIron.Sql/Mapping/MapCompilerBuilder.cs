@@ -31,21 +31,21 @@ namespace CastIron.Sql.Mapping
 
         public IMapCompilerBuilderBase<T> UseMap(Func<IDataRecord, T> map)
         {
-            Assert.ArgumentNotNull(map, nameof(map));
+            Argument.NotNull(map, nameof(map));
             _defaultCase.SetMap(map);
             return this;
         }
 
         public IMapCompilerBuilderBase<T> UseCompiler(IMapCompiler compiler)
         {
-            Assert.ArgumentNotNull(compiler, nameof(compiler));
+            Argument.NotNull(compiler, nameof(compiler));
             _defaultCase.SetCompiler(compiler);
             return this;
         }
 
         public IMapCompilerBuilderBase<T> UseConstructor(ConstructorInfo constructor)
         {
-            Assert.ArgumentNotNull(constructor, nameof(constructor));
+            Argument.NotNull(constructor, nameof(constructor));
             _defaultCase.SetConstructor(constructor);
             return this;
         }
@@ -60,14 +60,14 @@ namespace CastIron.Sql.Mapping
 
         public IMapCompilerBuilderBase<T> UseConstructorFinder(IConstructorFinder finder)
         {
-            Assert.ArgumentNotNull(finder, nameof(finder));
+            Argument.NotNull(finder, nameof(finder));
             _defaultCase.SetConstructorFinder(finder);
             return this;
         }
 
         public IMapCompilerBuilderBase<T> UseFactoryMethod(Func<T> factory)
         {
-            Assert.ArgumentNotNull(factory, nameof(factory));
+            Argument.NotNull(factory, nameof(factory));
             _defaultCase.SetFactoryMethod(factory);
             return this;
         }
@@ -103,7 +103,7 @@ namespace CastIron.Sql.Mapping
         public IMapCompilerBuilder<T> UseSubclass<TSubclass>(Func<IDataRecord, bool> predicate, Action<IMapCompilerBuilderBase<T>> setup = null) 
             where TSubclass : T
         {
-            Assert.ArgumentNotNull(predicate, nameof(predicate));
+            Argument.NotNull(predicate, nameof(predicate));
 
             var predicateContext = new SubclassPredicate();
             predicateContext.SetType(typeof(TSubclass));

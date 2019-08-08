@@ -13,19 +13,22 @@ namespace CastIron.Sql.Execution
         private int _completed;
         private int _opened;
         private int _timeoutSeconds;
+        private PerformanceMonitor _monitor;
+        private Action<string> _onCommandText;
 
-        public ExecutionContext(IDbConnectionFactory factory, IProviderConfiguration provider)
+        public ExecutionContext(IDbConnectionFactory factory, IProviderConfiguration provider, IDbCommandStringifier stringifier)
         {
+            Stringifier = stringifier;
             Provider = provider;
             _completed = 0;
             _opened = 0;
             Connection = factory.CreateForAsync();
         }
 
+        public IDbCommandStringifier Stringifier { get; }
         public IProviderConfiguration Provider { get; }
         public IDbConnectionAsync Connection { get; }
         public IDbTransaction Transaction { get; private set; }
-        public PerformanceMonitor Monitor { get; private set; }
         public bool IsCompleted => Interlocked.CompareExchange(ref _completed, 0, 0) != 0;
         public bool IsOpen => Interlocked.CompareExchange(ref _opened, 0, 0) != 0;
 
@@ -86,13 +89,19 @@ namespace CastIron.Sql.Execution
 
         public IContextBuilder MonitorPerformance(Action<string> onReport)
         {
-            Monitor = new PerformanceMonitor(onReport);
+            _monitor = new PerformanceMonitor(onReport);
             return this;
         }
 
         public IContextBuilder MonitorPerformance(Action<IReadOnlyList<IPerformanceEntry>> onReport)
         {
-            Monitor = new PerformanceMonitor(onReport);
+            _monitor = new PerformanceMonitor(onReport);
+            return this;
+        }
+
+        public IContextBuilder ViewCommandBeforeExecution(Action<string> onCommand)
+        {
+            _onCommandText = onCommand;
             return this;
         }
 
@@ -109,12 +118,21 @@ namespace CastIron.Sql.Execution
 
         public void StartAction(string actionName)
         {
-            Monitor?.StartEvent(actionName);
+            _monitor?.StartEvent(actionName);
         }
 
         public void StartAction(int statementIndex, string actionName)
         {
-            Monitor?.StartEvent($"Statement {statementIndex}: {actionName}");
+            _monitor?.StartEvent($"Statement {statementIndex}: {actionName}");
+        }
+
+        public void BeforeExecution(IDbCommand command)
+        {
+            if (_onCommandText != null)
+            {
+                var text = Stringifier.Stringify(command);
+                _onCommandText(text);
+            }
         }
 
         public void MarkComplete()
@@ -123,8 +141,8 @@ namespace CastIron.Sql.Execution
             if (isAlreadyComplete)
                 return;
 
-            Monitor?.Stop();
-            Monitor?.PublishReport();
+            _monitor?.Stop();
+            _monitor?.PublishReport();
             if (Transaction != null)
             {
                 if (_aborted)

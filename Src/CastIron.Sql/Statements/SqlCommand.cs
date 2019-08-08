@@ -8,7 +8,7 @@ namespace CastIron.Sql.Statements
 
         public SqlCommand(string sql)
         {
-            Assert.ArgumentNotNullOrEmpty(sql, nameof(sql));
+            Argument.NotNullOrEmpty(sql, nameof(sql));
             _sql = sql;
         }
 

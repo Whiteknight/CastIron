@@ -7,7 +7,7 @@ namespace CastIron.Sql.SqlServer
     {
         public IDataInteraction Create(IDbCommand command)
         {
-            Assert.ArgumentNotNull(command, nameof(command));
+            Argument.NotNull(command, nameof(command));
             return new SqlServerDataInteraction(command);
         }
     }

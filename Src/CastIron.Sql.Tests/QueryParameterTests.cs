@@ -65,7 +65,7 @@ namespace CastIron.Sql.Tests
 
             };
             var query = new Query(parameters);
-            var result = runner.Stringifier.Stringify(query);
+            var result = runner.ObjectStringifier.Stringify(query);
             result.Should().NotBeNullOrEmpty();
         }
     }

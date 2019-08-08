@@ -18,9 +18,9 @@ namespace CastIron.Sql.Mapping
 
         public DataRecordMappingEnumerable(IDataReader reader, IExecutionContext context, Func<IDataRecord, T> map)
         {
-            Assert.ArgumentNotNull(reader, nameof(reader));
-            Assert.ArgumentNotNull(context, nameof(context));
-            Assert.ArgumentNotNull(map, nameof(map));
+            Argument.NotNull(reader, nameof(reader));
+            Argument.NotNull(context, nameof(context));
+            Argument.NotNull(map, nameof(map));
 
             _reader = reader;
             _context = context;

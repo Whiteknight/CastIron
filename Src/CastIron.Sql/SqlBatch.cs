@@ -33,8 +33,8 @@ namespace CastIron.Sql
 
         public ISqlResultPromise<T> Add<T>(ISqlQuerySimple query, IResultMaterializer<T> reader)
         {
-            Assert.ArgumentNotNull(query, nameof(query));
-            Assert.ArgumentNotNull(reader, nameof(reader));
+            Argument.NotNull(query, nameof(query));
+            Argument.NotNull(reader, nameof(reader));
             var promise = new SqlResultPromise<T>();
             AddExecutor((c, i) =>
             {
@@ -51,8 +51,8 @@ namespace CastIron.Sql
 
         public ISqlResultPromise<T> Add<T>(ISqlQuery query, IResultMaterializer<T> reader)
         {
-            Assert.ArgumentNotNull(query, nameof(query));
-            Assert.ArgumentNotNull(reader, nameof(reader));
+            Argument.NotNull(query, nameof(query));
+            Argument.NotNull(reader, nameof(reader));
             var promise = new SqlResultPromise<T>();
             AddExecutor((c, i) =>
             {
@@ -69,7 +69,7 @@ namespace CastIron.Sql
 
         public ISqlResultPromise Add(ISqlCommandSimple command)
         {
-            Assert.ArgumentNotNull(command, nameof(command));
+            Argument.NotNull(command, nameof(command));
             var result = new SqlResultPromise();
             AddExecutor((c, i) =>
             {
@@ -81,7 +81,7 @@ namespace CastIron.Sql
 
         public ISqlResultPromise Add(ISqlCommand command)
         {
-            Assert.ArgumentNotNull(command, nameof(command));
+            Argument.NotNull(command, nameof(command));
             var result = new SqlResultPromise();
             AddExecutor((c, i) =>
             {
@@ -93,7 +93,7 @@ namespace CastIron.Sql
 
         public ISqlResultPromise<T> Add<T>(ISqlCommand<T> command)
         {
-            Assert.ArgumentNotNull(command, nameof(command));
+            Argument.NotNull(command, nameof(command));
             var promise = new SqlResultPromise<T>();
             AddExecutor((c, i) =>
             {
@@ -105,13 +105,13 @@ namespace CastIron.Sql
 
         public ISqlResultPromise Add(string sql)
         {
-            Assert.ArgumentNotNullOrEmpty(sql, nameof(sql));
+            Argument.NotNullOrEmpty(sql, nameof(sql));
             return Add(new SqlCommand(sql));
         }
 
         public ISqlResultPromise<IReadOnlyList<T>> Add<T>(string sql)
         {
-            Assert.ArgumentNotNullOrEmpty(sql, nameof(sql));
+            Argument.NotNullOrEmpty(sql, nameof(sql));
             return Add(SqlQuery.FromString<T>(sql));
         }
 

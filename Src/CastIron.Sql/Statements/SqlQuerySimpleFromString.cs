@@ -12,7 +12,7 @@ namespace CastIron.Sql.Statements
 
         public SqlQuerySimpleFromString(string sql)
         {
-            Assert.ArgumentNotNullOrEmpty(sql, nameof(sql));
+            Argument.NotNullOrEmpty(sql, nameof(sql));
             _sql = sql;
         }
 
@@ -29,7 +29,7 @@ namespace CastIron.Sql.Statements
 
         public SqlQuerySimpleFromString(string sql, Action<IMapCompilerBuilder<TRow>> setupCompiler = null)
         {
-            Assert.ArgumentNotNullOrEmpty(sql, nameof(sql));
+            Argument.NotNullOrEmpty(sql, nameof(sql));
             _sql = sql;
             _setupCompiler = setupCompiler;
         }

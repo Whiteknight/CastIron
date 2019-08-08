@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Runtime.InteropServices;
 using CastIron.Sql;
 using Microsoft.Extensions.Configuration;
@@ -22,9 +23,9 @@ namespace CastIron.Postgres.Tests
             _configuration = builder.Build();
         }
 
-        public static ISqlRunner Create()
+        public static ISqlRunner Create(Action<IContextBuilder> defaultBuilder = null) 
         {
-            return Postgres.RunnerFactory.Create(_configuration["POSTGRES"]);
+            return Postgres.RunnerFactory.Create(_configuration["POSTGRES"], defaultBuilder);
         }
     }
 }

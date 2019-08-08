@@ -18,9 +18,10 @@ namespace CastIron.Sql.Execution
                     return default(T);
                 }
 
-                context.StartAction(index, "Execute");
                 try
                 {
+                    context.BeforeExecution(dbCommand);
+                    context.StartAction(index, "Execute");
                     using (var reader = dbCommand.ExecuteReader())
                     {
                         context.StartAction(index, "Map Results");
@@ -36,7 +37,8 @@ namespace CastIron.Sql.Execution
                 catch (Exception e)
                 {
                     context.MarkAborted();
-                    throw SqlQueryException.Wrap(e, dbCommand, index);
+                    var sql = context.Stringifier.Stringify(dbCommand);
+                    throw SqlQueryException.Wrap(e, sql, index);
                 }
             }
         }
@@ -52,9 +54,10 @@ namespace CastIron.Sql.Execution
                     return default(T);
                 }
 
-                context.StartAction(index, "Execute");
                 try
                 {
+                    context.BeforeExecution(dbCommand.Command);
+                    context.StartAction(index, "Execute");
                     using (var reader = await dbCommand.ExecuteReaderAsync())
                     {
                         context.StartAction(index, "Map Results");
@@ -70,7 +73,8 @@ namespace CastIron.Sql.Execution
                 catch (Exception e)
                 {
                     context.MarkAborted();
-                    throw SqlQueryException.Wrap(e, dbCommand.Command, index);
+                    var sql = context.Stringifier.Stringify(dbCommand.Command);
+                    throw SqlQueryException.Wrap(e, sql, index);
                 }
             }
         }
@@ -90,6 +94,7 @@ namespace CastIron.Sql.Execution
             try
             {
                 context.StartAction(1, "Execute");
+                context.BeforeExecution(command);
                 var reader = command.ExecuteReader();
 
                 context.StartAction(1, "Map Results");
@@ -105,7 +110,8 @@ namespace CastIron.Sql.Execution
             {
                 context.MarkAborted();
                 command.Dispose();
-                throw SqlQueryException.Wrap(e, command, 1);
+                var sql = context.Stringifier.Stringify(command);
+                throw SqlQueryException.Wrap(e, sql, 1);
             }
         }
 
@@ -124,6 +130,7 @@ namespace CastIron.Sql.Execution
             try
             {
                 context.StartAction(1, "Execute");
+                context.BeforeExecution(command.Command);
                 var reader = await command.ExecuteReaderAsync();
 
                 context.StartAction(1, "Map Results");
@@ -139,7 +146,8 @@ namespace CastIron.Sql.Execution
             {
                 context.MarkAborted();
                 command.Dispose();
-                throw SqlQueryException.Wrap(e, command.Command, 1);
+                var sql = context.Stringifier.Stringify(command.Command);
+                throw SqlQueryException.Wrap(e, sql, 1);
             }
         }
 

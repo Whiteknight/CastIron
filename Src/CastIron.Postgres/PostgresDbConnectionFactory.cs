@@ -5,6 +5,9 @@ using Npgsql;
 
 namespace CastIron.Postgres
 {
+    /// <summary>
+    /// Factory to create Postgres IDbConnection and async wrappers
+    /// </summary>
     public class PostgresDbConnectionFactory : IDbConnectionFactory
     {
         private readonly string _connectionString;

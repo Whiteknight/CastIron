@@ -27,6 +27,7 @@ namespace CastIron.Sql.Execution
 
                 try
                 {
+                    context.BeforeExecution(command);
                     context.StartAction(index, "Execute");
                     using (var reader = command.ExecuteReader())
                     {
@@ -43,7 +44,8 @@ namespace CastIron.Sql.Execution
                 catch (Exception e)
                 {
                     context.MarkAborted();
-                    throw SqlQueryException.Wrap(e, command, index);
+                    var sql = context.Stringifier.Stringify(command);
+                    throw SqlQueryException.Wrap(e, sql, index);
                 }
             }
         }
@@ -61,6 +63,7 @@ namespace CastIron.Sql.Execution
 
                 try
                 {
+                    context.BeforeExecution(command.Command);
                     context.StartAction(index, "Execute");
                     using (var reader = await command.ExecuteReaderAsync())
                     {
@@ -77,7 +80,8 @@ namespace CastIron.Sql.Execution
                 catch (Exception e)
                 {
                     context.MarkAborted();
-                    throw SqlQueryException.Wrap(e, command.Command, index);
+                    var sql = context.Stringifier.Stringify(command.Command);
+                    throw SqlQueryException.Wrap(e, sql, index);
                 }
             }
         }
@@ -96,6 +100,7 @@ namespace CastIron.Sql.Execution
 
             try
             {
+                context.BeforeExecution(command);
                 context.StartAction(1, "Execute");
                 var reader = command.ExecuteReader();
 
@@ -112,7 +117,8 @@ namespace CastIron.Sql.Execution
             {
                 context.MarkAborted();
                 command.Dispose();
-                throw SqlQueryException.Wrap(e, command, 1);
+                var sql = context.Stringifier.Stringify(command);
+                throw SqlQueryException.Wrap(e, sql, 1);
             }
         }
 
@@ -130,6 +136,7 @@ namespace CastIron.Sql.Execution
 
             try
             {
+                context.BeforeExecution(command.Command);
                 context.StartAction(1, "Execute");
                 var reader = await command.ExecuteReaderAsync();
 
@@ -146,7 +153,8 @@ namespace CastIron.Sql.Execution
             {
                 context.MarkAborted();
                 command.Dispose();
-                throw SqlQueryException.Wrap(e, command.Command, 1);
+                var sql = context.Stringifier.Stringify(command.Command);
+                throw SqlQueryException.Wrap(e, sql, 1);
             }
         }
 

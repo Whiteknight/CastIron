@@ -107,7 +107,7 @@ namespace CastIron.Sql
         /// <returns></returns>
         public static IEnumerable<T> AsEnumerable<T>(this IDataResultsBase results, Func<T> factory)
         {
-            Assert.ArgumentNotNull(results, nameof(results));
+            Argument.NotNull(results, nameof(results));
             return results.AsEnumerable<T>(b => b.UseFactoryMethod(factory));
         }
 
@@ -121,7 +121,7 @@ namespace CastIron.Sql
         /// <returns></returns>
         public static IEnumerable<T> AsEnumerable<T>(this IDataResultsBase results, ConstructorInfo preferredConstructor)
         {
-            Assert.ArgumentNotNull(results, nameof(results));
+            Argument.NotNull(results, nameof(results));
             return results.AsEnumerable<T>(b => b.UseConstructor(preferredConstructor));
         }
 
@@ -160,7 +160,7 @@ namespace CastIron.Sql
         /// <returns></returns>
         public static IEnumerable<T> GetNextEnumerable<T>(this IDataResultsBase results, Action<IMapCompilerBuilder<T>> setup = null)
         {
-            Assert.ArgumentNotNull(results, nameof(results));
+            Argument.NotNull(results, nameof(results));
             return results.AdvanceToNextResultSet().AsEnumerable<T>(setup);
         }
 
@@ -190,7 +190,7 @@ namespace CastIron.Sql
         {
             // TODO: Create an IEnumerable<T>/IEnumerator<T> object to hold this logic, so we can implement async variants
             // TODO: We need to mark the IDataResultsBase object as "locked" so we can't start another read operation or move-next operation while this is running
-            Assert.ArgumentNotNull(results, nameof(results));
+            Argument.NotNull(results, nameof(results));
             if (numResultSets <= 0)
                 yield break;
 
@@ -218,7 +218,7 @@ namespace CastIron.Sql
         /// <returns></returns>
         public static IDataResultsBase AdvanceToNextResultSet(this IDataResultsBase results)
         {
-            Assert.ArgumentNotNull(results, nameof(results));
+            Argument.NotNull(results, nameof(results));
             return results.AdvanceToResultSet(results.CurrentSet + 1);
         }
 
@@ -229,7 +229,7 @@ namespace CastIron.Sql
         /// <returns></returns>
         public static bool TryAdvanceToNextResultSet(this IDataResultsBase results)
         {
-            Assert.ArgumentNotNull(results, nameof(results));
+            Argument.NotNull(results, nameof(results));
             return results.TryAdvanceToResultSet(results.CurrentSet + 1);
         }
 
@@ -242,7 +242,7 @@ namespace CastIron.Sql
         /// <returns></returns>
         public static IDataReader AsRawReaderWithBetterErrorMessages(this IDataResults results)
         {
-            Assert.ArgumentNotNull(results, nameof(results));
+            Argument.NotNull(results, nameof(results));
             var reader = results.AsRawReader();
             return new DataReaderWithBetterErrorMessages(reader);
         }
@@ -256,7 +256,7 @@ namespace CastIron.Sql
         /// <returns></returns>
         public static IDataReader AsRawReaderWithBetterErrorMessages(this IDataResultsStream results)
         {
-            Assert.ArgumentNotNull(results, nameof(results));
+            Argument.NotNull(results, nameof(results));
             var reader = results.AsRawReader();
             return new DataReaderWithBetterErrorMessages(reader);
         }
@@ -269,7 +269,7 @@ namespace CastIron.Sql
         /// <returns></returns>
         public static object GetOutputParameterValue(this IDataResultsBase results, string name)
         {
-            Assert.ArgumentNotNull(results, nameof(results));
+            Argument.NotNull(results, nameof(results));
             return results.GetParameters().GetValue(name);
         }
 
@@ -284,7 +284,7 @@ namespace CastIron.Sql
         /// <returns></returns>
         public static T GetOutputParameter<T>(this IDataResultsBase results, string name)
         {
-            Assert.ArgumentNotNull(results, nameof(results));
+            Argument.NotNull(results, nameof(results));
             return results.GetParameters().GetValue<T>(name);
         }
 
@@ -299,7 +299,7 @@ namespace CastIron.Sql
         /// <returns></returns>
         public static T GetOutputParameterOrThrow<T>(this IDataResultsBase results, string name)
         {
-            Assert.ArgumentNotNull(results, nameof(results));
+            Argument.NotNull(results, nameof(results));
             return results.GetParameters().GetOutputParameterOrThrow<T>(name);
         }
 
@@ -314,7 +314,7 @@ namespace CastIron.Sql
         public static T GetOutputParameters<T>(this IDataResultsBase results)
             where T : class, new()
         {
-            Assert.ArgumentNotNull(results, nameof(results));
+            Argument.NotNull(results, nameof(results));
             return results.GetParameters().GetOutputParameters<T>();
         }
     }

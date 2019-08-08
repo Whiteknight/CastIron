@@ -36,8 +36,8 @@ namespace CastIron.Sql.Tests
         public void SqlQuery_PerformanceReport()
         {
             string report = null;
-            var runner = RunnerFactory.Create();
-            var result = runner.Query(new Query(), b => b.MonitorPerformance(s => report = s));
+            var runner = RunnerFactory.Create(b => b.MonitorPerformance(s => report = s));
+            var result = runner.Query(new Query());
             result.Should().Be("TEST");
             report.Should().NotBeNull();
         }
@@ -49,6 +49,19 @@ namespace CastIron.Sql.Tests
             var query = SqlQuery.Combine("SELECT 'TEST'", r => r.AsEnumerable<string>().First());
             var result = runner.Query(query);
             result.Should().Be("TEST");
+        }
+
+        [Test]
+        public void SqlQuery_ViewCommandBeforeExecution()
+        {
+            string report = null;
+            var runner = RunnerFactory.Create(b => b.ViewCommandBeforeExecution(s =>
+            {
+                report = s.Trim();
+            }));
+            var result = runner.Query(new Query());
+            result.Should().Be("TEST");
+            report.Should().Be("SELECT 'TEST';");
         }
     }
 }

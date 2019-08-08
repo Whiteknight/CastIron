@@ -54,11 +54,11 @@ namespace CastIron.Sql.Tests
         [Test]
         public void CommandAndQueryBatch_Transaction()
         {
-            var runner = RunnerFactory.Create();
+            var runner = RunnerFactory.Create(b => b.UseTransaction(IsolationLevel.Serializable));
             var batch = runner.CreateBatch();
             batch.Add(new CreateTempTableCommand());
             var result = batch.Add(new QueryTempTableQuery());
-            runner.Execute(batch, b => b.UseTransaction(IsolationLevel.Serializable));
+            runner.Execute(batch);
 
             result.IsComplete.Should().Be(true);
             var list = result.GetValue();

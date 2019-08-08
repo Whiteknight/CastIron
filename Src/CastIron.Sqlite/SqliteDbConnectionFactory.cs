@@ -5,6 +5,9 @@ using Microsoft.Data.Sqlite;
 
 namespace CastIron.Sqlite
 {
+    /// <summary>
+    /// IDbConnection factory for Sqlite. Creates IDbConnection and async wrapper types
+    /// </summary>
     public class SqliteDbConnectionFactory : IDbConnectionFactory
     {
         private readonly string _connectionString;

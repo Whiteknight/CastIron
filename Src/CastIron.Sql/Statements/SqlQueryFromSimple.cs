@@ -8,7 +8,7 @@ namespace CastIron.Sql.Statements
 
         public SqlQueryFromSimple(ISqlQuerySimple simple)
         {
-            Assert.ArgumentNotNull(simple, nameof(simple));
+            Argument.NotNull(simple, nameof(simple));
             _simple = simple;
         }
 
@@ -25,7 +25,7 @@ namespace CastIron.Sql.Statements
 
         public SqlQueryFromSimple(ISqlQuerySimple<T> simple)
         {
-            Assert.ArgumentNotNull(simple, nameof(simple));
+            Argument.NotNull(simple, nameof(simple));
             _simple = simple;
         }
 

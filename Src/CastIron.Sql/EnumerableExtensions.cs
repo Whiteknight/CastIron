@@ -17,9 +17,9 @@ namespace CastIron.Sql
         /// <param name="mapOnto"></param>
         public static void MapOnto<TRecord, TAggregate>(this IEnumerable<TRecord> enumerable, Func<TRecord, TAggregate> getAggregate, Action<TRecord, TAggregate> mapOnto)
         {
-            Assert.ArgumentNotNull(enumerable, nameof(enumerable));
-            Assert.ArgumentNotNull(getAggregate, nameof(getAggregate));
-            Assert.ArgumentNotNull(mapOnto, nameof(mapOnto));
+            Argument.NotNull(enumerable, nameof(enumerable));
+            Argument.NotNull(getAggregate, nameof(getAggregate));
+            Argument.NotNull(mapOnto, nameof(mapOnto));
 
             foreach (var record in enumerable)
             {
@@ -42,11 +42,11 @@ namespace CastIron.Sql
         /// <param name="onEach"></param>
         public static void ForEachInnerJoin<TOuter, TInner, TKey>(this IEnumerable<TOuter> outer, IEnumerable<TInner> inner, Func<TOuter, TKey> outerKeySelector, Func<TInner, TKey> innerKeySelector, Action<TOuter, TInner> onEach)
         {
-            Assert.ArgumentNotNull(outer, nameof(outer));
-            Assert.ArgumentNotNull(inner, nameof(inner));
-            Assert.ArgumentNotNull(outerKeySelector, nameof(outerKeySelector));
-            Assert.ArgumentNotNull(innerKeySelector, nameof(innerKeySelector));
-            Assert.ArgumentNotNull(onEach, nameof(onEach));
+            Argument.NotNull(outer, nameof(outer));
+            Argument.NotNull(inner, nameof(inner));
+            Argument.NotNull(outerKeySelector, nameof(outerKeySelector));
+            Argument.NotNull(innerKeySelector, nameof(innerKeySelector));
+            Argument.NotNull(onEach, nameof(onEach));
 
             // TODO: Benchmark and figure out which implementation works better
             var pairs = outer.Join(inner, outerKeySelector, innerKeySelector, (o, i) => new

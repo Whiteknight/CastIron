@@ -37,8 +37,8 @@ namespace CastIron.Postgres.Tests
         public void SqlQuery_PerformanceReport()
         {
             string report = null;
-            var runner = RunnerFactory.Create();
-            var result = runner.Query(new Query(), b => b.MonitorPerformance(s => report = s));
+            var runner = RunnerFactory.Create(b => b.MonitorPerformance(s => report = s));
+            var result = runner.Query(new Query());
             result.Should().Be("TEST");
             report.Should().NotBeNull();
         }
