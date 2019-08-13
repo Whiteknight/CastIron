@@ -7,7 +7,12 @@ namespace CastIron.Sql.Execution
 {
     // TODO: Unit testing and more use-cases
     // TODO: Is this general-purpose or do we need to have one per provider?
-    // Internal class to ToString an IDbCommand
+    /// <summary>
+    /// Serialize an IDbCommand to a string.
+    /// This class is intended for internal debugging and auditing purposes. The generated SQL
+    /// may not be valid and complete, but should be sufficient for debugging and auditing
+    /// purposes. 
+    /// </summary>
     public class DbCommandStringifier
     {
         private static readonly DbCommandStringifier _instance;
