@@ -9,7 +9,7 @@ namespace CastIron.Sql.Execution
     {
         public void Execute(ISqlCommandSimple command, IExecutionContext context, int index)
         {
-            context.StartAction(index, "Setup Command");
+            context.StartSetupCommand(index);
             using (var dbCommand = context.CreateCommand())
             {
                 if (!SetupCommand(command, dbCommand))
@@ -20,8 +20,7 @@ namespace CastIron.Sql.Execution
 
                 try
                 {
-                    context.BeforeExecution(dbCommand);
-                    context.StartAction(index, "Execute");
+                    context.StartExecute(index, dbCommand);
                     dbCommand.ExecuteNonQuery();
                 }
                 catch (SqlQueryException)
@@ -40,7 +39,7 @@ namespace CastIron.Sql.Execution
 
         public async Task ExecuteAsync(ISqlCommandSimple command, IExecutionContext context, int index)
         {
-            context.StartAction(index, "Setup Command");
+            context.StartSetupCommand(index);
             using (var dbCommand = context.CreateAsyncCommand())
             {
                 if (!SetupCommand(command, dbCommand.Command))
@@ -51,8 +50,7 @@ namespace CastIron.Sql.Execution
 
                 try
                 {
-                    context.BeforeExecution(dbCommand.Command);
-                    context.StartAction(index, "Execute");
+                    context.StartExecute(index, dbCommand.Command);
                     await dbCommand.ExecuteNonQueryAsync();
                 }
                 catch (SqlQueryException)
@@ -71,7 +69,7 @@ namespace CastIron.Sql.Execution
 
         public T Execute<T>(ISqlCommandSimple<T> command, IExecutionContext context, int index)
         {
-            context.StartAction(index, "Setup Command");
+            context.StartSetupCommand(index);
             using (var dbCommand = context.CreateCommand())
             {
                 if (!SetupCommand(command, dbCommand))
@@ -82,11 +80,10 @@ namespace CastIron.Sql.Execution
 
                 try
                 {
-                    context.BeforeExecution(dbCommand);
-                    context.StartAction(index, "Execute");
+                    context.StartExecute(index, dbCommand);
                     var rowsAffected = dbCommand.ExecuteNonQuery();
 
-                    context.StartAction(index, "Map Results");
+                    context.StartMapResults(index);
                     var resultSet = new DataReaderResults(context.Provider, dbCommand, context, null, rowsAffected);
                     return command.ReadOutputs(resultSet);
                 }
@@ -106,7 +103,7 @@ namespace CastIron.Sql.Execution
 
         public async Task<T> ExecuteAsync<T>(ISqlCommandSimple<T> command, IExecutionContext context, int index)
         {
-            context.StartAction(index, "Setup Command");
+            context.StartSetupCommand(index);
             using (var dbCommand = context.CreateAsyncCommand())
             {
                 if (!SetupCommand(command, dbCommand.Command))
@@ -117,11 +114,10 @@ namespace CastIron.Sql.Execution
 
                 try
                 {
-                    context.BeforeExecution(dbCommand.Command);
-                    context.StartAction(index, "Execute");
+                    context.StartExecute(index, dbCommand.Command);
                     var rowsAffected = await dbCommand.ExecuteNonQueryAsync();
 
-                    context.StartAction(index, "Map Results");
+                    context.StartMapResults(index);
                     var resultSet = new DataReaderResults(context.Provider, dbCommand.Command, context, null, rowsAffected);
                     return await Task.Run(() => command.ReadOutputs(resultSet));
                 }

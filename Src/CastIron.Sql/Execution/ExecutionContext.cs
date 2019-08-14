@@ -40,6 +40,7 @@ namespace CastIron.Sql.Execution
         
         public void OpenConnection()
         {
+            _monitor?.StartEvent("Open Connection");
             MarkOpened();
             Connection.Connection.Open();
             if (_isolationLevel.HasValue)
@@ -48,6 +49,7 @@ namespace CastIron.Sql.Execution
 
         public async Task OpenConnectionAsync()
         {
+            _monitor?.StartEvent("Open Connection");
             MarkOpened();
             await Connection.OpenAsync();
             if (_isolationLevel.HasValue)
@@ -116,23 +118,24 @@ namespace CastIron.Sql.Execution
             return SetTimeoutSeconds((int) timeSpan.TotalSeconds);
         }
 
-        public void StartAction(string actionName)
+        public void StartSetupCommand(int index)
         {
-            _monitor?.StartEvent(actionName);
+            _monitor?.StartEvent($"Statement {index}: Setup Command");
         }
 
-        public void StartAction(int statementIndex, string actionName)
+        public void StartExecute(int index, IDbCommand command)
         {
-            _monitor?.StartEvent($"Statement {statementIndex}: {actionName}");
-        }
-
-        public void BeforeExecution(IDbCommand command)
-        {
+            _monitor?.StartEvent($"Statement {index}: Execute");
             if (_onCommandText != null)
             {
                 var text = Stringifier.Stringify(command);
                 _onCommandText(text);
             }
+        }
+
+        public void StartMapResults(int index)
+        {
+            _monitor?.StartEvent($"Statement {index}: Map Results");
         }
 
         public void MarkComplete()

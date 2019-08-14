@@ -24,7 +24,8 @@ namespace CastIron.Sql
             foreach (var record in enumerable)
             {
                 var aggregate = getAggregate(record);
-                // TODO: Should we filter out cases where aggregate is null?
+                if (aggregate == null)
+                    continue;
                 mapOnto(record, aggregate);
             }
         }

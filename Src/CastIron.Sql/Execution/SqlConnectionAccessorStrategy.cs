@@ -8,7 +8,6 @@ namespace CastIron.Sql.Execution
         {
             try
             {
-                context.StartAction(index, "Execute");
                 accessor.Execute(context.Connection.Connection, context.Transaction);
             }
             catch (SqlQueryException)
@@ -29,7 +28,6 @@ namespace CastIron.Sql.Execution
         {
             try
             {
-                context.StartAction(index, "Execute");
                 return accessor.Query(context.Connection.Connection, context.Transaction);
             }
             catch (SqlQueryException)

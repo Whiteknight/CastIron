@@ -1,33 +1,42 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Linq.Expressions;
 using System.Reflection;
 
 namespace CastIron.Sql.Mapping
 {
-    public static class DataRecordExpressions
+    public static class ScalarConversionExpressions
     {
         private static readonly MethodInfo _getValueMethod = typeof(IDataRecord).GetMethod(nameof(IDataRecord.GetValue));
         private static readonly Expression _dbNullExp = Expression.Field(null, typeof(DBNull), nameof(DBNull.Value));
         private static readonly MethodInfo _convertMethod = typeof(Convert).GetMethod(nameof(Convert.ChangeType), new[] { typeof(object), typeof(Type) });
         private static readonly MethodInfo _guidParseMethod = typeof(Guid).GetMethod(nameof(Guid.Parse));
 
-        public static Expression GetScalarConversionExpression(int columnIdx, MapCompileContext context, Type columnType, Type targetType)
+        public static ConstructedValueExpression Get(int columnIdx, MapCompileContext context, ColumnInfo column, Type targetType)
         { 
             // TODO: If the column is a serialized type like XML or JSON, we should be able to deserialize that into an object.
+            var columnType = column.ColumnType;
+            var expressions = new List<Expression>();
 
             // Pull the value out of the reader into the rawVar
             var rawVar = context.AddVariable<object>("raw");
             var getRawStmt = Expression.Assign(rawVar, Expression.Call(context.RecordParam, _getValueMethod, Expression.Constant(columnIdx)));
-            context.AddStatement(getRawStmt);
+            expressions.Add(getRawStmt);
 
+            var rawConvertExpr = GetRawValueConversionExpression(targetType, rawVar, columnType);
+            return new ConstructedValueExpression(expressions, rawConvertExpr);
+        }
+
+        private static Expression GetRawValueConversionExpression(Type targetType, ParameterExpression rawVar, Type columnType)
+        {
             if (targetType == typeof(object))
             {
                 // raw != DBNull.Instance ? raw : (object)null;
                 return Expression.Condition(
                     Expression.NotEqual(_dbNullExp, rawVar),
                     rawVar,
-                    GetDefaultValueExpression(typeof(object))); 
+                    typeof(object).GetDefaultValueExpression());
             }
 
             // They are the same type, so we can directly assign them
@@ -40,7 +49,7 @@ namespace CastIron.Sql.Mapping
                         rawVar,
                         targetType
                     ),
-                    GetDefaultValueExpression(targetType));
+                    targetType.GetDefaultValueExpression());
             }
 
             // The target is string, regardless of the data type we can .ToString() it
@@ -50,11 +59,11 @@ namespace CastIron.Sql.Mapping
                 return Expression.Condition(
                     Expression.NotEqual(_dbNullExp, rawVar),
                     Expression.Call(rawVar, nameof(ToString), Type.EmptyTypes),
-                    GetDefaultValueExpression(typeof(string)));
+                    typeof(string).GetDefaultValueExpression());
             }
 
             // They are both numeric but not the same type. Unbox and convert
-            if (DataTypes.IsNumericType(columnType) && DataTypes.IsNumericType(targetType))
+            if (columnType.IsNumericType() && targetType.IsNumericType())
             {
                 return Expression.Condition(
                     Expression.NotEqual(_dbNullExp, rawVar),
@@ -62,11 +71,11 @@ namespace CastIron.Sql.Mapping
                         Expression.Unbox(rawVar, columnType),
                         targetType
                     ),
-                    GetDefaultValueExpression(targetType));
+                    targetType.GetDefaultValueExpression());
             }
 
             // Target is bool, source type is numeric. Try to coerce by comparing against 0
-            if ((targetType == typeof(bool) || targetType == typeof(bool?)) && DataTypes.IsNumericType(columnType))
+            if ((targetType == typeof(bool) || targetType == typeof(bool?)) && columnType.IsNumericType())
             {
                 // rawVar != DBNull.Instance ? ((targetType)rawVar != (targetType)0) : false
                 return Expression.Condition(
@@ -80,46 +89,27 @@ namespace CastIron.Sql.Mapping
                 return Expression.Condition(
                     Expression.NotEqual(_dbNullExp, rawVar),
                     Expression.Convert(
-                        Expression.Call(null, _guidParseMethod, new Expression[] {
-                            Expression.Convert(rawVar, typeof(string)) }), targetType),
-                    GetDefaultValueExpression(targetType));
+                        Expression.Call(null, _guidParseMethod, Expression.Convert(rawVar, typeof(string))), targetType),
+                    targetType.GetDefaultValueExpression());
             }
 
             // Convert.ChangeType where the column is IConvertable. Convert to the non-Nullable<> version of TargetType
-            if (IsConvertible(columnType))
+            if (columnType.IsConvertible())
             {
                 // raw != DBNull.Instance ? (targetType)Convert.ChangeType(raw, targetType) : default(targetType)
-                var baseTargetType = GetTypeWithoutNullability(targetType);
-                if (IsConvertible(targetType))
+                var baseTargetType = targetType.GetTypeWithoutNullability();
+                if (targetType.IsConvertible())
                 {
                     return Expression.Condition(
                         Expression.NotEqual(_dbNullExp, rawVar),
                         Expression.Convert(
                             Expression.Call(null, _convertMethod, new Expression[] { rawVar, Expression.Constant(baseTargetType, typeof(Type)) }), targetType),
-                        GetDefaultValueExpression(targetType));
+                        targetType.GetDefaultValueExpression());
                 }
             }
-            
+
             // There is no conversion rule, so just return a default value.
-            return GetDefaultValueExpression(targetType);
-        }
-
-        
-
-        public static Expression GetDefaultValueExpression(Type t)
-        {
-            // (t)default(t)
-            return Expression.Convert(Expression.Constant(DataTypes.GetDefaultValue(t)), t);
-        }
-
-        private static bool IsConvertible(Type t)
-        {
-            return typeof(IConvertible).IsAssignableFrom(t);
-        }
-
-        private static Type GetTypeWithoutNullability(Type t)
-        {
-            return t.IsGenericType && t.GetGenericTypeDefinition() == typeof(Nullable<>) ? t.GenericTypeArguments[0] : t;
+            return targetType.GetDefaultValueExpression();
         }
     }
 }

@@ -36,7 +36,6 @@ namespace CastIron.Sql
         public void Execute(ExecutionContext context, IReadOnlyList<Action<IExecutionContext, int>> executors)
         {
             Argument.NotNull(executors, nameof(executors));
-            context.StartAction("Open connection");
             context.OpenConnection();
             for (var i = 0; i < executors.Count; i++)
                 executors[i](context, i);
@@ -46,7 +45,6 @@ namespace CastIron.Sql
         public T Execute<T>(ExecutionContext context, Func<IExecutionContext, T> executor)
         {
             Argument.NotNull(executor, nameof(executor));
-            context.StartAction("Open connection");
             context.OpenConnection();
             var result = executor(context);
             context.MarkComplete();
@@ -56,7 +54,6 @@ namespace CastIron.Sql
         public async Task<T> ExecuteAsync<T>(ExecutionContext context, Func<IExecutionContext, Task<T>> executor)
         {
             Argument.NotNull(executor, nameof(executor));
-            context.StartAction("Open connection");
             await context.OpenConnectionAsync();
             var result = await executor(context);
             context.MarkComplete();
@@ -66,7 +63,6 @@ namespace CastIron.Sql
         public void Execute(ExecutionContext context, Action<IExecutionContext> executor)
         {
             Argument.NotNull(executor, nameof(executor));
-            context.StartAction("Open connection");
             context.OpenConnection();
             executor(context);
             context.MarkComplete();
@@ -75,7 +71,6 @@ namespace CastIron.Sql
         public async Task ExecuteAsync(ExecutionContext context, Func<IExecutionContext, Task> executor)
         {
             Argument.NotNull(executor, nameof(executor));
-            context.StartAction("Open connection");
             await context.OpenConnectionAsync();
             await executor(context);
             context.MarkComplete();

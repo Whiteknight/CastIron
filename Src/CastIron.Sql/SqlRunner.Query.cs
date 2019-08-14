@@ -21,7 +21,6 @@ namespace CastIron.Sql
         {
             Argument.NotNull(runner, nameof(runner));
             Argument.NotNullOrEmpty(sql, nameof(sql));
-
             return runner.Query(SqlQuery.FromString<T>(sql));
         }
 
@@ -37,7 +36,6 @@ namespace CastIron.Sql
         {
             Argument.NotNull(runner, nameof(runner));
             Argument.NotNullOrEmpty(sql, nameof(sql));
-
             return runner.QueryAsync(SqlQuery.FromString<T>(sql));
         }
 

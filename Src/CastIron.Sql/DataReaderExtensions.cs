@@ -14,7 +14,7 @@ namespace CastIron.Sql
             return record.GetDataTypeName(index);
         }
 
-        public static Type GetFieldtype(this IDataRecord record, string columnName)
+        public static Type GetFieldType(this IDataRecord record, string columnName)
         {
             var index = record.GetOrdinal(columnName);
             return record.GetFieldType(index);

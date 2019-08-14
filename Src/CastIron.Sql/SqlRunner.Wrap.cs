@@ -32,7 +32,6 @@ namespace CastIron.Sql
         {
             Argument.NotNull(table, nameof(table));
             return new DataReaderResultsStream(runner.Provider, null, null, table.CreateDataReader());
-
         }
     }
 }

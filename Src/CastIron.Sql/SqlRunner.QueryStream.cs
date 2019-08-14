@@ -17,7 +17,6 @@ namespace CastIron.Sql
         {
             Argument.NotNull(runner, nameof(runner));
             Argument.NotNullOrEmpty(sql, nameof(sql));
-
             return runner.QueryStream(SqlQuery.FromString(sql));
         }
 
@@ -33,7 +32,6 @@ namespace CastIron.Sql
         {
             Argument.NotNull(runner, nameof(runner));
             Argument.NotNullOrEmpty(sql, nameof(sql));
-
             return runner.QueryStreamAsync(SqlQuery.FromString(sql));
         }
 
@@ -50,7 +48,6 @@ namespace CastIron.Sql
             Argument.NotNull(runner, nameof(runner));
             Argument.NotNull(query, nameof(query));
             var context = runner.CreateExecutionContext();
-            context.StartAction("Open connection");
             context.OpenConnection();
             return new SqlQueryStrategy(runner.InteractionFactory).ExecuteStream(query, context);
         }
@@ -68,7 +65,6 @@ namespace CastIron.Sql
             Argument.NotNull(runner, nameof(runner));
             Argument.NotNull(query, nameof(query));
             var context = runner.CreateExecutionContext();
-            context.StartAction("Open connection");
             await context.OpenConnectionAsync();
             return await new SqlQueryStrategy(runner.InteractionFactory).ExecuteStreamAsync(query, context);
         }
@@ -86,7 +82,6 @@ namespace CastIron.Sql
             Argument.NotNull(runner, nameof(runner));
             Argument.NotNull(query, nameof(query));
             var context = runner.CreateExecutionContext();
-            context.StartAction("Open connection");
             context.OpenConnection();
             return new SqlQuerySimpleStrategy().ExecuteStream(query, context);
         }
@@ -104,7 +99,6 @@ namespace CastIron.Sql
             Argument.NotNull(runner, nameof(runner));
             Argument.NotNull(query, nameof(query));
             var context = runner.CreateExecutionContext();
-            context.StartAction("Open connection");
             await context.OpenConnectionAsync();
             return await new SqlQuerySimpleStrategy().ExecuteStreamAsync(query, context);
         }

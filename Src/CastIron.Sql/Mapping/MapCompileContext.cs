@@ -27,11 +27,12 @@ namespace CastIron.Sql.Mapping
 
     public class ColumnInfo
     {
-        public ColumnInfo(int index, string originalName, Type columnType)
+        public ColumnInfo(int index, string originalName, Type columnType, string sqlTypeName)
         {
             Index = index;
             OriginalName = originalName;
             ColumnType = columnType;
+            SqlTypeName = sqlTypeName;
             Mapped = false;
             CanonicalName = originalName.ToLowerInvariant();
         }
@@ -40,6 +41,7 @@ namespace CastIron.Sql.Mapping
         public string OriginalName { get; }
         public string CanonicalName { get; }
         public Type ColumnType { get; }
+        public string SqlTypeName { get; }
 
         public bool Mapped { get; private set; }
 
@@ -55,7 +57,6 @@ namespace CastIron.Sql.Mapping
         private readonly IConstructorFinder _constructorFinder;
         private readonly Dictionary<string, List<ColumnInfo>> _columnNames;
         private readonly List<ParameterExpression> _variables;
-        private readonly List<Expression> _statements;
         private readonly VariableNumberSource _variableNumbers;
         private readonly string _separator;
 
@@ -80,15 +81,10 @@ namespace CastIron.Sql.Mapping
             
             _variableNumbers = numberSource ?? new VariableNumberSource();
             _variables = new List<ParameterExpression>();
-            _statements = new List<Expression>();
             _columnNames = new Dictionary<string, List<ColumnInfo>>();
-
-            var name = $"instance_{GetNextVarNumber()}";
-            Instance = Expression.Variable(Specific, name);
-            _variables.Add(Instance);
         }
 
-        public MapCompileContext(MapCompileContext parent, Type type, string prefix, string separator)
+        private MapCompileContext(MapCompileContext parent, Type type, string prefix, string separator)
         {
             Argument.NotNull(parent, nameof(parent));
             Argument.NotNullOrEmpty(separator, nameof(_separator));
@@ -105,7 +101,6 @@ namespace CastIron.Sql.Mapping
 
             _variableNumbers = parent._variableNumbers;
             _variables = parent._variables;
-            _statements = parent._statements;
             _columnNames = new Dictionary<string, List<ColumnInfo>>();
             if (prefix == null)
                 _columnNames = parent._columnNames;
@@ -120,19 +115,12 @@ namespace CastIron.Sql.Mapping
                     }
                 }
             }
-
-            if (type != null)
-            {
-                var name = $"instance_{GetNextVarNumber()}";
-                Instance = Expression.Variable(Specific, name);
-                _variables.Add(Instance);
-            }
         }
 
         public Func<object> Factory { get; }
         public IDataReader Reader { get; }
         public ParameterExpression RecordParam { get; }
-        public ParameterExpression Instance { get; }
+        //public ParameterExpression Instance { get; }
         public Type Parent { get; }
         public Type Specific { get; }
 
@@ -150,7 +138,7 @@ namespace CastIron.Sql.Mapping
 
         public ConstructorInfo GetConstructor()
         {   
-            return (_constructorFinder ?? ConstructorFinder.GetDefaultInstance()).FindBestMatch(PreferredConstructor, Specific, GetColumnNameCounts());
+            return (_constructorFinder ?? ConstructorFinder.GetDefaultInstance()).FindBestMatch(_provider, PreferredConstructor, Specific, GetColumnNameCounts());
         }
 
         public void PopulateColumnLookups(IDataReader reader)
@@ -160,7 +148,9 @@ namespace CastIron.Sql.Mapping
                 // TODO: Specify list of prefixes to ignore. If the column starts with a prefix, remove those chars from the front
                 // e.g. "Table_ID" with prefix "Table_" becomes "ID"
                 var name = (reader.GetName(i) ?? "");
-                var info = new ColumnInfo(i, name, reader.GetFieldType(i));
+                var typeName = reader.GetDataTypeName(i);
+                var columnType = reader.GetFieldType(i);
+                var info = new ColumnInfo(i, name, columnType, typeName);
                 if (!_columnNames.ContainsKey(info.CanonicalName))
                     _columnNames.Add(info.CanonicalName, new List<ColumnInfo>());
                 _columnNames[info.CanonicalName].Add(info);
@@ -210,14 +200,14 @@ namespace CastIron.Sql.Mapping
             return variable;
         }
 
-        public void AddStatement(Expression expr)
-        {
-            _statements.Add(expr);
-        }
+        //public void AddStatement(Expression expr)
+        //{
+        //    _statements.Add(expr);
+        //}
 
-        public Func<IDataRecord, T> CompileLambda<T>()
+        public Func<IDataRecord, T> CompileLambda<T>(IEnumerable<Expression> statements)
         {
-            var lambdaExpression = Expression.Lambda<Func<IDataRecord, T>>(Expression.Block(Parent, _variables, _statements), RecordParam);
+            var lambdaExpression = Expression.Lambda<Func<IDataRecord, T>>(Expression.Block(Parent, _variables, statements), RecordParam);
             DumpCodeToDebugConsole(lambdaExpression);
             return lambdaExpression.Compile();
         }
@@ -264,7 +254,7 @@ namespace CastIron.Sql.Mapping
                 return GetColumns(columnName);
 
             var acceptsUnnamed = attrs.GetTypedAttributes<UnnamedColumnsAttribute>().Any();
-            if (acceptsUnnamed)
+            if (acceptsUnnamed && _provider.UnnamedColumnName != null)
                 return GetColumns(_provider.UnnamedColumnName);
             return Enumerable.Empty<ColumnInfo>();
         }

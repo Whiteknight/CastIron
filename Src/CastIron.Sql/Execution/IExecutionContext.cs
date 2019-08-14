@@ -19,10 +19,9 @@ namespace CastIron.Sql.Execution
 
         IDbCommandAsync CreateAsyncCommand();
 
-        void BeforeExecution(IDbCommand command);
-
-        void StartAction(string actionName);
-        void StartAction(int statementIndex, string actionName);
+        void StartSetupCommand(int index);
+        void StartExecute(int index, IDbCommand command);
+        void StartMapResults(int index);
         void MarkComplete();
         void MarkAborted();
         bool IsCompleted { get; }

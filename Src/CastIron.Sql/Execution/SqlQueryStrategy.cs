@@ -16,7 +16,7 @@ namespace CastIron.Sql.Execution
 
         public T Execute<T>(ISqlQuery query, IResultMaterializer<T> queryReader, IExecutionContext context, int index)
         {
-            context.StartAction(index, "Setup Command");
+            context.StartSetupCommand(index);
             using (var command = context.CreateCommand())
             {
                 if (!SetupCommand(query, command))
@@ -27,11 +27,10 @@ namespace CastIron.Sql.Execution
 
                 try
                 {
-                    context.BeforeExecution(command);
-                    context.StartAction(index, "Execute");
+                    context.StartExecute(index, command);
                     using (var reader = command.ExecuteReader())
                     {
-                        context.StartAction(index, "Map Results");
+                        context.StartMapResults(index);
                         var resultSet = new DataReaderResults(context.Provider, command, context, reader);
                         return queryReader.Read(resultSet);
                     }
@@ -52,7 +51,7 @@ namespace CastIron.Sql.Execution
 
         public async Task<T> ExecuteAsync<T>(ISqlQuery query, IResultMaterializer<T> queryReader, IExecutionContext context, int index)
         {
-            context.StartAction(index, "Setup Command");
+            context.StartSetupCommand(index);
             using (var command = context.CreateAsyncCommand())
             {
                 if (!SetupCommand(query, command.Command))
@@ -63,11 +62,10 @@ namespace CastIron.Sql.Execution
 
                 try
                 {
-                    context.BeforeExecution(command.Command);
-                    context.StartAction(index, "Execute");
+                    context.StartExecute(index, command.Command);
                     using (var reader = await command.ExecuteReaderAsync())
                     {
-                        context.StartAction(index, "Map Results");
+                        context.StartMapResults(index);
                         var resultSet = new DataReaderResults(context.Provider, command.Command, context, reader);
                         return queryReader.Read(resultSet);
                     }
@@ -88,7 +86,7 @@ namespace CastIron.Sql.Execution
 
         public IDataResultsStream ExecuteStream(ISqlQuery query, IExecutionContext context)
         {
-            context.StartAction(1, "Setup Command");
+            context.StartSetupCommand(1);
             var command = context.CreateCommand();
 
             if (!SetupCommand(query, command))
@@ -100,11 +98,10 @@ namespace CastIron.Sql.Execution
 
             try
             {
-                context.BeforeExecution(command);
-                context.StartAction(1, "Execute");
+                context.StartExecute(1, command);
                 var reader = command.ExecuteReader();
 
-                context.StartAction(1, "Map Results");
+                context.StartMapResults(1);
                 return new DataReaderResultsStream(context.Provider, command, context, reader);
             }
             catch (SqlQueryException)
@@ -124,7 +121,7 @@ namespace CastIron.Sql.Execution
 
         public async Task<IDataResultsStream> ExecuteStreamAsync(ISqlQuery query, IExecutionContext context)
         {
-            context.StartAction(1, "Setup Command");
+            context.StartSetupCommand(1);
             var command = context.CreateAsyncCommand();
 
             if (!SetupCommand(query, command.Command))
@@ -136,11 +133,10 @@ namespace CastIron.Sql.Execution
 
             try
             {
-                context.BeforeExecution(command.Command);
-                context.StartAction(1, "Execute");
+                context.StartExecute(1, command.Command);
                 var reader = await command.ExecuteReaderAsync();
 
-                context.StartAction(1, "Map Results");
+                context.StartMapResults(1);
                 return new DataReaderResultsStream(context.Provider, command.Command, context, reader);
             }
             catch (SqlQueryException)

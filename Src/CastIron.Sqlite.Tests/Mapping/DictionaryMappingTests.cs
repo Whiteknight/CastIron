@@ -113,6 +113,28 @@ namespace CastIron.Sqlite.Tests.Mapping
             result.Child["Int"].Should().Be("6");
         }
 
+        public class TestObject_ChildExistingDict
+        {
+            public TestObject_ChildExistingDict()
+            {
+                Child = new Dictionary<string, string>();
+            }
+
+            public int Id { get; set; }
+            public Dictionary<string, string> Child { get; }
+        }
+
+        [Test]
+        public void Map_CustomObjectWithChildExistingDictionary()
+        {
+            var target = RunnerFactory.Create();
+            var result = target.Query<TestObject_ChildExistingDict>("SELECT 5 AS Id, 'TEST' AS Child_String, 6 AS Child_Int;").First();
+            result.Id.Should().Be(5);
+            result.Child.Count.Should().Be(2);
+            result.Child["String"].Should().Be("TEST");
+            result.Child["Int"].Should().Be("6");
+        }
+
         public class TestObject_ChildIDict
         {
             public int Id { get; set; }
@@ -124,6 +146,28 @@ namespace CastIron.Sqlite.Tests.Mapping
         {
             var target = RunnerFactory.Create();
             var result = target.Query<TestObject_ChildIDict>("SELECT 5 AS Id, 'TEST' AS Child_String, 6 AS Child_Int;").First();
+            result.Id.Should().Be(5);
+            result.Child.Count.Should().Be(2);
+            result.Child["String"].Should().Be("TEST");
+            result.Child["Int"].Should().Be("6");
+        }
+
+        public class TestObject_ChildExistingIDict
+        {
+            public TestObject_ChildExistingIDict()
+            {
+                Child = new Dictionary<string, string>();
+            }
+
+            public int Id { get; set; }
+            public IDictionary<string, string> Child { get; }
+        }
+
+        [Test]
+        public void Map_CustomObjectWithChildExistingIDictionary()
+        {
+            var target = RunnerFactory.Create();
+            var result = target.Query<TestObject_ChildExistingIDict>("SELECT 5 AS Id, 'TEST' AS Child_String, 6 AS Child_Int;").First();
             result.Id.Should().Be(5);
             result.Child.Count.Should().Be(2);
             result.Child["String"].Should().Be("TEST");

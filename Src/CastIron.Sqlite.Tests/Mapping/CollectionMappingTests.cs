@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using CastIron.Sql;
@@ -59,6 +58,27 @@ namespace CastIron.Sqlite.Tests.Mapping
         {
             var target = RunnerFactory.Create();
             var result = target.Query(new TestQuery_StringList<TestObjectStringList>());
+            result.TestString.Count.Should().Be(3);
+            result.TestString[0].Should().Be("5");
+            result.TestString[1].Should().Be("TEST");
+            result.TestString[2].Should().Be("3.14");
+        }
+
+        public class TestObjectExistingStringList
+        {
+            public TestObjectExistingStringList()
+            {
+                TestString = new List<string>();
+            }
+
+            public List<string> TestString { get; }
+        }
+
+        [Test]
+        public void TestQuery_MapToExistingStringListProperty()
+        {
+            var target = RunnerFactory.Create();
+            var result = target.Query(new TestQuery_StringList<TestObjectExistingStringList>());
             result.TestString.Count.Should().Be(3);
             result.TestString[0].Should().Be("5");
             result.TestString[1].Should().Be("TEST");
@@ -139,6 +159,27 @@ namespace CastIron.Sqlite.Tests.Mapping
             result.TestString[2].Should().Be("3.14");
         }
 
+        public class TestObjectExistingStringIList
+        {
+            public TestObjectExistingStringIList()
+            {
+                TestString = new List<string>();
+            }
+
+            public IList<string> TestString { get; }
+        }
+
+        [Test]
+        public void TestQuery_MapToExistingStringIListProperty()
+        {
+            var target = RunnerFactory.Create();
+            var result = target.Query(new TestQuery_StringList<TestObjectExistingStringIList>());
+            result.TestString.Count.Should().Be(3);
+            result.TestString[0].Should().Be("5");
+            result.TestString[1].Should().Be("TEST");
+            result.TestString[2].Should().Be("3.14");
+        }
+
         public class TestObjectStringIListCtor
         {
             public TestObjectStringIListCtor(IList<string> testString)
@@ -178,49 +219,6 @@ namespace CastIron.Sqlite.Tests.Mapping
             var result = target.Query<List<DateTime>>("SELECT '2018-12-11 17:01:02'").First();
             result.Count.Should().Be(1);
             result[0].Should().Be(new DateTime(2018, 12, 11, 17, 1, 2));
-        }
-
-        private class TestCollectionType : ICollection<string>
-        {
-            private readonly List<string> _list;
-
-            public TestCollectionType()
-            {
-                _list = new List<string>();
-            }
-
-            public IEnumerator<string> GetEnumerator() => _list.GetEnumerator();
-
-            IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-
-            public void Add(string item) => _list.Add(item);
-
-            public void Clear() => _list.Clear();
-
-            public bool Contains(string item) => _list.Contains(item);
-
-            public void CopyTo(string[] array, int arrayIndex)
-            {
-                _list.CopyTo(array, arrayIndex);
-            }
-
-            public bool Remove(string item)
-            {
-                throw new NotImplementedException();
-            }
-
-            public int Count => _list.Count;
-            public bool IsReadOnly => false;
-        }
-
-        [Test]
-        public void TestQuery_CustomCollectionType()
-        {
-            var target = RunnerFactory.Create();
-            var result = target.Query<TestCollectionType>("SELECT 'A', 'B', 'C'").First().ToList();
-            result[0].Should().Be("A");
-            result[1].Should().Be("B");
-            result[2].Should().Be("C");
         }
     }
 }

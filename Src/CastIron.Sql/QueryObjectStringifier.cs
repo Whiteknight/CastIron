@@ -29,11 +29,6 @@ namespace CastIron.Sql
             return _stringifier.Stringify(dummy);
         }
 
-        public string Stringify<T>(ISqlConnectionAccessor<T> query)
-        {
-            return "";
-        }
-
         public string Stringify(ISqlCommand command)
         {
             var dummy = new SqlCommand();

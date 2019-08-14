@@ -8,7 +8,7 @@ namespace CastIron.Sql.Mapping
 {
     public class DefaultOnlyConstructorFinder : IConstructorFinder
     {
-        public ConstructorInfo FindBestMatch(ConstructorInfo preferredConstructor, Type type, IReadOnlyDictionary<string, int> columnNames)
+        public ConstructorInfo FindBestMatch(IProviderConfiguration provider, ConstructorInfo preferredConstructor, Type type, IReadOnlyDictionary<string, int> columnNames)
         {
             Argument.NotNull(type, nameof(type));
 
@@ -45,7 +45,7 @@ namespace CastIron.Sql.Mapping
             return _defaultInstance;
         }
 
-        public ConstructorInfo FindBestMatch(ConstructorInfo preferredConstructor, Type type, IReadOnlyDictionary<string, int> columnNames)
+        public ConstructorInfo FindBestMatch(IProviderConfiguration provider, ConstructorInfo preferredConstructor, Type type, IReadOnlyDictionary<string, int> columnNames)
         {
             Argument.NotNull(type, nameof(type));
 
@@ -64,7 +64,7 @@ namespace CastIron.Sql.Mapping
 
             // Otherwise score all constructors and find the best match
             var best = type.GetConstructors()
-                .Select(c => new ScoredConstructor(c, columnNames))
+                .Select(c => new ScoredConstructor(provider.UnnamedColumnName, c, columnNames))
                 .Where(x => x.Score >= 0)
                 .OrderByDescending(x => x.Score)
                 .FirstOrDefault();
@@ -75,8 +75,11 @@ namespace CastIron.Sql.Mapping
 
         private class ScoredConstructor
         {
-            public ScoredConstructor(ConstructorInfo constructor, IReadOnlyDictionary<string, int> columnNames)
+            private readonly string _unnamedColumnName;
+
+            public ScoredConstructor(string unnamedColumnName, ConstructorInfo constructor, IReadOnlyDictionary<string, int> columnNames)
             {
+                _unnamedColumnName = unnamedColumnName;
                 Constructor = constructor;
                 var parameters = constructor.GetParameters();
                 Score = ScoreConstructorByParameterNames(columnNames, parameters);
@@ -85,7 +88,7 @@ namespace CastIron.Sql.Mapping
             public ConstructorInfo Constructor { get; }
             public int Score { get; }
 
-            private static int ScoreConstructorByParameterNames(IReadOnlyDictionary<string, int> columnNames, ParameterInfo[] parameters)
+            private int ScoreConstructorByParameterNames(IReadOnlyDictionary<string, int> columnNames, ParameterInfo[] parameters)
             {
                 var score = 0;
                 foreach (var param in parameters)
@@ -97,9 +100,9 @@ namespace CastIron.Sql.Mapping
                         continue;
                     }
 
-                    if (param.GetCustomAttributes<UnnamedColumnsAttribute>().Any())
+                    if (_unnamedColumnName != null && param.GetCustomAttributes<UnnamedColumnsAttribute>().Any())
                     {
-                        score += columnNames.ContainsKey("") ? 1 : 0;
+                        score += columnNames.ContainsKey(_unnamedColumnName) ? 1 : 0;
                         continue;
                     }
                     return -1;
