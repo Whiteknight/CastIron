@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Data;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace CastIron.Sql
@@ -15,23 +16,28 @@ namespace CastIron.Sql
         /// Creates the new IDbConnection for the current provider
         /// </summary>
         /// <returns></returns>
-        IDbConnection Create();
-
-        IDbConnectionAsync CreateForAsync();
+        IDbConnectionAsync Create();
     }
 
     public interface IDbConnectionAsync : IDisposable
     {
         IDbConnection Connection { get; }
-        Task OpenAsync();
-        IDbCommandAsync CreateAsyncCommand();
-
+        Task OpenAsync(CancellationToken cancellationToken);
+        IDbCommandAsync CreateCommand();
     }
 
     public interface IDbCommandAsync : IDisposable
     {
         IDbCommand Command { get; }
-        Task<IDataReader> ExecuteReaderAsync();
-        Task<int> ExecuteNonQueryAsync();
+        IDataReaderAsync ExecuteReader();
+        Task<IDataReaderAsync> ExecuteReaderAsync(CancellationToken cancellationToken);
+        Task<int> ExecuteNonQueryAsync(CancellationToken cancellationToken);
+    }
+
+    public interface IDataReaderAsync : IDisposable
+    {
+        IDataReader Reader { get; }
+        Task<bool> NextResultAsync(CancellationToken cancellationToken);
+        Task<bool> ReadAsync(CancellationToken cancellationToken);
     }
 }

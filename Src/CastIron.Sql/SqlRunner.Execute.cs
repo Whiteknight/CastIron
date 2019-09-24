@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System.Threading;
+using System.Threading.Tasks;
 using CastIron.Sql.Execution;
 using CastIron.Sql.Statements;
 using CastIron.Sql.Utility;
@@ -40,11 +41,11 @@ namespace CastIron.Sql
         /// <param name="runner"></param>
         /// <param name="command"></param>
         /// <returns></returns>
-        public static Task ExecuteAsync(this ISqlRunner runner, ISqlCommandSimple command)
+        public static Task ExecuteAsync(this ISqlRunner runner, ISqlCommandSimple command, CancellationToken cancellationToken = new CancellationToken())
         {
             Argument.NotNull(runner, nameof(runner));
             Argument.NotNull(command, nameof(command));
-            return runner.ExecuteAsync(c => new SqlCommandSimpleStrategy().ExecuteAsync(command, c, 0));
+            return runner.ExecuteAsync(c => new SqlCommandSimpleStrategy().ExecuteAsync(command, c, 0, cancellationToken));
         }
 
         /// <summary>
@@ -72,11 +73,11 @@ namespace CastIron.Sql
         /// <param name="runner"></param>
         /// <param name="command"></param>
         /// <returns></returns>
-        public static Task<T> ExecuteAsync<T>(this ISqlRunner runner, ISqlCommandSimple<T> command)
+        public static Task<T> ExecuteAsync<T>(this ISqlRunner runner, ISqlCommandSimple<T> command, CancellationToken cancellationToken = new CancellationToken())
         {
             Argument.NotNull(runner, nameof(runner));
             Argument.NotNull(command, nameof(command));
-            return runner.ExecuteAsync(c => new SqlCommandSimpleStrategy().ExecuteAsync(command, c, 0));
+            return runner.ExecuteAsync(c => new SqlCommandSimpleStrategy().ExecuteAsync(command, c, 0, cancellationToken));
         }
 
         /// <summary>
@@ -99,11 +100,11 @@ namespace CastIron.Sql
         /// <param name="runner"></param>
         /// <param name="command"></param>
         /// <returns></returns>
-        public static Task ExecuteAsync(this ISqlRunner runner, ISqlCommand command)
+        public static Task ExecuteAsync(this ISqlRunner runner, ISqlCommand command, CancellationToken cancellationToken = new CancellationToken())
         {
             Argument.NotNull(runner, nameof(runner));
             Argument.NotNull(command, nameof(command));
-            return runner.ExecuteAsync(c => new SqlCommandStrategy(runner.InteractionFactory).ExecuteAsync(command, c, 0));
+            return runner.ExecuteAsync(c => new SqlCommandStrategy(runner.InteractionFactory).ExecuteAsync(command, c, 0, cancellationToken));
         }
 
         /// <summary>
@@ -131,11 +132,11 @@ namespace CastIron.Sql
         /// <param name="runner"></param>
         /// <param name="command"></param>
         /// <returns></returns>
-        public static Task<T> ExecuteAsync<T>(this ISqlRunner runner, ISqlCommand<T> command)
+        public static Task<T> ExecuteAsync<T>(this ISqlRunner runner, ISqlCommand<T> command, CancellationToken cancellationToken = new CancellationToken())
         {
             Argument.NotNull(runner, nameof(runner));
             Argument.NotNull(command, nameof(command));
-            return runner.ExecuteAsync(c => new SqlCommandStrategy(runner.InteractionFactory).ExecuteAsync(command, c, 0));
+            return runner.ExecuteAsync(c => new SqlCommandStrategy(runner.InteractionFactory).ExecuteAsync(command, c, 0, cancellationToken));
         }
     }
 }

@@ -2,6 +2,7 @@
 using System.Data;
 using System.Data.SqlClient;
 using System.Text;
+using CastIron.Sql;
 using CastIron.Sql.Execution;
 
 namespace CastIron.Postgres
@@ -31,6 +32,11 @@ namespace CastIron.Postgres
             var sb = new StringBuilder();
             Stringify(command, sb);
             return sb.ToString();
+        }
+
+        public string Stringify(IDbCommandAsync command)
+        {
+            return Stringify(command.Command);
         }
 
         public void Stringify(IDbCommand command, StringBuilder sb)

@@ -7,27 +7,27 @@ using CastIron.Sql.Utility;
 namespace CastIron.Sql.Mapping
 {
     public abstract class DataReaderResultsBase : IDataResultsBase
-    {       
+    {
         protected const string StateRawReaderConsumed = "RawReaderConsumed";
         protected const string StateReaderConsuming = "ReaderConsuming";
         protected const string StateOutputParams = "OutputParams";
 
         protected StringKeyedStateMachine StateMachine { get; }
-        protected IDbCommand Command { get; }
+        protected IDbCommandAsync Command { get; }
         protected IExecutionContext Context { get; }
-        protected IDataReader Reader { get;  }
-        private readonly IProviderConfiguration _provider;
+        protected IDataReaderAsync Reader { get; }
+        protected IProviderConfiguration Provider { get; }
         private readonly int? _rowsAffected;
 
         private ParameterCache _parameterCache;
 
-        protected DataReaderResultsBase(IProviderConfiguration provider, IDbCommand command, IExecutionContext context, IDataReader reader, int? rowsAffected)
+        protected DataReaderResultsBase(IProviderConfiguration provider, IDbCommandAsync command, IExecutionContext context, IDataReaderAsync reader, int? rowsAffected)
         {
             Command = command;
             Context = context;
             Reader = reader;
             CurrentSet = 0;
-            _provider = provider;
+            Provider = provider;
             _rowsAffected = rowsAffected;
 
             StateMachine = new StringKeyedStateMachine();
@@ -47,39 +47,39 @@ namespace CastIron.Sql.Mapping
 
         public int CurrentSet { get; private set; }
 
-        public int RowsAffected => _rowsAffected ?? Reader?.RecordsAffected ?? 0;
+        public int RowsAffected => _rowsAffected ?? Reader?.Reader?.RecordsAffected ?? 0;
 
         public IDataReader AsRawReader()
         {
+            // TODO: If Reader?.Reader is null we should warn the user or return null or a default?
             StateMachine.ReceiveEvent(StateRawReaderConsumed);
-            return Reader;
+            return Reader?.Reader;
         }
 
         private void EnableOutputParameters()
         {
-            if (Reader == null)
+            if (Reader?.Reader == null)
                 return;
-            if (!Reader.IsClosed)
-                Reader.Close();
+            if (!Reader.Reader.IsClosed)
+                Reader.Reader.Close();
         }
 
         public ParameterCache GetParameters()
         {
             StateMachine.ReceiveEvent(StateOutputParams);
             if (_parameterCache == null)
-                _parameterCache = new ParameterCache(Command);
+                _parameterCache = new ParameterCache(Command.Command);
             return _parameterCache;
         }
 
-        // TODO: Async variant to get an async enumerable
         public IEnumerable<T> AsEnumerable<T>(Action<IMapCompilerBuilder<T>> setup = null)
         {
             StateMachine.ReceiveEvent(StateReaderConsuming);
             if (CurrentSet == 0)
                 CurrentSet = 1;
-            var context = new MapCompilerBuilder<T>(_provider);
+            var context = new MapCompilerBuilder<T>(Provider);
             setup?.Invoke(context);
-            var map = context.Compile(Reader);
+            var map = context.Compile(Reader.Reader);
             return new DataRecordMappingEnumerable<T>(Reader, Context, map);
         }
 
@@ -99,7 +99,7 @@ namespace CastIron.Sql.Mapping
 
             while (CurrentSet < num)
             {
-                if (!Reader.NextResult())
+                if (!Reader.Reader.NextResult())
                     throw new Exception($"Could not read requested result set {num}. This stream only contains {CurrentSet} result sets.");
                 CurrentSet++;
             }
@@ -126,7 +126,7 @@ namespace CastIron.Sql.Mapping
 
             while (CurrentSet < num)
             {
-                if (!Reader.NextResult())
+                if (!Reader.Reader.NextResult())
                     return false;
                 CurrentSet++;
             }
@@ -144,7 +144,7 @@ namespace CastIron.Sql.Mapping
     /// </summary>
     public class DataReaderResults : DataReaderResultsBase, IDataResults
     {
-        public DataReaderResults(IProviderConfiguration provider, IDbCommand command, IExecutionContext context, IDataReader reader, int? rowsAffected = null)
+        public DataReaderResults(IProviderConfiguration provider, IDbCommandAsync command, IExecutionContext context, IDataReaderAsync reader, int? rowsAffected = null)
             : base(provider, command, context, reader, rowsAffected)
         {
         }
@@ -154,7 +154,7 @@ namespace CastIron.Sql.Mapping
     {
         protected const string StateDisposed = "Disposed";
 
-        public DataReaderResultsStream(IProviderConfiguration provider, IDbCommand command, IExecutionContext context, IDataReader reader)
+        public DataReaderResultsStream(IProviderConfiguration provider, IDbCommandAsync command, IExecutionContext context, IDataReaderAsync reader)
             : base(provider, command, context, reader, null)
         {
             StateMachine.AddState(StateDisposed)
@@ -169,6 +169,19 @@ namespace CastIron.Sql.Mapping
             StateMachine.UpdateState(StateOutputParams)
                 .TransitionOnEvent(StateDisposed, StateDisposed, () => DisposeReferences(true));
         }
+
+#if NETSTANDARD2_1
+
+        public IAsyncEnumerable<T> AsEnumerableAsync<T>(Action<IMapCompilerBuilder<T>> setup = null)
+        {
+            AdvanceToResultSet(1);
+            var context = new MapCompilerBuilder<T>(Provider);
+            setup?.Invoke(context);
+            var map = context.Compile(Reader.Reader);
+            return new AsyncDataRecordMappingEnumerable<T>(Reader, Context, map);
+        }
+
+#endif
 
         public void Dispose()
         {

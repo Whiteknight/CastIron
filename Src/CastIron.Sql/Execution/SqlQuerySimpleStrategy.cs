@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Data;
+using System.Threading;
 using System.Threading.Tasks;
 using CastIron.Sql.Mapping;
 
@@ -42,12 +43,12 @@ namespace CastIron.Sql.Execution
             }
         }
 
-        public async Task<T> ExecuteAsync<T>(ISqlQuerySimple query, IResultMaterializer<T> queryReader, IExecutionContext context, int index)
+        public async Task<T> ExecuteAsync<T>(ISqlQuerySimple query, IResultMaterializer<T> queryReader, IExecutionContext context, int index, CancellationToken cancellationToken)
         {
             context.StartSetupCommand(index);
-            using (var dbCommand = context.CreateAsyncCommand())
+            using (var dbCommand = context.CreateCommand())
             {
-                if (!SetupCommand(query, dbCommand.Command))
+                if (!SetupCommand(query, dbCommand))
                 {
                     context.MarkAborted();
                     return default(T);
@@ -55,11 +56,11 @@ namespace CastIron.Sql.Execution
 
                 try
                 {
-                    context.StartExecute(index, dbCommand.Command);
-                    using (var reader = await dbCommand.ExecuteReaderAsync())
+                    context.StartExecute(index, dbCommand);
+                    using (var reader = await dbCommand.ExecuteReaderAsync(cancellationToken))
                     {
                         context.StartMapResults(index);
-                        var rawResultSet = new DataReaderResults(context.Provider, dbCommand.Command, context, reader);
+                        var rawResultSet = new DataReaderResults(context.Provider, dbCommand, context, reader);
                         return await Task.Run(() => queryReader.Read(rawResultSet));
                     }
                 }
@@ -112,12 +113,12 @@ namespace CastIron.Sql.Execution
             }
         }
 
-        public async Task<IDataResultsStream> ExecuteStreamAsync(ISqlQuerySimple query, IExecutionContext context)
+        public async Task<IDataResultsStream> ExecuteStreamAsync(ISqlQuerySimple query, IExecutionContext context, CancellationToken cancellationToken)
         {
             context.StartSetupCommand(1);
-            var command = context.CreateAsyncCommand();
+            var command = context.CreateCommand();
 
-            if (!SetupCommand(query, command.Command))
+            if (!SetupCommand(query, command))
             {
                 context.MarkAborted();
                 command.Dispose();
@@ -126,11 +127,11 @@ namespace CastIron.Sql.Execution
 
             try
             {
-                context.StartExecute(1, command.Command);
-                var reader = await command.ExecuteReaderAsync();
+                context.StartExecute(1, command);
+                var reader = await command.ExecuteReaderAsync(cancellationToken);
 
                 context.StartMapResults(1);
-                return new DataReaderResultsStream(context.Provider, command.Command, context, reader);
+                return new DataReaderResultsStream(context.Provider, command, context, reader);
             }
             catch (SqlQueryException)
             {
@@ -147,14 +148,14 @@ namespace CastIron.Sql.Execution
             }
         }
 
-        public bool SetupCommand(ISqlQuerySimple query, IDbCommand command)
+        public bool SetupCommand(ISqlQuerySimple query, IDbCommandAsync command)
         {
             var text = query.GetSql();
             if (string.IsNullOrEmpty(text))
                 return false;
-            command.CommandText = text;
-            command.CommandType = (query is ISqlStoredProc) ? CommandType.StoredProcedure : CommandType.Text;
-            (query as ISqlParameterized)?.SetupParameters(command, command.Parameters);
+            command.Command.CommandText = text;
+            command.Command.CommandType = (query is ISqlStoredProc) ? CommandType.StoredProcedure : CommandType.Text;
+            (query as ISqlParameterized)?.SetupParameters(command.Command, command.Command.Parameters);
             return true;
         }
     }

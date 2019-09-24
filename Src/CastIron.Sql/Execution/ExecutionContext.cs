@@ -22,7 +22,7 @@ namespace CastIron.Sql.Execution
             Provider = provider;
             _completed = 0;
             _opened = 0;
-            Connection = factory.CreateForAsync();
+            Connection = factory.Create();
         }
 
         public IDbCommandStringifier Stringifier { get; }
@@ -47,32 +47,20 @@ namespace CastIron.Sql.Execution
                 Transaction = Connection.Connection.BeginTransaction(_isolationLevel.Value);
         }
 
-        public async Task OpenConnectionAsync()
+        public async Task OpenConnectionAsync(CancellationToken cancellationToken)
         {
             _monitor?.StartEvent("Open Connection");
             MarkOpened();
-            await Connection.OpenAsync();
+            await Connection.OpenAsync(cancellationToken);
             if (_isolationLevel.HasValue)
                 Transaction = Connection.Connection.BeginTransaction(_isolationLevel.Value);
         }
 
-        public IDbCommand CreateCommand()
+        public IDbCommandAsync CreateCommand()
         {
             if (!IsOpen)
                 throw new Exception("Cannot create a command when the connection is not open");
-            var command = Connection.Connection.CreateCommand();
-            if (Transaction != null)
-                command.Transaction = Transaction;
-            if (_timeoutSeconds > 0)
-                command.CommandTimeout = _timeoutSeconds;
-            return command;
-        }
-
-        public IDbCommandAsync CreateAsyncCommand()
-        {
-            if (!IsOpen)
-                throw new Exception("Cannot create a command when the connection is not open");
-            var command = Connection.CreateAsyncCommand();
+            var command = Connection.CreateCommand();
             if (Transaction != null)
                 command.Command.Transaction = Transaction;
             // Set this, even though in async contexts it will probably be ignored
@@ -123,7 +111,7 @@ namespace CastIron.Sql.Execution
             _monitor?.StartEvent($"Statement {index}: Setup Command");
         }
 
-        public void StartExecute(int index, IDbCommand command)
+        public void StartExecute(int index, IDbCommandAsync command)
         {
             _monitor?.StartEvent($"Statement {index}: Execute");
             if (_onCommandText != null)

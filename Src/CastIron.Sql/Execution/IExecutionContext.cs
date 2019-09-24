@@ -15,12 +15,10 @@ namespace CastIron.Sql.Execution
 
         IDbTransaction Transaction { get; }
 
-        IDbCommand CreateCommand();
-
-        IDbCommandAsync CreateAsyncCommand();
+        IDbCommandAsync CreateCommand();
 
         void StartSetupCommand(int index);
-        void StartExecute(int index, IDbCommand command);
+        void StartExecute(int index, IDbCommandAsync command);
         void StartMapResults(int index);
         void MarkComplete();
         void MarkAborted();

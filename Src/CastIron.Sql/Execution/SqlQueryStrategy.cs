@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Data;
+using System.Threading;
 using System.Threading.Tasks;
 using CastIron.Sql.Mapping;
 
@@ -43,18 +43,18 @@ namespace CastIron.Sql.Execution
                 catch (Exception e)
                 {
                     context.MarkAborted();
-                    var sql = context.Stringifier.Stringify(command);
+                    var sql = context.Stringifier.Stringify(command.Command);
                     throw SqlQueryException.Wrap(e, sql, index);
                 }
             }
         }
 
-        public async Task<T> ExecuteAsync<T>(ISqlQuery query, IResultMaterializer<T> queryReader, IExecutionContext context, int index)
+        public async Task<T> ExecuteAsync<T>(ISqlQuery query, IResultMaterializer<T> queryReader, IExecutionContext context, int index, CancellationToken cancellationToken)
         {
             context.StartSetupCommand(index);
-            using (var command = context.CreateAsyncCommand())
+            using (var command = context.CreateCommand())
             {
-                if (!SetupCommand(query, command.Command))
+                if (!SetupCommand(query, command))
                 {
                     context.MarkAborted();
                     return default(T);
@@ -62,11 +62,11 @@ namespace CastIron.Sql.Execution
 
                 try
                 {
-                    context.StartExecute(index, command.Command);
-                    using (var reader = await command.ExecuteReaderAsync())
+                    context.StartExecute(index, command);
+                    using (var reader = await command.ExecuteReaderAsync(cancellationToken))
                     {
                         context.StartMapResults(index);
-                        var resultSet = new DataReaderResults(context.Provider, command.Command, context, reader);
+                        var resultSet = new DataReaderResults(context.Provider, command, context, reader);
                         return queryReader.Read(resultSet);
                     }
                 }
@@ -119,12 +119,12 @@ namespace CastIron.Sql.Execution
             }
         }
 
-        public async Task<IDataResultsStream> ExecuteStreamAsync(ISqlQuery query, IExecutionContext context)
+        public async Task<IDataResultsStream> ExecuteStreamAsync(ISqlQuery query, IExecutionContext context, CancellationToken cancellationToken)
         {
             context.StartSetupCommand(1);
-            var command = context.CreateAsyncCommand();
+            var command = context.CreateCommand();
 
-            if (!SetupCommand(query, command.Command))
+            if (!SetupCommand(query, command))
             {
                 context.MarkAborted();
                 command.Dispose();
@@ -133,11 +133,11 @@ namespace CastIron.Sql.Execution
 
             try
             {
-                context.StartExecute(1, command.Command);
-                var reader = await command.ExecuteReaderAsync();
+                context.StartExecute(1, command);
+                var reader = await command.ExecuteReaderAsync(cancellationToken);
 
                 context.StartMapResults(1);
-                return new DataReaderResultsStream(context.Provider, command.Command, context, reader);
+                return new DataReaderResultsStream(context.Provider, command, context, reader);
             }
             catch (SqlQueryException)
             {
@@ -154,9 +154,9 @@ namespace CastIron.Sql.Execution
             }
         }
 
-        public bool SetupCommand(ISqlQuery query, IDbCommand command)
+        public bool SetupCommand(ISqlQuery query, IDbCommandAsync command)
         {
-            var interaction = _interactionFactory.Create(command);
+            var interaction = _interactionFactory.Create(command.Command);
             return query.SetupCommand(interaction);
         }
     }

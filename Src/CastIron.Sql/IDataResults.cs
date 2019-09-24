@@ -77,7 +77,6 @@ namespace CastIron.Sql
         /// </summary>
         /// <returns></returns>
         IDataReader AsRawReader();
-
     }
 
     public interface IDataResultsStream : IDataResultsBase, IDisposable
@@ -90,6 +89,10 @@ namespace CastIron.Sql
         /// </summary>
         /// <returns></returns>
         IDataReader AsRawReader();
+
+#if NETSTANDARD2_1
+        IAsyncEnumerable<T> AsEnumerableAsync<T>(Action<IMapCompilerBuilder<T>> setup = null);
+#endif
     }
 
     /// <summary>

@@ -1,21 +1,22 @@
-﻿using System;
-using System.Collections;
+﻿#if NETSTANDARD2_1
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Threading;
+using System.Threading.Tasks;
 using CastIron.Sql.Execution;
 using CastIron.Sql.Utility;
 
 namespace CastIron.Sql.Mapping
 {
-    public class DataRecordMappingEnumerable<T> : IEnumerable<T>
+    public class AsyncDataRecordMappingEnumerable<T> : IAsyncEnumerable<T>
     {
         private readonly IDataReaderAsync _reader;
         private readonly IExecutionContext _context;
         private readonly Func<IDataRecord, T> _map;
         private int _readAttempts;
 
-        public DataRecordMappingEnumerable(IDataReaderAsync reader, IExecutionContext context, Func<IDataRecord, T> map)
+        public AsyncDataRecordMappingEnumerable(IDataReaderAsync reader, IExecutionContext context, Func<IDataRecord, T> map)
         {
             Argument.NotNull(reader, nameof(reader));
             Argument.NotNull(context, nameof(context));
@@ -27,12 +28,7 @@ namespace CastIron.Sql.Mapping
             _readAttempts = 0;
         }
 
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return GetEnumerator();
-        }
-
-        public IEnumerator<T> GetEnumerator()
+        public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = new CancellationToken())
         {
             var attempt = Interlocked.Increment(ref _readAttempts);
             if (attempt > 1)
@@ -42,7 +38,7 @@ namespace CastIron.Sql.Mapping
             return new ResultSetEnumerator(_reader, _context, _map);
         }
 
-        private class ResultSetEnumerator : IEnumerator<T>
+        private class ResultSetEnumerator : IAsyncEnumerator<T>
         {
             private readonly IDataReaderAsync _reader;
             private readonly IExecutionContext _context;
@@ -55,33 +51,28 @@ namespace CastIron.Sql.Mapping
                 _read = read;
             }
 
-            public void Dispose()
+            public async ValueTask<bool> MoveNextAsync()
             {
-            }
-
-            public bool MoveNext()
-            {
-                // TODO: We need to keep track of the result set so that if the reader has advanced we cannot continue
-                // TODO: While this is enumerating we cannot do anything else with the reader.
                 if (_context.IsCompleted || _reader.Reader.IsClosed)
                 {
                     Current = default(T);
                     return false;
                 }
 
-                var ok = _reader.Reader.Read();
+                var ok = await _reader.ReadAsync(new CancellationToken());
+                // TODO: have an async  _reader variant
                 Current = ok ? _read(_reader.Reader) : default(T);
                 return ok;
             }
 
-            public void Reset()
+            public ValueTask DisposeAsync()
             {
-                throw new NotImplementedException();
+                return new ValueTask(Task.CompletedTask);
             }
 
             public T Current { get; private set; }
 
-            object IEnumerator.Current => Current;
         }
     }
 }
+#endif

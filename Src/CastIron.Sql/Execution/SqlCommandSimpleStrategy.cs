@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Data;
+using System.Threading;
 using System.Threading.Tasks;
 using CastIron.Sql.Mapping;
 
@@ -21,7 +22,7 @@ namespace CastIron.Sql.Execution
                 try
                 {
                     context.StartExecute(index, dbCommand);
-                    dbCommand.ExecuteNonQuery();
+                    dbCommand.Command.ExecuteNonQuery();
                 }
                 catch (SqlQueryException)
                 {
@@ -37,12 +38,12 @@ namespace CastIron.Sql.Execution
             }
         }
 
-        public async Task ExecuteAsync(ISqlCommandSimple command, IExecutionContext context, int index)
+        public async Task ExecuteAsync(ISqlCommandSimple command, IExecutionContext context, int index, CancellationToken cancellationToken)
         {
             context.StartSetupCommand(index);
-            using (var dbCommand = context.CreateAsyncCommand())
+            using (var dbCommand = context.CreateCommand())
             {
-                if (!SetupCommand(command, dbCommand.Command))
+                if (!SetupCommand(command, dbCommand))
                 {
                     context.MarkAborted();
                     return;
@@ -50,8 +51,8 @@ namespace CastIron.Sql.Execution
 
                 try
                 {
-                    context.StartExecute(index, dbCommand.Command);
-                    await dbCommand.ExecuteNonQueryAsync();
+                    context.StartExecute(index, dbCommand);
+                    await dbCommand.ExecuteNonQueryAsync(cancellationToken);
                 }
                 catch (SqlQueryException)
                 {
@@ -81,7 +82,7 @@ namespace CastIron.Sql.Execution
                 try
                 {
                     context.StartExecute(index, dbCommand);
-                    var rowsAffected = dbCommand.ExecuteNonQuery();
+                    var rowsAffected = dbCommand.Command.ExecuteNonQuery();
 
                     context.StartMapResults(index);
                     var resultSet = new DataReaderResults(context.Provider, dbCommand, context, null, rowsAffected);
@@ -101,12 +102,12 @@ namespace CastIron.Sql.Execution
             }
         }
 
-        public async Task<T> ExecuteAsync<T>(ISqlCommandSimple<T> command, IExecutionContext context, int index)
+        public async Task<T> ExecuteAsync<T>(ISqlCommandSimple<T> command, IExecutionContext context, int index, CancellationToken cancellationToken)
         {
             context.StartSetupCommand(index);
-            using (var dbCommand = context.CreateAsyncCommand())
+            using (var dbCommand = context.CreateCommand())
             {
-                if (!SetupCommand(command, dbCommand.Command))
+                if (!SetupCommand(command, dbCommand))
                 {
                     context.MarkAborted();
                     return default(T);
@@ -114,11 +115,11 @@ namespace CastIron.Sql.Execution
 
                 try
                 {
-                    context.StartExecute(index, dbCommand.Command);
-                    var rowsAffected = await dbCommand.ExecuteNonQueryAsync();
+                    context.StartExecute(index, dbCommand);
+                    var rowsAffected = await dbCommand.ExecuteNonQueryAsync(cancellationToken);
 
                     context.StartMapResults(index);
-                    var resultSet = new DataReaderResults(context.Provider, dbCommand.Command, context, null, rowsAffected);
+                    var resultSet = new DataReaderResults(context.Provider, dbCommand, context, null, rowsAffected);
                     return await Task.Run(() => command.ReadOutputs(resultSet));
                 }
                 catch (SqlQueryException)
@@ -135,14 +136,14 @@ namespace CastIron.Sql.Execution
             }
         }
 
-        public bool SetupCommand(ISqlCommandSimple command, IDbCommand dbCommand)
+        public bool SetupCommand(ISqlCommandSimple command, IDbCommandAsync dbCommand)
         {
             var text = command.GetSql();
             if (string.IsNullOrEmpty(text))
                 return false;
-            dbCommand.CommandText = text;
-            dbCommand.CommandType = (command is ISqlStoredProc) ? CommandType.StoredProcedure : CommandType.Text;
-            (command as ISqlParameterized)?.SetupParameters(dbCommand, dbCommand.Parameters);
+            dbCommand.Command.CommandText = text;
+            dbCommand.Command.CommandType = (command is ISqlStoredProc) ? CommandType.StoredProcedure : CommandType.Text;
+            (command as ISqlParameterized)?.SetupParameters(dbCommand.Command, dbCommand.Command.Parameters);
             return true;
         }
     }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using CastIron.Sql.Execution;
 using CastIron.Sql.Statements;
@@ -67,12 +68,12 @@ namespace CastIron.Sql
         /// <param name="query"></param>
         /// <param name="reader"></param>
         /// <returns></returns>
-        public static Task<T> QueryAsync<T>(this ISqlRunner runner, ISqlQuerySimple query, IResultMaterializer<T> reader)
+        public static Task<T> QueryAsync<T>(this ISqlRunner runner, ISqlQuerySimple query, IResultMaterializer<T> reader, CancellationToken cancellationToken = new CancellationToken())
         {
             Argument.NotNull(runner, nameof(runner));
             Argument.NotNull(query, nameof(query));
             Argument.NotNull(reader, nameof(reader));
-            return runner.ExecuteAsync(c => new SqlQuerySimpleStrategy().ExecuteAsync(query, reader, c, 0));
+            return runner.ExecuteAsync(c => new SqlQuerySimpleStrategy().ExecuteAsync(query, reader, c, 0, cancellationToken));
         }
 
         /// <summary>
@@ -143,11 +144,11 @@ namespace CastIron.Sql
         /// <param name="query"></param>
         /// <param name="reader"></param>
         /// <returns></returns>
-        public static Task<T> QueryAsync<T>(this ISqlRunner runner, ISqlQuery query, IResultMaterializer<T> reader)
+        public static Task<T> QueryAsync<T>(this ISqlRunner runner, ISqlQuery query, IResultMaterializer<T> reader, CancellationToken cancellationToken = new CancellationToken())
         {
             Argument.NotNull(runner, nameof(runner));
             Argument.NotNull(query, nameof(query));
-            return runner.ExecuteAsync(c => new SqlQueryStrategy(runner.InteractionFactory).ExecuteAsync(query, reader, c, 0));
+            return runner.ExecuteAsync(c => new SqlQueryStrategy(runner.InteractionFactory).ExecuteAsync(query, reader, c, 0, cancellationToken));
         }
 
         /// <summary>

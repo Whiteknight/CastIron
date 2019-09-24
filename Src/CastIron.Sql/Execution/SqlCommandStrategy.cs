@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Data;
+using System.Threading;
 using System.Threading.Tasks;
 using CastIron.Sql.Mapping;
 
@@ -28,7 +28,7 @@ namespace CastIron.Sql.Execution
                     }
 
                     context.StartExecute(index, dbCommand);
-                    dbCommand.ExecuteNonQuery();
+                    dbCommand.Command.ExecuteNonQuery();
                 }
                 catch (SqlQueryException)
                 {
@@ -44,21 +44,21 @@ namespace CastIron.Sql.Execution
             }
         }
 
-        public async Task ExecuteAsync(ISqlCommand command, IExecutionContext context, int index)
+        public async Task ExecuteAsync(ISqlCommand command, IExecutionContext context, int index, CancellationToken cancellationToken)
         {
             context.StartSetupCommand(index);
-            using (var dbCommand = context.CreateAsyncCommand())
+            using (var dbCommand = context.CreateCommand())
             {
                 try
                 {
-                    if (!SetupCommand(command, dbCommand.Command))
+                    if (!SetupCommand(command, dbCommand))
                     {
                         context.MarkAborted();
                         return;
                     }
 
-                    context.StartExecute(index, dbCommand.Command);
-                    await dbCommand.ExecuteNonQueryAsync();
+                    context.StartExecute(index, dbCommand);
+                    await dbCommand.ExecuteNonQueryAsync(cancellationToken);
 
                 }
                 catch (SqlQueryException)
@@ -89,7 +89,7 @@ namespace CastIron.Sql.Execution
                     }
 
                     context.StartExecute(index, dbCommand);
-                    int rowsAffected = dbCommand.ExecuteNonQuery();
+                    int rowsAffected = dbCommand.Command.ExecuteNonQuery();
 
                     context.StartMapResults(index);
                     var resultSet = new DataReaderResults(context.Provider, dbCommand, context, null, rowsAffected);
@@ -109,24 +109,24 @@ namespace CastIron.Sql.Execution
             }
         }
 
-        public async Task<T> ExecuteAsync<T>(ISqlCommand<T> command, IExecutionContext context, int index)
+        public async Task<T> ExecuteAsync<T>(ISqlCommand<T> command, IExecutionContext context, int index, CancellationToken cancellationToken)
         {
             context.StartSetupCommand(index);
-            using (var dbCommand = context.CreateAsyncCommand())
+            using (var dbCommand = context.CreateCommand())
             {
                 try
                 {
-                    if (!SetupCommand(command, dbCommand.Command))
+                    if (!SetupCommand(command, dbCommand))
                     {
                         context.MarkAborted();
                         return default(T);
                     }
 
-                    context.StartExecute(index, dbCommand.Command);
-                    var rowsAffected = await dbCommand.ExecuteNonQueryAsync();
+                    context.StartExecute(index, dbCommand);
+                    var rowsAffected = await dbCommand.ExecuteNonQueryAsync(cancellationToken);
 
                     context.StartMapResults(index);
-                    var resultSet = new DataReaderResults(context.Provider, dbCommand.Command, context, null, rowsAffected);
+                    var resultSet = new DataReaderResults(context.Provider, dbCommand, context, null, rowsAffected);
                     return command.ReadOutputs(resultSet);
                 }
                 catch (SqlQueryException)
@@ -143,9 +143,9 @@ namespace CastIron.Sql.Execution
             }
         }
 
-        public bool SetupCommand(ISqlCommand command, IDbCommand dbCommand)
+        public bool SetupCommand(ISqlCommand command, IDbCommandAsync dbCommand)
         {
-            var interaction = _interactionFactory.Create(dbCommand);
+            var interaction = _interactionFactory.Create(dbCommand.Command);
             return command.SetupCommand(interaction);
         }
     }

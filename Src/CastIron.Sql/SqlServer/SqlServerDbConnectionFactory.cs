@@ -1,5 +1,6 @@
 ﻿using System.Data;
 using System.Data.SqlClient;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace CastIron.Sql.SqlServer
@@ -16,12 +17,7 @@ namespace CastIron.Sql.SqlServer
             _connectionString = connectionString;
         }
 
-        public IDbConnection Create()
-        {
-            return new SqlConnection(_connectionString);
-        }
-
-        public IDbConnectionAsync CreateForAsync()
+        public IDbConnectionAsync Create()
         {
             return new SqlServerDbConnectionAsync(new SqlConnection(_connectionString));
         }
@@ -37,12 +33,12 @@ namespace CastIron.Sql.SqlServer
 
             public IDbConnection Connection => _connection;
 
-            public Task OpenAsync()
+            public Task OpenAsync(CancellationToken cancellationToken)
             {
-                return _connection.OpenAsync();
+                return _connection.OpenAsync(cancellationToken);
             }
 
-            public IDbCommandAsync CreateAsyncCommand()
+            public IDbCommandAsync CreateCommand()
             {
                 return new SqlServerDbCommandAsync(_connection.CreateCommand());
             }
@@ -64,19 +60,53 @@ namespace CastIron.Sql.SqlServer
 
             public IDbCommand Command => _command;
 
-            public async Task<IDataReader> ExecuteReaderAsync()
+            public IDataReaderAsync ExecuteReader()
             {
-                return await _command.ExecuteReaderAsync();
+                var reader = _command.ExecuteReader();
+                return new SqlServerDataReaderAsync(reader);
             }
 
-            public Task<int> ExecuteNonQueryAsync()
+            public async Task<IDataReaderAsync> ExecuteReaderAsync(CancellationToken cancellationToken)
             {
-                return _command.ExecuteNonQueryAsync();
+                var reader = await _command.ExecuteReaderAsync(cancellationToken);
+                return new SqlServerDataReaderAsync(reader);
+            }
+
+            public Task<int> ExecuteNonQueryAsync(CancellationToken cancellationToken)
+            {
+                return _command.ExecuteNonQueryAsync(cancellationToken);
             }
 
             public void Dispose()
             {
                 _command?.Dispose();
+            }
+        }
+
+        public class SqlServerDataReaderAsync : IDataReaderAsync
+        {
+            private readonly SqlDataReader _reader;
+
+            public SqlServerDataReaderAsync(SqlDataReader reader)
+            {
+                _reader = reader;
+            }
+
+            public IDataReader Reader => _reader;
+
+            public Task<bool> NextResultAsync(CancellationToken cancellationToken)
+            {
+                return _reader.NextResultAsync(cancellationToken);
+            }
+
+            public Task<bool> ReadAsync(CancellationToken cancellationToken)
+            {
+                return _reader.ReadAsync(cancellationToken);
+            }
+
+            public void Dispose()
+            {
+                _reader?.Dispose();
             }
         }
     }

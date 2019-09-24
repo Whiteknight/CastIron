@@ -50,6 +50,12 @@ namespace CastIron.Sql.SqlServer
             return sb.ToString();
         }
 
+        public string Stringify(IDbCommandAsync command)
+        {
+            return Stringify(command.Command);
+        }
+
+
         public void Stringify(IDbCommand command, StringBuilder sb)
         {
             if (command == null)

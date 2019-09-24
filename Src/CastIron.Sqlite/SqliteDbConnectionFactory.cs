@@ -1,4 +1,5 @@
 ﻿using System.Data;
+using System.Threading;
 using System.Threading.Tasks;
 using CastIron.Sql;
 using Microsoft.Data.Sqlite;
@@ -17,17 +18,7 @@ namespace CastIron.Sqlite
             _connectionString = connectionString;
         }
 
-        public IDbConnection Create(string connectionString)
-        {
-            return new SqliteConnection(connectionString);
-        }
-
-        public IDbConnection Create()
-        {
-            return Create(_connectionString);
-        }
-
-        public IDbConnectionAsync CreateForAsync()
+        public IDbConnectionAsync Create()
         {
             return new DbConnectionAsync(new SqliteConnection(_connectionString));
         }
@@ -43,12 +34,12 @@ namespace CastIron.Sqlite
 
             public IDbConnection Connection => _connection;
 
-            public Task OpenAsync()
+            public Task OpenAsync(CancellationToken cancellationToken)
             {
-                return _connection.OpenAsync();
+                return _connection.OpenAsync(cancellationToken);
             }
 
-            public IDbCommandAsync CreateAsyncCommand()
+            public IDbCommandAsync CreateCommand()
             {
                 return new DbCommandAsync(_connection.CreateCommand());
             }
@@ -70,19 +61,52 @@ namespace CastIron.Sqlite
 
             public IDbCommand Command => _command;
 
-            public async Task<IDataReader> ExecuteReaderAsync()
+            public IDataReaderAsync ExecuteReader()
             {
-                return await _command.ExecuteReaderAsync();
+                return new DataReaderAsync(_command.ExecuteReader());
             }
 
-            public Task<int> ExecuteNonQueryAsync()
+            public async Task<IDataReaderAsync> ExecuteReaderAsync(CancellationToken cancellationToken)
             {
-                return _command.ExecuteNonQueryAsync();
+                var reader = await _command.ExecuteReaderAsync(cancellationToken);
+                return new DataReaderAsync(reader);
+            }
+
+            public Task<int> ExecuteNonQueryAsync(CancellationToken cancellationToken)
+            {
+                return _command.ExecuteNonQueryAsync(cancellationToken);
             }
 
             public void Dispose()
             {
                 _command?.Dispose();
+            }
+        }
+
+        public class DataReaderAsync : IDataReaderAsync
+        {
+            private readonly SqliteDataReader _reader;
+
+            public DataReaderAsync(SqliteDataReader reader)
+            {
+                _reader = reader;
+            }
+
+            public void Dispose()
+            {
+                _reader.Dispose();
+            }
+
+            public IDataReader Reader => _reader;
+
+            public Task<bool> NextResultAsync(CancellationToken cancellationToken)
+            {
+                return _reader.NextResultAsync(cancellationToken);
+            }
+
+            public Task<bool> ReadAsync(CancellationToken cancellationToken)
+            {
+                return _reader.ReadAsync(cancellationToken);
             }
         }
     }

@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System.Threading;
+using System.Threading.Tasks;
 using CastIron.Sql.Execution;
 using CastIron.Sql.Utility;
 
@@ -60,13 +61,13 @@ namespace CastIron.Sql
         /// <param name="runner"></param>
         /// <param name="query"></param>
         /// <returns></returns>
-        public static async Task<IDataResultsStream> QueryStreamAsync(this ISqlRunner runner, ISqlQuery query)
+        public static async Task<IDataResultsStream> QueryStreamAsync(this ISqlRunner runner, ISqlQuery query, CancellationToken cancellationToken = new CancellationToken())
         {
             Argument.NotNull(runner, nameof(runner));
             Argument.NotNull(query, nameof(query));
             var context = runner.CreateExecutionContext();
-            await context.OpenConnectionAsync();
-            return await new SqlQueryStrategy(runner.InteractionFactory).ExecuteStreamAsync(query, context);
+            await context.OpenConnectionAsync(cancellationToken);
+            return await new SqlQueryStrategy(runner.InteractionFactory).ExecuteStreamAsync(query, context, cancellationToken);
         }
 
         /// <summary>
@@ -94,13 +95,13 @@ namespace CastIron.Sql
         /// <param name="runner"></param>
         /// <param name="query"></param>
         /// <returns></returns>
-        public static async Task<IDataResultsStream> QueryStreamAsync(this ISqlRunner runner, ISqlQuerySimple query)
+        public static async Task<IDataResultsStream> QueryStreamAsync(this ISqlRunner runner, ISqlQuerySimple query, CancellationToken cancellationToken = new CancellationToken())
         {
             Argument.NotNull(runner, nameof(runner));
             Argument.NotNull(query, nameof(query));
             var context = runner.CreateExecutionContext();
-            await context.OpenConnectionAsync();
-            return await new SqlQuerySimpleStrategy().ExecuteStreamAsync(query, context);
+            await context.OpenConnectionAsync(cancellationToken);
+            return await new SqlQuerySimpleStrategy().ExecuteStreamAsync(query, context, cancellationToken);
         }
     }
 }

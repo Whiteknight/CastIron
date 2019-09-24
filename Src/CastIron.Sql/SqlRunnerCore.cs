@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using CastIron.Sql.Execution;
 using CastIron.Sql.Utility;
+using ExecutionContext = CastIron.Sql.Execution.ExecutionContext;
 
 namespace CastIron.Sql
 {
@@ -13,7 +15,7 @@ namespace CastIron.Sql
     /// </summary>
     public class SqlRunnerCore
     {
-        // The runner core and all objects managed by it, should be immutable and have no mutable
+        // The runner core and all objects managed by it should be immutable and have no mutable
         // state. This object can and should be cached statically
 
         public SqlRunnerCore(IDataInteractionFactory interactionFactory, IProviderConfiguration providerConfiguration, IDbCommandStringifier stringifier)
@@ -51,10 +53,10 @@ namespace CastIron.Sql
             return result;
         }
 
-        public async Task<T> ExecuteAsync<T>(ExecutionContext context, Func<IExecutionContext, Task<T>> executor)
+        public async Task<T> ExecuteAsync<T>(ExecutionContext context, Func<IExecutionContext, Task<T>> executor, CancellationToken cancellationToken = new CancellationToken())
         {
             Argument.NotNull(executor, nameof(executor));
-            await context.OpenConnectionAsync();
+            await context.OpenConnectionAsync(cancellationToken);
             var result = await executor(context);
             context.MarkComplete();
             return result;
@@ -68,10 +70,10 @@ namespace CastIron.Sql
             context.MarkComplete();
         }
 
-        public async Task ExecuteAsync(ExecutionContext context, Func<IExecutionContext, Task> executor)
+        public async Task ExecuteAsync(ExecutionContext context, Func<IExecutionContext, Task> executor, CancellationToken cancellationToken = new CancellationToken())
         {
             Argument.NotNull(executor, nameof(executor));
-            await context.OpenConnectionAsync();
+            await context.OpenConnectionAsync(cancellationToken);
             await executor(context);
             context.MarkComplete();
         }

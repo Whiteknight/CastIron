@@ -58,4 +58,9 @@ namespace CastIron.Sql.Tests
             stream.Dispose();
         }
     }
+
+    [TestFixture]
+    public class SqlQueryAsyncStreamingTests
+    {
+    }
 }

@@ -1,4 +1,5 @@
 ﻿using System.Data;
+using CastIron.Sql.Generic;
 using CastIron.Sql.Mapping;
 using CastIron.Sql.Utility;
 
@@ -17,7 +18,10 @@ namespace CastIron.Sql
         /// <returns></returns>
         public static IDataResultsStream WrapAsResultStream(this ISqlRunner runner, IDataReader reader, IDbCommand command = null)
         {
-            return new DataReaderResultsStream(runner.Provider, command, null, reader);
+            Argument.NotNull(reader, nameof(reader));
+            var wrappedReader = new GenericDataReaderAsync(reader);
+            IDbCommandAsync wrappedCommand = command == null ? null : new GenericDbCommandAsync(command);
+            return new DataReaderResultsStream(runner.Provider, wrappedCommand, null, wrappedReader);
         }
 
         /// <summary>
@@ -31,7 +35,9 @@ namespace CastIron.Sql
         public static IDataResultsStream WrapAsResultStream(this ISqlRunner runner, DataTable table)
         {
             Argument.NotNull(table, nameof(table));
-            return new DataReaderResultsStream(runner.Provider, null, null, table.CreateDataReader());
+            var reader = table.CreateDataReader();
+            var wrappedReader = new GenericDataReaderAsync(reader);
+            return new DataReaderResultsStream(runner.Provider, null, null, wrappedReader);
         }
     }
 }
