@@ -5,6 +5,7 @@
     <AssemblyName>CastIron.Sql</AssemblyName>
     <RootNamespace>CastIron.Sql</RootNamespace>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <LangVersion>7.1</LangVersion>
     <Version>0.9.1</Version>
     <Authors>Andrew F. Whitworth</Authors>
     <Company />

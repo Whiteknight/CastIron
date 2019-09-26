@@ -40,8 +40,8 @@ namespace CastIron.Sql.Mapping
                 .TransitionOnEvent(StateReaderConsuming, StateReaderConsuming)
                 .TransitionOnEvent(StateOutputParams, StateOutputParams, EnableOutputParameters);
             StateMachine.AddState(StateOutputParams)
-                .TransitionOnEvent(StateRawReaderConsumed, null, () => throw DataReaderException.ThrowReaderClosedException())
-                .TransitionOnEvent(StateReaderConsuming, null, () => throw DataReaderException.ThrowReaderClosedException())
+                .TransitionOnEvent(StateRawReaderConsumed, null, () => throw DataReaderException.ReaderClosed())
+                .TransitionOnEvent(StateReaderConsuming, null, () => throw DataReaderException.ReaderClosed())
                 .TransitionOnEvent(StateOutputParams, StateOutputParams, EnableOutputParameters);
         }
 
@@ -89,7 +89,7 @@ namespace CastIron.Sql.Mapping
 
             // TODO: Review all this logic to make sure it is sane and necessary
             if (CurrentSet > num)
-                throw new Exception($"Cannot read result sets out of order. At Set={CurrentSet} but requested Set={num}.");
+                throw DataReaderException.ResultSetsAccessedOutOfOrder(CurrentSet, num);
             if (CurrentSet == 0)
             {
                 CurrentSet = 1;
@@ -100,12 +100,12 @@ namespace CastIron.Sql.Mapping
             while (CurrentSet < num)
             {
                 if (!Reader.Reader.NextResult())
-                    throw new Exception($"Could not read requested result set {num}. This stream only contains {CurrentSet} result sets.");
+                    throw DataReaderException.ResultSetIndexOutOfBounds(num, CurrentSet);
                 CurrentSet++;
             }
 
             if (CurrentSet != num)
-                throw new Exception($"Could not find result Set={num}. This should not happen.");
+                throw new DataReaderException($"Could not find result Set={num}. This should not happen.");
 
             return this;
         }

@@ -49,13 +49,39 @@ namespace CastIron.Sql.Mapping
                 "Once the reader has been consumed, it cannot be consumed again.");
         }
 
-        public static DataReaderException ThrowReaderClosedException()
+        public static DataReaderException ReaderClosed()
         {
             return new DataReaderException(
                 $"The underlying {nameof(IDataReader)} has already been closed and cannot be consumed again. " +
                 $"The {nameof(IDataReader)} object monopolizes the database connection for streaming results while it is open. " +
                 $"The {nameof(IDataReader)} is closed to use the connection for other purposes, such as reading output parameters. " +
                 $"In your application, make sure to read all result set data from the {nameof(IDataReader)} before attempting to read output parameters to avoid this issue.");
+        }
+
+        public static DataReaderException ResultSetsAccessedOutOfOrder(int currentSet, int requestedSet)
+        {
+            return new DataReaderException(
+                "Cannot read result sets out of order. " +
+                $"Currently at Set={currentSet} but requested Set={requestedSet}.");
+        }
+
+        public static DataReaderException ResultSetIndexOutOfBounds(int requestedSet, int availableSets)
+        {
+            return new DataReaderException(
+                $"Could not access requested result set {requestedSet}. " +
+                $"The reader only contains {availableSets}. " +
+                "Please review your query to ensure that the correct number of result sets are being requested");
+        }
+
+        public static DataReaderException ResultSetReadMoreThanOnce()
+        {
+            return new DataReaderException(
+                "An attempt has been made to read the same result set more than once. " +
+                "Due to the streaming nature of data from the database, the reader is forward-only and cannot " +
+                "be reset or read more than once. If you need to access the data, please copy to a new location " +
+                "and read from there. " +
+                "If you do not want to read this set more than once, please use a method to advance to the next " +
+                "result set in the reader");
         }
     }
 }

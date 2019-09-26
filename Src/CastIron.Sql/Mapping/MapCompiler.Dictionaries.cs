@@ -52,7 +52,7 @@ namespace CastIron.Sql.Mapping
 
             var addMethod = dictType.GetMethod(nameof(Dictionary<string, object>.Add));
             if (addMethod == null)
-                throw new Exception($".{nameof(Dictionary<string, object>.Add)}() Method missing from dictionary type {targetType.FullName}");
+                throw MapCompilerException.DictionaryTypeMissingAddMethod(targetType);
 
             var expressions = new List<Expression>();
             var dictVar = GetMaybeInstantiateDictionaryExpression(context, dictType, getExisting, constructor, expressions);

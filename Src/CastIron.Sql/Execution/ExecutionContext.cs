@@ -35,7 +35,7 @@ namespace CastIron.Sql.Execution
         private void MarkOpened()
         {
             if (Interlocked.CompareExchange(ref _opened, 1, 0) != 0)
-                throw new Exception("Connection is already open and cannot be opened again");
+                throw ExecutionContextException.ConnectionAlreadyOpen();
         }
         
         public void OpenConnection()
@@ -59,7 +59,7 @@ namespace CastIron.Sql.Execution
         public IDbCommandAsync CreateCommand()
         {
             if (!IsOpen)
-                throw new Exception("Cannot create a command when the connection is not open");
+                throw ExecutionContextException.ConnectionNotOpen();
             var command = Connection.CreateCommand();
             if (Transaction != null)
                 command.Command.Transaction = Transaction;
@@ -72,7 +72,7 @@ namespace CastIron.Sql.Execution
         public IContextBuilder UseTransaction(IsolationLevel il)
         {
             if (IsOpen)
-                throw new Exception("Cannot set transaction or isolation level when the connection is already opened");
+                throw ExecutionContextException.ConnectionAlreadyOpen();
             _isolationLevel = il;
             return this;
         }

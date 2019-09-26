@@ -85,7 +85,7 @@ namespace CastIron.Sql
         public void SetValue(T value)
         {
             if (_isComplete)
-                throw new Exception("The value for this promise has already been set, and can only be set once");
+                throw new InvalidOperationException("The value for this promise has already been set, and can only be set once");
             _result = value;
             _isComplete = true;
             Interlocked.MemoryBarrier();

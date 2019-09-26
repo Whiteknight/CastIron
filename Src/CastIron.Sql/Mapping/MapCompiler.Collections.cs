@@ -39,7 +39,7 @@ namespace CastIron.Sql.Mapping
         private static ConstructedValueExpression GetInterfaceCollectionConversionExpression(MapCompileContext context, string name, Type targetType, Expression getExisting, ICustomAttributeProvider attrs)
         {
             if (targetType.GenericTypeArguments.Length != 1)
-                throw new Exception($"Cannot map to object of type {targetType.FullName}");
+                throw MapCompilerException.InvalidInterfaceType(targetType);
 
             var elementType = targetType.GenericTypeArguments[0];
             var listType = typeof(List<>).MakeGenericType(elementType);

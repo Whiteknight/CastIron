@@ -10,8 +10,6 @@ namespace CastIron.Sql.Mapping
 {
     public partial class MapCompiler : IMapCompiler
     {
-        private static readonly ConstructorInfo _exceptionConstructor = typeof(Exception).GetConstructor(new[] { typeof(string) });
-
         // TODO: Ability to take the IDataRecord in the factory and consume some columns for constructor params so they aren't used later for properties?
         public Func<IDataRecord, T> CompileExpression<T>(MapCompileContext context)
         {

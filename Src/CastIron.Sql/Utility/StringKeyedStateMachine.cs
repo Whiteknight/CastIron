@@ -94,12 +94,11 @@ namespace CastIron.Sql.Utility
 
             var transition = _currentState.GetTransitionForKey(key);
             if (transition == null)
-                throw new Exception($"Cannot transition from state {_currentState?.Name ?? "initial"} on key {key}");
+                throw new InvalidOperationException($"Cannot transition from state {_currentState?.Name ?? "initial"} on key {key}");
+            if (transition.NewKey == null || transition.NewKey == StateInitial)
+                throw new InvalidOperationException($"Cannot transition to the initial state from state {_currentState.Name} on key {key}");
 
             transition.OnTransition?.Invoke();
-
-            if (transition.NewKey == null || transition.NewKey == StateInitial)
-                throw new Exception($"Cannot transition to the initial state from state {_currentState.Name} on key {key}");
             _currentState = _states[transition.NewKey];
         }
     }

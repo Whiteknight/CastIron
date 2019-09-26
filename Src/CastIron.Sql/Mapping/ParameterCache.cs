@@ -14,8 +14,9 @@ namespace CastIron.Sql.Mapping
         public ParameterCache(IDbCommand command)
         {
             _parameterCache = command?.Parameters
-                                  .Cast<DbParameter>()
-                                  .ToDictionary(p => CanonicalizeParameterName(p.ParameterName), p => p.Value) ?? new Dictionary<string, object>();
+                ?.Cast<DbParameter>()
+                ?.ToDictionary(p => CanonicalizeParameterName(p.ParameterName), p => p.Value) 
+                ?? new Dictionary<string, object>();
         }
 
         private static string CanonicalizeParameterName(string name)
@@ -34,7 +35,7 @@ namespace CastIron.Sql.Mapping
 
         public static Exception ValueNotFound(string name)
         {
-            return new Exception($"Could not find parameter named {name}.");
+            return new DataReaderException($"Could not find parameter named {name}. Please check your query and your spelling and try again.");
         }
 
         public object GetValueOrThrow(string name)
@@ -75,7 +76,7 @@ namespace CastIron.Sql.Mapping
             if (value is IConvertible && typeof(IConvertible).IsAssignableFrom(typeof(T)))
                 return (T)Convert.ChangeType(value, typeof(T));
 
-            throw new Exception($"Cannot get output parameter '{name}' value. Expected type {typeof(T).GetFriendlyName()} but found {value.GetType().GetFriendlyName()} and no conversion can be found.");
+            throw new DataReaderException($"Cannot get output parameter value '{name}'. Expected type {typeof(T).GetFriendlyName()} but found {value.GetType().GetFriendlyName()} and no conversion can be found.");
         }
 
         public T GetOutputParameters<T>()

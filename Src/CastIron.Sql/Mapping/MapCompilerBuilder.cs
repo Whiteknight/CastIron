@@ -28,7 +28,6 @@ namespace CastIron.Sql.Mapping
             _defaultCase = defaultCase;
         }
 
-
         public IMapCompilerBuilderBase<T> UseMap(Func<IDataRecord, T> map)
         {
             Argument.NotNull(map, nameof(map));
@@ -54,7 +53,7 @@ namespace CastIron.Sql.Mapping
         {
             var constructor = typeof(T).GetConstructor(argumentTypes);
             if (constructor == null)
-                throw new Exception("Cannot find constructor with given argument list");
+                throw ConstructorFindException.NoSuitableConstructorFound(typeof(T));
             return UseConstructor(constructor);
         }
 
@@ -143,7 +142,7 @@ namespace CastIron.Sql.Mapping
         private void VerifyAndSetupSubclassPredicate(IDataReader reader, IMapCompiler defaultCompiler, SubclassPredicate subclass, List<SubclassPredicate> newSubclasses)
         {
             if (subclass.Type == null)
-                throw new Exception("Specified type may not be null");
+                throw new InvalidOperationException("The type specified may not be null");
             if (!typeof(T).IsAssignableFrom(subclass.Type))
                 throw new InvalidOperationException($"Type {subclass.Type.Name} must be a concrete class type which is assignable to {typeof(T).Name}.");
             if (subclass.Mapper == null)
@@ -203,16 +202,20 @@ namespace CastIron.Sql.Mapping
                     ThrowMappingAlreadyConfiguredException();
                 var type = Type ?? typeof(T);
                 if (!type.IsAssignableFrom(constructor.DeclaringType))
-                    throw new Exception("The specified constructor does not create the correct type of object");
+                {
+                    throw new InvalidOperationException(
+                        "The specified constructor does not create the correct type of object. " +
+                        $"Expecting {type.GetFriendlyName()} but constructor builds {constructor.DeclaringType.GetFriendlyName()}");
+                }
                 Constructor = constructor;
             }
 
             public void SetConstructorFinder(IConstructorFinder finder)
             {
                 if (Mapper != null)
-                    throw new Exception("May not specify a explicit mapping and compiler details at the same time");
+                    throw MapCompilerException.MapAndCompilerSpecified();
                 if (ConstructorFinder != null)
-                    throw new Exception("May not specify two constructor finders");
+                    throw new InvalidOperationException("Attempt to specify two constructor finders. You may only have one constructor finder per map attempt.");
                 ConstructorFinder = finder;
             }
 
@@ -226,12 +229,13 @@ namespace CastIron.Sql.Mapping
             public void SetType(Type t)
             {
                 AssertValidType(t);
+                // TODO: We can probably clean up or ease some of these restrictions
                 if (Type != null && Type != typeof(T))
-                    throw new Exception("Cannot specify more than one specific class");
+                    throw new InvalidOperationException("Cannot specify more than one specific class.");
                 if (Factory != null)
-                    throw new Exception("May not specify a specific subclass and a factory method at the same time");
+                    throw new InvalidOperationException("May not specify a specific subclass and a factory method at the same time.");
                 if (Constructor != null)
-                    throw new Exception("May not specify a particular constructor before specifying the subclass");
+                    throw new InvalidOperationException("May not specify a particular constructor before specifying the subclass.");
                 Type = t;
             }
 

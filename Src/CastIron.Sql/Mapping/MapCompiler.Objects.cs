@@ -26,29 +26,34 @@ namespace CastIron.Sql.Mapping
             return GetConstructorCallExpression(context);
         }
 
-        // var instance = factory();
-        // if (instance == null) throw new Exception(msg)
+        private static readonly MethodInfo _createMapExceptionMethod = typeof(DataMappingException).GetMethod(nameof(DataMappingException.UserFactoryReturnedNull), BindingFlags.Public | BindingFlags.Static);
+
+        // var instance = cast(type, factory());
+        // if (instance == null) throw DataMappingException.UserFactoryReturnedNull(type);
         private static ConstructedValueExpression AddFactoryMethodCallExpression<T>(Func<T> factory, MapCompileContext context)
         {
             var instanceVar = context.AddVariable(context.Specific, "instance");
             var expressions = new Expression[]
             {
-                // instance = factory();
+                // instance = cast(type, factory());
                 Expression.Assign(
                     instanceVar,
                     Expression.Convert(
                         Expression.Call(
                             Expression.Constant(factory.Target),
-                            factory.Method),
-                        context.Specific)),
+                            factory.Method
+                        ),
+                        context.Specific
+                    )
+                ),
 
-                // if (instance == null) throw new Exception(...);
+                // if (instance == null) throw DataMappingException.UserFactoryReturnedNull(type);
                 Expression.IfThen(
                     Expression.Equal(instanceVar, Expression.Constant(null)),
                     Expression.Throw(
-                        Expression.New(
-                            _exceptionConstructor,
-                            Expression.Constant($"Provided factory method returned a null or unusable value for type {context.Specific.Name}"))))
+                        Expression.Call(_createMapExceptionMethod, Expression.Constant(context.Specific))
+                    )
+                )
             };
             return new ConstructedValueExpression(expressions, instanceVar);
         }

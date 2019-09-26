@@ -25,7 +25,7 @@ namespace CastIron.Sql.Mapping
         }
 
         public IEnumerable<Expression> Expressions { get; }
-        public Expression FinalValue { get; }
 
+        public Expression FinalValue { get; }
     }
 }

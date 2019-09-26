@@ -36,9 +36,9 @@ namespace CastIron.Sql.Mapping
         {
             var attempt = Interlocked.Increment(ref _readAttempts);
             if (attempt > 1)
-                throw new Exception("Cannot read the same result set more than once.");
+                throw DataReaderException.ResultSetReadMoreThanOnce();
             if ((_context != null && _context.IsCompleted) || _reader.Reader.IsClosed)
-                throw new Exception("The connection is closed and the result set cannot be read");
+                throw DataReaderException.ReaderClosed();
             return new ResultSetEnumerator(_reader, _context, _map);
         }
 

@@ -6,31 +6,6 @@ using CastIron.Sql.Utility;
 
 namespace CastIron.Sql.Mapping
 {
-    public class DefaultOnlyConstructorFinder : IConstructorFinder
-    {
-        public ConstructorInfo FindBestMatch(IProviderConfiguration provider, ConstructorInfo preferredConstructor, Type type, IReadOnlyDictionary<string, int> columnNames)
-        {
-            Argument.NotNull(type, nameof(type));
-
-            // If the user has specified a preferred constructor, use that.
-            if (preferredConstructor != null)
-            {
-                if (!preferredConstructor.IsPublic || preferredConstructor.IsStatic)
-                    throw new Exception("Specified constructor is static or non-public and cannot be used");
-                if (preferredConstructor.DeclaringType != type)
-                    throw new Exception($"Specified constructor is for type {preferredConstructor.DeclaringType?.GetFriendlyName()} instead of the expected {type.GetFriendlyName()}");
-
-                return preferredConstructor;
-            }
-
-            var defaultConstructor = type.GetConstructor(Type.EmptyTypes);
-            if (defaultConstructor != null && defaultConstructor.IsPublic)
-                return defaultConstructor;
-
-            throw new Exception($"Cannot find default constructor on type {type.GetFriendlyName()}");
-        }
-    }
-
     public class ConstructorFinder : IConstructorFinder
     {
         private static readonly ConstructorFinder _defaultInstance;
@@ -53,9 +28,9 @@ namespace CastIron.Sql.Mapping
             if (preferredConstructor != null)
             {
                 if (!preferredConstructor.IsPublic || preferredConstructor.IsStatic)
-                    throw new Exception("Specified constructor is static or non-public and cannot be used");
+                    throw ConstructorFindException.NonInvokableConstructorSpecified();
                 if (preferredConstructor.DeclaringType != type)
-                    throw new Exception($"Specified constructor is for type {preferredConstructor.DeclaringType?.GetFriendlyName()} instead of the expected {type.GetFriendlyName()}");
+                    throw ConstructorFindException.InvalidDeclaringType(preferredConstructor.DeclaringType, type);
 
                 return preferredConstructor;
             }
@@ -69,7 +44,7 @@ namespace CastIron.Sql.Mapping
                 .OrderByDescending(x => x.Score)
                 .FirstOrDefault();
             if (best == null)
-                throw new Exception($"Cannot find a suitable constructor for type {type.GetFriendlyName()}");
+                throw ConstructorFindException.NoSuitableConstructorFound(type);
             return best.Constructor;
         }
 

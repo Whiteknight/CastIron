@@ -1,9 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using System.Reflection;
 using CastIron.Sql;
+using CastIron.Sql.Execution;
 using CastIron.Sql.Utility;
 
 namespace CastIron.Sqlite
@@ -55,12 +55,12 @@ namespace CastIron.Sqlite
 
         public IDataInteraction AddOutputParameter(string name, DbType dbType, int size)
         {
-            throw new Exception("SQLite does not support OUTPUT or INPUT/OUTPUT parameters.");
+            throw new ProviderLimitationException("SQLite does not support OUTPUT or INPUT/OUTPUT parameters.");
         }
 
         public IDataInteraction AddInputOutputParameter(string name, object value, DbType dbType, int size)
         {
-            throw new Exception("SQLite does not support OUTPUT or INPUT/OUTPUT parameters.");
+            throw new ProviderLimitationException("SQLite does not support OUTPUT or INPUT/OUTPUT parameters.");
         }
 
         public IDataInteraction ExecuteText(string sqlText)
