@@ -52,7 +52,7 @@ namespace CastIron.Sql.Execution
                 try
                 {
                     context.StartExecute(index, dbCommand);
-                    await dbCommand.ExecuteNonQueryAsync(cancellationToken);
+                    await dbCommand.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
                 }
                 catch (SqlQueryException)
                 {
@@ -116,11 +116,12 @@ namespace CastIron.Sql.Execution
                 try
                 {
                     context.StartExecute(index, dbCommand);
-                    var rowsAffected = await dbCommand.ExecuteNonQueryAsync(cancellationToken);
+                    var rowsAffected = await dbCommand.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
 
                     context.StartMapResults(index);
                     var resultSet = new DataReaderResults(context.Provider, dbCommand, context, null, rowsAffected);
-                    return await Task.Run(() => command.ReadOutputs(resultSet));
+                    // TODO: .ReadOutputsAsync variant, so we can just await that directly
+                    return await Task.Run(() => command.ReadOutputs(resultSet), cancellationToken).ConfigureAwait(false);
                 }
                 catch (SqlQueryException)
                 {

@@ -59,13 +59,13 @@ namespace CastIron.Sql
         public async Task<T> ExecuteAsync<T>(Func<IExecutionContext, Task<T>> executor)
         {
             using (var context = CreateExecutionContext())
-                return await _core.ExecuteAsync(context, executor);
+                return await _core.ExecuteAsync(context, executor).ConfigureAwait(false);
         }
 
         public async Task ExecuteAsync(Func<IExecutionContext, Task> executor)
         {
             using (var context = CreateExecutionContext())
-                await _core.ExecuteAsync(context, executor);
+                await _core.ExecuteAsync(context, executor).ConfigureAwait(false);
         }
     }
 }

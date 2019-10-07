@@ -58,7 +58,7 @@ namespace CastIron.Sql.Execution
                     }
 
                     context.StartExecute(index, dbCommand);
-                    await dbCommand.ExecuteNonQueryAsync(cancellationToken);
+                    await dbCommand.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
 
                 }
                 catch (SqlQueryException)
@@ -123,7 +123,7 @@ namespace CastIron.Sql.Execution
                     }
 
                     context.StartExecute(index, dbCommand);
-                    var rowsAffected = await dbCommand.ExecuteNonQueryAsync(cancellationToken);
+                    var rowsAffected = await dbCommand.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
 
                     context.StartMapResults(index);
                     var resultSet = new DataReaderResults(context.Provider, dbCommand, context, null, rowsAffected);

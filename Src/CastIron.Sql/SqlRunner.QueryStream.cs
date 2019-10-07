@@ -60,14 +60,15 @@ namespace CastIron.Sql
         /// </summary>
         /// <param name="runner"></param>
         /// <param name="query"></param>
+        /// <param name="cancellationToken"></param>
         /// <returns></returns>
         public static async Task<IDataResultsStream> QueryStreamAsync(this ISqlRunner runner, ISqlQuery query, CancellationToken cancellationToken = new CancellationToken())
         {
             Argument.NotNull(runner, nameof(runner));
             Argument.NotNull(query, nameof(query));
             var context = runner.CreateExecutionContext();
-            await context.OpenConnectionAsync(cancellationToken);
-            return await new SqlQueryStrategy(runner.InteractionFactory).ExecuteStreamAsync(query, context, cancellationToken);
+            await context.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
+            return await new SqlQueryStrategy(runner.InteractionFactory).ExecuteStreamAsync(query, context, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -94,14 +95,15 @@ namespace CastIron.Sql
         /// </summary>
         /// <param name="runner"></param>
         /// <param name="query"></param>
+        /// <param name="cancellationToken"></param>
         /// <returns></returns>
         public static async Task<IDataResultsStream> QueryStreamAsync(this ISqlRunner runner, ISqlQuerySimple query, CancellationToken cancellationToken = new CancellationToken())
         {
             Argument.NotNull(runner, nameof(runner));
             Argument.NotNull(query, nameof(query));
             var context = runner.CreateExecutionContext();
-            await context.OpenConnectionAsync(cancellationToken);
-            return await new SqlQuerySimpleStrategy().ExecuteStreamAsync(query, context, cancellationToken);
+            await context.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
+            return await new SqlQuerySimpleStrategy().ExecuteStreamAsync(query, context, cancellationToken).ConfigureAwait(false);
         }
     }
 }

@@ -37,7 +37,7 @@ namespace CastIron.Sql.Execution
             if (Interlocked.CompareExchange(ref _opened, 1, 0) != 0)
                 throw ExecutionContextException.ConnectionAlreadyOpen();
         }
-        
+
         public void OpenConnection()
         {
             _monitor?.StartEvent("Open Connection");
@@ -51,7 +51,7 @@ namespace CastIron.Sql.Execution
         {
             _monitor?.StartEvent("Open Connection");
             MarkOpened();
-            await Connection.OpenAsync(cancellationToken);
+            await Connection.OpenAsync(cancellationToken).ConfigureAwait(false);
             if (_isolationLevel.HasValue)
                 Transaction = Connection.Connection.BeginTransaction(_isolationLevel.Value);
         }

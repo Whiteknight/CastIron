@@ -63,7 +63,7 @@ namespace CastIron.Sql.Execution
                 try
                 {
                     context.StartExecute(index, command);
-                    using (var reader = await command.ExecuteReaderAsync(cancellationToken))
+                    using (var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false))
                     {
                         context.StartMapResults(index);
                         var resultSet = new DataReaderResults(context.Provider, command, context, reader);
@@ -134,7 +134,7 @@ namespace CastIron.Sql.Execution
             try
             {
                 context.StartExecute(1, command);
-                var reader = await command.ExecuteReaderAsync(cancellationToken);
+                var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
 
                 context.StartMapResults(1);
                 return new DataReaderResultsStream(context.Provider, command, context, reader);

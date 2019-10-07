@@ -56,8 +56,8 @@ namespace CastIron.Sql
         public async Task<T> ExecuteAsync<T>(ExecutionContext context, Func<IExecutionContext, Task<T>> executor, CancellationToken cancellationToken = new CancellationToken())
         {
             Argument.NotNull(executor, nameof(executor));
-            await context.OpenConnectionAsync(cancellationToken);
-            var result = await executor(context);
+            await context.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
+            var result = await executor(context).ConfigureAwait(false);
             context.MarkComplete();
             return result;
         }
@@ -73,8 +73,8 @@ namespace CastIron.Sql
         public async Task ExecuteAsync(ExecutionContext context, Func<IExecutionContext, Task> executor, CancellationToken cancellationToken = new CancellationToken())
         {
             Argument.NotNull(executor, nameof(executor));
-            await context.OpenConnectionAsync(cancellationToken);
-            await executor(context);
+            await context.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
+            await executor(context).ConfigureAwait(false);
             context.MarkComplete();
         }
     }

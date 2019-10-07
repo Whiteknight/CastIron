@@ -57,11 +57,11 @@ namespace CastIron.Sql.Execution
                 try
                 {
                     context.StartExecute(index, dbCommand);
-                    using (var reader = await dbCommand.ExecuteReaderAsync(cancellationToken))
+                    using (var reader = await dbCommand.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false))
                     {
                         context.StartMapResults(index);
                         var rawResultSet = new DataReaderResults(context.Provider, dbCommand, context, reader);
-                        return await Task.Run(() => queryReader.Read(rawResultSet));
+                        return await Task.Run(() => queryReader.Read(rawResultSet), cancellationToken).ConfigureAwait(false);
                     }
                 }
                 catch (SqlQueryException)
@@ -128,7 +128,7 @@ namespace CastIron.Sql.Execution
             try
             {
                 context.StartExecute(1, command);
-                var reader = await command.ExecuteReaderAsync(cancellationToken);
+                var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
 
                 context.StartMapResults(1);
                 return new DataReaderResultsStream(context.Provider, command, context, reader);

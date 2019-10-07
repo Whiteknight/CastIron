@@ -33,7 +33,7 @@ namespace CastIron.Sql.Mapping
             var attempt = Interlocked.Increment(ref _readAttempts);
             if (attempt > 1)
                 throw DataReaderException.ResultSetReadMoreThanOnce();
-            if ((_context != null && _context.IsCompleted) || _reader.Reader.IsClosed)
+            if (_context?.IsCompleted == true || _reader.Reader.IsClosed)
                 throw DataReaderException.ReaderClosed();
             return new ResultSetEnumerator(_reader, _context, _map);
         }
@@ -59,7 +59,7 @@ namespace CastIron.Sql.Mapping
                     return false;
                 }
 
-                var ok = await _reader.ReadAsync(new CancellationToken());
+                var ok = await _reader.ReadAsync(new CancellationToken()).ConfigureAwait(false);
                 // TODO: have an async  _reader variant
                 Current = ok ? _read(_reader.Reader) : default(T);
                 return ok;

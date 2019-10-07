@@ -68,7 +68,7 @@ namespace CastIron.Sqlite
 
             public async Task<IDataReaderAsync> ExecuteReaderAsync(CancellationToken cancellationToken)
             {
-                var reader = await _command.ExecuteReaderAsync(cancellationToken);
+                var reader = await _command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
                 return new DataReaderAsync(reader);
             }
 
