@@ -43,7 +43,7 @@ namespace CastIron.Sql.Mapping
                 return parameterType.GetDefaultValueExpression();
 
             var column = columns[i];
-            var expr = ScalarConversionExpressions.Get(column.Index, context, column, parameterType);
+            var expr = GetScalarMappingExpression(column.Index, context, column, parameterType);
             column.MarkMapped();
             expressions.AddRange(expr.Expressions);
             return expr.FinalValue;

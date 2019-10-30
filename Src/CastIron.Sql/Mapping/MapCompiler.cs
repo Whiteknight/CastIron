@@ -61,7 +61,7 @@ namespace CastIron.Sql.Mapping
             if (firstColumn == null)
                 return ConstructedValueExpression.Nothing();
             firstColumn.MarkMapped();
-            return ScalarConversionExpressions.Get(firstColumn.Index, context, firstColumn, targetType);
+            return GetScalarMappingExpression(firstColumn.Index, context, firstColumn, targetType);
         }
     }
 }

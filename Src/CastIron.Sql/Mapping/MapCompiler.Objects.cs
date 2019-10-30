@@ -118,7 +118,7 @@ namespace CastIron.Sql.Mapping
             {
                 var firstColumn = context.GetColumn(name);
                 firstColumn.MarkMapped();
-                return ScalarConversionExpressions.Get(firstColumn.Index, context, firstColumn, targetType);
+                return GetScalarMappingExpression(firstColumn.Index, context, firstColumn, targetType);
             }
 
             var exprs = GetArrayConversionExpression(context, name, typeof(object[]), attrs);
