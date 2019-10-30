@@ -10,47 +10,6 @@ using CastIron.Sql.Utility;
 
 namespace CastIron.Sql.Mapping
 {
-    public class VariableNumberSource
-    {
-        private int _varNumber;
-
-        public VariableNumberSource()
-        {
-            _varNumber = 0;
-        }
-
-        public int GetNext()
-        {
-            return _varNumber++;
-        }
-    }
-
-    public class ColumnInfo
-    {
-        public ColumnInfo(int index, string originalName, Type columnType, string sqlTypeName)
-        {
-            Index = index;
-            OriginalName = originalName;
-            ColumnType = columnType;
-            SqlTypeName = sqlTypeName;
-            Mapped = false;
-            CanonicalName = originalName.ToLowerInvariant();
-        }
-
-        public int Index { get; }
-        public string OriginalName { get; }
-        public string CanonicalName { get; }
-        public Type ColumnType { get; }
-        public string SqlTypeName { get; }
-
-        public bool Mapped { get; private set; }
-
-        public void MarkMapped()
-        {
-            Mapped = true;
-        }
-    }
-
     public class MapCompileContext
     {
         private readonly IProviderConfiguration _provider;
@@ -61,14 +20,13 @@ namespace CastIron.Sql.Mapping
         private readonly string _separator;
 
         // TODO: Reduce the size of this parameter list
-        public MapCompileContext(IProviderConfiguration provider, IDataReader reader, Type parent, Type specific, Func<object> factory, ConstructorInfo preferredConstructor, IConstructorFinder constructorFinder, VariableNumberSource numberSource = null, string separator = "_")
+        public MapCompileContext(IProviderConfiguration provider, IDataReader reader, Type specific, Func<object> factory, ConstructorInfo preferredConstructor, IConstructorFinder constructorFinder, string separator = "_")
         {
             Argument.NotNull(reader, nameof(reader));
-            Argument.NotNull(parent, nameof(parent));
+            Argument.NotNull(specific, nameof(specific));
 
             _separator = (separator ?? "_").ToLowerInvariant();
-            Parent = parent;
-            Specific = specific ?? parent;
+            Specific = specific;
 
             Factory = factory;
 
@@ -79,7 +37,7 @@ namespace CastIron.Sql.Mapping
             _provider = provider;
             _constructorFinder = constructorFinder;
             
-            _variableNumbers = numberSource ?? new VariableNumberSource();
+            _variableNumbers = new VariableNumberSource();
             _variables = new List<ParameterExpression>();
             _columnNames = new Dictionary<string, List<ColumnInfo>>();
         }
@@ -90,7 +48,6 @@ namespace CastIron.Sql.Mapping
             Argument.NotNullOrEmpty(separator, nameof(_separator));
 
             _separator = separator;
-            Parent = type;
             Specific = type;
             _provider = parent._provider;
 
@@ -120,9 +77,8 @@ namespace CastIron.Sql.Mapping
         public Func<object> Factory { get; }
         public IDataReader Reader { get; }
         public ParameterExpression RecordParam { get; }
-        //public ParameterExpression Instance { get; }
-        public Type Parent { get; }
         public Type Specific { get; }
+        public IReadOnlyList<ParameterExpression> Variables => _variables;
 
         //public List<ParameterExpression> Variables { get; }
         //public List<Expression> Statements { get; }
@@ -197,31 +153,6 @@ namespace CastIron.Sql.Mapping
             return variable;
         }
 
-        //public void AddStatement(Expression expr)
-        //{
-        //    _statements.Add(expr);
-        //}
-
-        public Func<IDataRecord, T> CompileLambda<T>(IEnumerable<Expression> statements)
-        {
-            var lambdaExpression = Expression.Lambda<Func<IDataRecord, T>>(Expression.Block(Parent, _variables, statements), RecordParam);
-            DumpCodeToDebugConsole(lambdaExpression);
-            return lambdaExpression.Compile();
-        }
-
-        // Helper method to get a reasonably complete code listing, to help with debugging
-        [Conditional("DEBUG")]
-        private static void DumpCodeToDebugConsole(Expression expr)
-        {
-            // This property is marked private, so we can only get to it by reflection, which would be terrible if
-            // this wasn't a debug-only helper routine
-            var debugViewProp = typeof(Expression).GetProperty("DebugView", BindingFlags.Instance | BindingFlags.NonPublic);
-            if (debugViewProp == null)
-                return;
-            var code = (string)debugViewProp.GetGetMethod(true).Invoke(expr, null);
-            Debug.WriteLine(code);
-        }
-
         public int GetNextVarNumber() => _variableNumbers.GetNext();
 
         public IReadOnlyDictionary<string, int> GetColumnNameCounts() 
@@ -249,6 +180,21 @@ namespace CastIron.Sql.Mapping
             if (acceptsUnnamed && _provider.UnnamedColumnName != null)
                 return GetColumns(_provider.UnnamedColumnName);
             return Enumerable.Empty<ColumnInfo>();
+        }
+
+        public class VariableNumberSource
+        {
+            private int _varNumber;
+
+            public VariableNumberSource()
+            {
+                _varNumber = 0;
+            }
+
+            public int GetNext()
+            {
+                return _varNumber++;
+            }
         }
     }
 }
