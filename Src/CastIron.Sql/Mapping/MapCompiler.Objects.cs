@@ -152,7 +152,7 @@ namespace CastIron.Sql.Mapping
                 // Non-primitive types may have an existing value which can be updated in-place
                 var getPropExpr = Expression.Property(instance, property);
                 var expression = GetConversionExpression(context, property.Name.ToLowerInvariant(), property.PropertyType, getPropExpr, property);
-                if (expression == null)
+                if (expression.Expressions == null)
                     continue;
 
                 expressions.AddRange(expression.Expressions);

@@ -4,7 +4,7 @@ using System.Linq.Expressions;
 
 namespace CastIron.Sql.Mapping
 {
-    public class ConstructedValueExpression
+    public struct ConstructedValueExpression
     {
         public ConstructedValueExpression(Expression finalValue)
         {
@@ -19,7 +19,7 @@ namespace CastIron.Sql.Mapping
             FinalValue = finalValue;
         }
 
-        public static ConstructedValueExpression Nothing() => new ConstructedValueExpression(null);
+        public static ConstructedValueExpression Nothing() => default;
 
         public IEnumerable<Expression> Expressions { get; }
 

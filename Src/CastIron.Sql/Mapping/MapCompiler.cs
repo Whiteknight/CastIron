@@ -71,7 +71,7 @@ namespace CastIron.Sql.Mapping
             if (IsMappableCustomObjectType(targetType))
                 return GetCustomObjectConversionExpression(context, name, targetType);
 
-            return null;
+            return ConstructedValueExpression.Nothing();
         }
 
         private static ConstructedValueExpression GetPrimitiveConversionExpression(MapCompileContext context, string name, Type targetType)
