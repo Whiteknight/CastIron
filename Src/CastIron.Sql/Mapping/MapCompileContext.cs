@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Data;
-using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -20,9 +19,9 @@ namespace CastIron.Sql.Mapping
         private readonly string _separator;
 
         // TODO: Reduce the size of this parameter list
-        public MapCompileContext(IProviderConfiguration provider, IDataReader reader, Type specific, Func<object> factory, ConstructorInfo preferredConstructor, IConstructorFinder constructorFinder, string separator = "_")
+        public MapCompileContext(IProviderConfiguration provider, Type specific, Func<object> factory, ConstructorInfo preferredConstructor, IConstructorFinder constructorFinder, string separator = "_")
         {
-            Argument.NotNull(reader, nameof(reader));
+            Argument.NotNull(provider, nameof(provider));
             Argument.NotNull(specific, nameof(specific));
 
             _separator = (separator ?? "_").ToLowerInvariant();
@@ -30,7 +29,6 @@ namespace CastIron.Sql.Mapping
 
             Factory = factory;
 
-            Reader = reader;
             RecordParam = Expression.Parameter(typeof(IDataRecord), "record");
             
             PreferredConstructor = preferredConstructor;
@@ -51,7 +49,6 @@ namespace CastIron.Sql.Mapping
             Specific = type;
             _provider = parent._provider;
 
-            Reader = parent.Reader;
             RecordParam = parent.RecordParam;
             
             _constructorFinder = parent._constructorFinder;
@@ -75,7 +72,6 @@ namespace CastIron.Sql.Mapping
         }
 
         public Func<object> Factory { get; }
-        public IDataReader Reader { get; }
         public ParameterExpression RecordParam { get; }
         public Type Specific { get; }
         public IReadOnlyList<ParameterExpression> Variables => _variables;
@@ -99,6 +95,7 @@ namespace CastIron.Sql.Mapping
 
         public void PopulateColumnLookups(IDataReader reader)
         {
+            // TODO: We should be able to calculate this ahead of time and inject the readonly dict in the constructor
             for (var i = 0; i < reader.FieldCount; i++)
             {
                 // TODO: Specify list of prefixes to ignore. If the column starts with a prefix, remove those chars from the front

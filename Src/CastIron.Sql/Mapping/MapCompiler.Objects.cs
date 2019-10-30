@@ -68,8 +68,11 @@ namespace CastIron.Sql.Mapping
 
             // Map columns to constructor parameters by name, marking the columns consumed so they aren't used again later
             var args = parameters.Select(p => GetConstructorArgumentExpression(context, p, expressions));
-            expressions.Add(Expression.Assign(instanceVar,
-                Expression.New(constructor, args)));
+            expressions.Add(
+                Expression.Assign(instanceVar,
+                    Expression.New(constructor, args)
+                )
+            );
             return new ConstructedValueExpression(expressions, instanceVar);
         }
 

@@ -12,12 +12,11 @@ namespace CastIron.Sql.Mapping
     public partial class MapCompiler : IMapCompiler
     {
         // TODO: Ability to take the IDataRecord in the factory and consume some columns for constructor params so they aren't used later for properties?
-        public Func<IDataRecord, T> CompileExpression<T>(MapCompileContext context)
+        public Func<IDataRecord, T> CompileExpression<T>(MapCompileContext context, IDataReader reader)
         {
             Argument.NotNull(context, nameof(context));
 
             var targetType = context.Specific;
-            context.PopulateColumnLookups(context.Reader);
 
             // For all other cases, fall back to normal recursive conversion routines.
             var expressions = GetConversionExpression(context, null, targetType, null, null);

@@ -147,8 +147,9 @@ namespace CastIron.Sql.Mapping
                 throw new InvalidOperationException($"Type {subclass.Type.Name} must be a concrete class type which is assignable to {typeof(T).Name}.");
             if (subclass.Mapper == null)
             {
-                var context = new MapCompileContext(_provider, reader, subclass.Type, subclass.Factory as Func<object>, subclass.Constructor, subclass.ConstructorFinder, subclass.Separator);
-                subclass.Mapper = (subclass.Compiler ?? defaultCompiler).CompileExpression<T>(context);
+                var context = new MapCompileContext(_provider, subclass.Type, subclass.Factory as Func<object>, subclass.Constructor, subclass.ConstructorFinder, subclass.Separator);
+                context.PopulateColumnLookups(reader);
+                subclass.Mapper = (subclass.Compiler ?? defaultCompiler).CompileExpression<T>(context, reader);
             }
 
             newSubclasses.Add(subclass);

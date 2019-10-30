@@ -22,24 +22,24 @@ namespace CastIron.Sql.Mapping
             _cache.Clear();
         }
 
-        public Func<IDataRecord, T> CompileExpression<T>(MapCompileContext context)
+        public Func<IDataRecord, T> CompileExpression<T>(MapCompileContext context, IDataReader reader)
         {
             Argument.NotNull(context, nameof(context));
 
             // We cannot cache if a custom factory is provided. The internals of the factory can change
             if (context.Factory != null)
-                return _inner.CompileExpression<T>(context);
+                return _inner.CompileExpression<T>(context, reader);
 
-            var key = CreateKey<T>(context);
+            var key = CreateKey<T>(context, reader);
             if (_cache.TryGetValue(key, out var cached) && cached is Func<IDataRecord, T> func)
                 return func;
 
-            var compiled = _inner.CompileExpression<T>(context);
+            var compiled = _inner.CompileExpression<T>(context, reader);
             _cache.TryAdd(key, compiled);
             return compiled;
         }
 
-        private static string CreateKey<T>(MapCompileContext context)
+        private static string CreateKey<T>(MapCompileContext context, IDataReader reader)
         {
             var sb = new StringBuilder();
             sb.AppendLine("P:" + typeof(T).FullName);
@@ -57,11 +57,11 @@ namespace CastIron.Sql.Mapping
 
                 sb.AppendLine();
             }
-            for (var i = 0; i < context.Reader.FieldCount; i++)
+            for (var i = 0; i < reader.FieldCount; i++)
             {
                 sb.Append(i);
                 sb.Append(":");
-                sb.AppendLine(context.Reader.GetFieldType(i).FullName);
+                sb.AppendLine(reader.GetFieldType(i).FullName);
             }
             
             return sb.ToString();
