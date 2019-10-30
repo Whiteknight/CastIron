@@ -27,7 +27,7 @@ namespace CastIron.Sql.Mapping
             Argument.NotNull(context, nameof(context));
 
             // We cannot cache if a custom factory is provided. The internals of the factory can change
-            if (context.Factory != null)
+            if (context.CreatePreferences.Factory != null)
                 return _inner.CompileExpression<T>(context, reader);
 
             var key = CreateKey<T>(context, reader);
@@ -44,10 +44,10 @@ namespace CastIron.Sql.Mapping
             var sb = new StringBuilder();
             sb.AppendLine("P:" + typeof(T).FullName);
             sb.AppendLine("S:" + context.Specific.FullName);
-            if (context.PreferredConstructor != null)
+            if (context.CreatePreferences.PreferredConstructor != null)
             {
                 sb.Append("C:");
-                foreach (var param in context.PreferredConstructor.GetParameters())
+                foreach (var param in context.CreatePreferences.PreferredConstructor.GetParameters())
                 {
                     sb.Append(param.Name);
                     sb.Append(":");

@@ -9,71 +9,72 @@ using CastIron.Sql.Utility;
 
 namespace CastIron.Sql.Mapping
 {
+    public class ObjectCreatePreferences
+    {
+        public Func<object> Factory { get; }
+        public ConstructorInfo PreferredConstructor { get; }
+        public IConstructorFinder ConstructorFinder { get; }
+
+        public ObjectCreatePreferences(Func<object> factory, ConstructorInfo preferredConstructor, IConstructorFinder constructorFinder)
+        {
+            Factory = factory;
+            PreferredConstructor = preferredConstructor;
+            ConstructorFinder = constructorFinder;
+        }
+    }
+
     public class MapCompileContext
     {
         private readonly IProviderConfiguration _provider;
-        private readonly IConstructorFinder _constructorFinder;
-        private readonly Dictionary<string, List<ColumnInfo>> _columnNames;
+        
         private readonly List<ParameterExpression> _variables;
         private readonly VariableNumberSource _variableNumbers;
         private readonly string _separator;
 
         // TODO: Reduce the size of this parameter list
-        public MapCompileContext(IProviderConfiguration provider, Type specific, Func<object> factory, ConstructorInfo preferredConstructor, IConstructorFinder constructorFinder, string separator = "_")
+        public MapCompileContext(IProviderConfiguration provider, Type specific, ObjectCreatePreferences create, ColumnInfoCollection columns, string separator = "_")
         {
             Argument.NotNull(provider, nameof(provider));
             Argument.NotNull(specific, nameof(specific));
+            Argument.NotNull(columns, nameof(columns));
+            Argument.NotNull(create, nameof(create));
 
             _separator = (separator ?? "_").ToLowerInvariant();
             Specific = specific;
-
-            Factory = factory;
+            CreatePreferences = create;
 
             RecordParam = Expression.Parameter(typeof(IDataRecord), "record");
             
-            PreferredConstructor = preferredConstructor;
             _provider = provider;
-            _constructorFinder = constructorFinder;
-            
+            Columns = columns;
+
             _variableNumbers = new VariableNumberSource();
             _variables = new List<ParameterExpression>();
-            _columnNames = new Dictionary<string, List<ColumnInfo>>();
         }
 
-        private MapCompileContext(MapCompileContext parent, Type type, string prefix, string separator)
+        private MapCompileContext(MapCompileContext parent, Type type, ColumnInfoCollection columns, string separator)
         {
             Argument.NotNull(parent, nameof(parent));
             Argument.NotNullOrEmpty(separator, nameof(_separator));
+            Argument.NotNull(columns, nameof(columns));
 
             _separator = separator;
             Specific = type;
             _provider = parent._provider;
 
             RecordParam = parent.RecordParam;
-            
-            _constructorFinder = parent._constructorFinder;
+
+            CreatePreferences = parent.CreatePreferences;
 
             _variableNumbers = parent._variableNumbers;
             _variables = parent._variables;
-            _columnNames = new Dictionary<string, List<ColumnInfo>>();
-            if (prefix == null)
-                _columnNames = parent._columnNames;
-            else
-            {
-                foreach (var columnName in parent._columnNames)
-                {
-                    if (columnName.Key.HasNonTrivialPrefix(prefix))
-                    {
-                        var newName = columnName.Key.Substring(prefix.Length);
-                        _columnNames.Add(newName, columnName.Value);
-                    }
-                }
-            }
+            Columns = columns;
         }
 
-        public Func<object> Factory { get; }
+        public ColumnInfoCollection Columns { get; }
         public ParameterExpression RecordParam { get; }
         public Type Specific { get; }
+        public ObjectCreatePreferences CreatePreferences { get; }
         public IReadOnlyList<ParameterExpression> Variables => _variables;
 
         //public List<ParameterExpression> Variables { get; }
@@ -83,86 +84,36 @@ namespace CastIron.Sql.Mapping
         {
             if (!string.IsNullOrEmpty(prefix))
                 prefix += _separator;
-            return new MapCompileContext(this, t, prefix, _separator);
+            var columns = Columns.ForPrefix(prefix);
+            return new MapCompileContext(this, t, columns, _separator);
         }
-
-        public ConstructorInfo PreferredConstructor { get; set; }
 
         public ConstructorInfo GetConstructor()
-        {   
-            return (_constructorFinder ?? ConstructorFinder.GetDefaultInstance()).FindBestMatch(_provider, PreferredConstructor, Specific, GetColumnNameCounts());
-        }
-
-        public void PopulateColumnLookups(IDataReader reader)
         {
-            // TODO: We should be able to calculate this ahead of time and inject the readonly dict in the constructor
-            for (var i = 0; i < reader.FieldCount; i++)
-            {
-                // TODO: Specify list of prefixes to ignore. If the column starts with a prefix, remove those chars from the front
-                // e.g. "Table_ID" with prefix "Table_" becomes "ID"
-                var name = (reader.GetName(i) ?? "");
-                var typeName = reader.GetDataTypeName(i);
-                var columnType = reader.GetFieldType(i);
-                var info = new ColumnInfo(i, name, columnType, typeName);
-                if (!_columnNames.ContainsKey(info.CanonicalName))
-                    _columnNames.Add(info.CanonicalName, new List<ColumnInfo>());
-                _columnNames[info.CanonicalName].Add(info);
-            }
-        }
-
-        public bool HasColumn(string name)
-        {
-            if (name == null)
-                return false;
-            return _columnNames.ContainsKey(name);
-        }
-
-        public ColumnInfo GetColumn(string name)
-        {
-            if (name == null)
-                return _columnNames.SelectMany(kvp => kvp.Value).FirstOrDefault(c => !c.Mapped);
-            if (!_columnNames.ContainsKey(name))
-                return null;
-            return _columnNames[name].FirstOrDefault(c => !c.Mapped);
-        }
-
-        public IEnumerable<ColumnInfo> GetColumns(string name)
-        {
-            if (name == null)
-                return _columnNames.SelectMany(kvp => kvp.Value).Where(c => !c.Mapped);
-            return _columnNames.ContainsKey(name) ? _columnNames[name].Where(c => !c.Mapped) : Enumerable.Empty<ColumnInfo>();
-        }
-
-        public IEnumerable<ColumnInfo> GetFirstIndexForEachColumnName()
-        {
-            return _columnNames
-                .Select(kvp => kvp.Value.FirstOrDefault(c => !c.Mapped))
-                .Where(c => c != null);
+            var finder = CreatePreferences.ConstructorFinder ?? ConstructorFinder.GetDefaultInstance();
+            return finder.FindBestMatch(_provider, CreatePreferences.PreferredConstructor, Specific, GetColumnNameCounts());
         }
 
         public ParameterExpression AddVariable<T>(string name) => AddVariable(typeof(T), name);
 
         public ParameterExpression AddVariable(Type t, string name)
         {
-            name = name + "_" + GetNextVarNumber();
+            name = name + "_" + _variableNumbers.GetNext();
             var variable = Expression.Variable(t, name);
             _variables.Add(variable);
             return variable;
         }
 
-        public int GetNextVarNumber() => _variableNumbers.GetNext();
-
-        public IReadOnlyDictionary<string, int> GetColumnNameCounts() 
-            => _columnNames.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.Count);
+        public IReadOnlyDictionary<string, int> GetColumnNameCounts() => Columns.GetColumnNameCounts();
 
         public IEnumerable<ColumnInfo> GetColumnsForProperty(string name, ICustomAttributeProvider attrs)
         {
             if (name == null)
-                return GetColumns(null);
+                return Columns.GetColumns(null);
 
             var propertyName = name.ToLowerInvariant();
-            if (HasColumn(propertyName))
-                return GetColumns(propertyName);
+            if (Columns.HasColumn(propertyName))
+                return Columns.GetColumns(propertyName);
 
             if (attrs == null)
                 return Enumerable.Empty<ColumnInfo>();
@@ -170,12 +121,12 @@ namespace CastIron.Sql.Mapping
             var columnName = attrs.GetTypedAttributes<ColumnAttribute>()
                 .Select(c => c.Name.ToLowerInvariant())
                 .FirstOrDefault();
-            if (HasColumn(columnName))
-                return GetColumns(columnName);
+            if (Columns.HasColumn(columnName))
+                return Columns.GetColumns(columnName);
 
             var acceptsUnnamed = attrs.GetTypedAttributes<UnnamedColumnsAttribute>().Any();
             if (acceptsUnnamed && _provider.UnnamedColumnName != null)
-                return GetColumns(_provider.UnnamedColumnName);
+                return Columns.GetColumns(_provider.UnnamedColumnName);
             return Enumerable.Empty<ColumnInfo>();
         }
 

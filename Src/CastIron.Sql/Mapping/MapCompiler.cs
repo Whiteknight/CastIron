@@ -76,7 +76,7 @@ namespace CastIron.Sql.Mapping
 
         private static ConstructedValueExpression GetPrimitiveConversionExpression(MapCompileContext context, string name, Type targetType)
         {
-            var firstColumn = context.GetColumn(name);
+            var firstColumn = context.Columns.GetColumn(name);
             if (firstColumn == null)
                 return ConstructedValueExpression.Nothing();
             firstColumn.MarkMapped();

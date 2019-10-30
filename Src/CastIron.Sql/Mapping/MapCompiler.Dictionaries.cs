@@ -67,7 +67,7 @@ namespace CastIron.Sql.Mapping
         {
             if (name == null)
             {
-                var firstColumnsByName = context.GetFirstIndexForEachColumnName();
+                var firstColumnsByName = context.Columns.GetFirstIndexForEachColumnName();
                 foreach (var column in firstColumnsByName)
                 {
                     var getScalarExpression = GetConversionExpression(context, column.CanonicalName, elementType, null, null);
@@ -78,7 +78,7 @@ namespace CastIron.Sql.Mapping
             }
 
             var subcontext = context.CreateSubcontext(null, name);
-            var columns = subcontext.GetFirstIndexForEachColumnName();
+            var columns = subcontext.Columns.GetFirstIndexForEachColumnName();
             foreach (var column in columns)
             {
                 var keyName = column.OriginalName.Substring(name.Length + 1);

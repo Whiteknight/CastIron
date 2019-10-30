@@ -21,8 +21,8 @@ namespace CastIron.Sql.Mapping
         // var instance = ...
         private static ConstructedValueExpression AddInstantiationExpressionForObjectInstance(MapCompileContext context)
         {
-            if (context.Factory != null)
-                return AddFactoryMethodCallExpression(context.Factory, context);
+            if (context.CreatePreferences.Factory != null)
+                return AddFactoryMethodCallExpression(context.CreatePreferences.Factory, context);
             return GetConstructorCallExpression(context);
         }
 
@@ -80,7 +80,7 @@ namespace CastIron.Sql.Mapping
         private static Expression GetConstructorArgumentExpression(MapCompileContext context, ParameterInfo parameter, List<Expression> expressions)
         {
             var name = parameter.Name.ToLowerInvariant();
-            if (!context.HasColumn(name) && !parameter.GetCustomAttributes<UnnamedColumnsAttribute>().Any())
+            if (!context.Columns.HasColumn(name) && !parameter.GetCustomAttributes<UnnamedColumnsAttribute>().Any())
                 return parameter.ParameterType.GetDefaultValueExpression();
 
             var expr = GetConversionExpression(context, parameter.Name.ToLowerInvariant(), parameter.ParameterType, null, parameter);
@@ -114,12 +114,12 @@ namespace CastIron.Sql.Mapping
             }
 
             // At the nested level (name!=null) we convert to a scalar (n==1) or an array (n>1) because name is always the same
-            var numColumns = context.GetColumns(name).Count();
+            var numColumns = context.Columns.GetColumns(name).Count();
             if (numColumns == 0)
                 return new ConstructedValueExpression(Expression.Convert(Expression.Constant(null), typeof(object)));
             if (numColumns == 1)
             {
-                var firstColumn = context.GetColumn(name);
+                var firstColumn = context.Columns.GetColumn(name);
                 firstColumn.MarkMapped();
                 return GetScalarMappingExpression(firstColumn.Index, context, firstColumn, targetType);
             }

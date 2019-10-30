@@ -10,7 +10,7 @@ namespace CastIron.Sql.Mapping
     {
         private static ConstructedValueExpression GetTupleConversionExpression(MapCompileContext context, string name, Type targetType)
         {
-            var columns = context.GetColumns(name).ToList();
+            var columns = context.Columns.GetColumns(name).ToList();
             return GetTupleConversionExpression(context, targetType, columns);
         }
 
