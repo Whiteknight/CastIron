@@ -118,7 +118,7 @@ namespace CastIron.Sql.Mapping
         private static Func<IDataRecord, T> CreateThunkExpression(IReadOnlyList<SubclassPredicate> subclasses)
         {
             if (subclasses.Count == 0)
-                return r => default(T);
+                return r => default;
             if (subclasses.Count == 1)
                 return subclasses[0].Mapper;
 
@@ -135,7 +135,7 @@ namespace CastIron.Sql.Mapping
                     return result;
                 }
 
-                return default(T);
+                return default;
             };
         }
 

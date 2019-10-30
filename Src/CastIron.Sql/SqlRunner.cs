@@ -40,32 +40,32 @@ namespace CastIron.Sql
 
         public void Execute(IReadOnlyList<Action<IExecutionContext, int>> executors)
         {
-            using (var context = CreateExecutionContext())
-                _core.Execute(context, executors);
+            using var context = CreateExecutionContext();
+            _core.Execute(context, executors);
         }
 
         public T Execute<T>(Func<IExecutionContext, T> executor)
         {
-            using (var context = CreateExecutionContext())
-                return _core.Execute(context, executor);
+            using var context = CreateExecutionContext();
+            return _core.Execute(context, executor);
         }
 
         public void Execute(Action<IExecutionContext> executor)
         {
-            using (var context = CreateExecutionContext())
-                _core.Execute(context, executor);
+            using var context = CreateExecutionContext();
+            _core.Execute(context, executor);
         }
 
         public async Task<T> ExecuteAsync<T>(Func<IExecutionContext, Task<T>> executor)
         {
-            using (var context = CreateExecutionContext())
-                return await _core.ExecuteAsync(context, executor).ConfigureAwait(false);
+            using var context = CreateExecutionContext();
+            return await _core.ExecuteAsync(context, executor).ConfigureAwait(false);
         }
 
         public async Task ExecuteAsync(Func<IExecutionContext, Task> executor)
         {
-            using (var context = CreateExecutionContext())
-                await _core.ExecuteAsync(context, executor).ConfigureAwait(false);
+            using var context = CreateExecutionContext();
+            await _core.ExecuteAsync(context, executor).ConfigureAwait(false);
         }
     }
 }

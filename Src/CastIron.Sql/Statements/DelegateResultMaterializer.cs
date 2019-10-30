@@ -13,9 +13,6 @@ namespace CastIron.Sql.Statements
             _materialize = materialize;
         }
 
-        public T Read(IDataResults result)
-        {
-            return _materialize(result);
-        }
+        public T Read(IDataResults result) => _materialize(result);
     }
 }

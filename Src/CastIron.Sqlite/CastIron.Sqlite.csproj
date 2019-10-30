@@ -7,6 +7,7 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Version>1.0.0</Version>
     <Authors>Andrew F. Whitworth</Authors>
+    <LangVersion>8.0</LangVersion>
     <Company />
     <Description>Bare-metal SQLite QueryObject implementation</Description>
     <Copyright>Copyright 2018</Copyright>

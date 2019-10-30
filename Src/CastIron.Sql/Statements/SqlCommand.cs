@@ -12,9 +12,6 @@ namespace CastIron.Sql.Statements
             _sql = sql;
         }
 
-        public string GetSql()
-        {
-            return _sql;
-        }
+        public string GetSql() => _sql;
     }
 }

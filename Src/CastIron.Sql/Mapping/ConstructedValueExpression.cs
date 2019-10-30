@@ -19,10 +19,7 @@ namespace CastIron.Sql.Mapping
             FinalValue = finalValue;
         }
 
-        public static ConstructedValueExpression Nothing()
-        {
-            return new ConstructedValueExpression(null);
-        }
+        public static ConstructedValueExpression Nothing() => new ConstructedValueExpression(null);
 
         public IEnumerable<Expression> Expressions { get; }
 

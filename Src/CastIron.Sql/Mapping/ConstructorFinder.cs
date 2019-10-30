@@ -15,10 +15,7 @@ namespace CastIron.Sql.Mapping
             _defaultInstance = new ConstructorFinder();
         }
 
-        public static ConstructorFinder GetDefaultInstance()
-        {
-            return _defaultInstance;
-        }
+        public static ConstructorFinder GetDefaultInstance() => _defaultInstance;
 
         public ConstructorInfo FindBestMatch(IProviderConfiguration provider, ConstructorInfo preferredConstructor, Type type, IReadOnlyDictionary<string, int> columnNames)
         {

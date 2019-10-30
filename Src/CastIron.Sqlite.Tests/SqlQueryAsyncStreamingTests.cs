@@ -15,7 +15,7 @@ namespace CastIron.Sqlite.Tests
             var stream = runner.QueryStream("SELECT 1 UNION SELECT 2 UNION SELECT 3");
             var result = stream.AsEnumerableAsync<int>();
             var sum = 0;
-            await foreach (int i in result)
+            await foreach (var i in result)
             {
                 sum += i;
             }

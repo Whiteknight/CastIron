@@ -19,10 +19,8 @@ namespace CastIron.Sql.Mapping
                 ?? new Dictionary<string, object>();
         }
 
-        private static string CanonicalizeParameterName(string name)
-        {
-            return (name.StartsWith("@") ? name.Substring(1) : name).ToLowerInvariant();
-        }
+        private static string CanonicalizeParameterName(string name) 
+            => (name.StartsWith("@") ? name.Substring(1) : name).ToLowerInvariant();
 
         public object GetValue(string name)
         {
@@ -33,10 +31,8 @@ namespace CastIron.Sql.Mapping
             return value == null || value == DBNull.Value ? null : value;
         }
 
-        public static Exception ValueNotFound(string name)
-        {
-            return new DataReaderException($"Could not find parameter named {name}. Please check your query and your spelling and try again.");
-        }
+        public static Exception ValueNotFound(string name) 
+            => new DataReaderException($"Could not find parameter named {name}. Please check your query and your spelling and try again.");
 
         public object GetValueOrThrow(string name)
         {
@@ -51,7 +47,7 @@ namespace CastIron.Sql.Mapping
         {
             var value = GetValue(name);
             if (value == null)
-                return default(T);
+                return default;
             if (typeof(T) == typeof(object))
                 return (T)value;
             if (value is T asT)
@@ -59,14 +55,14 @@ namespace CastIron.Sql.Mapping
             if (value is IConvertible && typeof(IConvertible).IsAssignableFrom(typeof(T)))
                 return (T)Convert.ChangeType(value, typeof(T));
 
-            return default(T);
+            return default;
         }
 
         public T GetOutputParameterOrThrow<T>(string name)
         {
             var value = GetValueOrThrow(name);
             if (value == null)
-                return default(T);
+                return default;
             if (typeof(T) == typeof(object))
                 return (T)value;
             if (value is T asT)

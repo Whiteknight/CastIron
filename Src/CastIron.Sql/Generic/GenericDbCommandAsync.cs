@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Data;
-using System.Text;
+﻿using System.Data;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -9,36 +6,31 @@ namespace CastIron.Sql.Generic
 {
     public class GenericDbCommandAsync : IDbCommandAsync
     {
-        private readonly IDbCommand _command;
-
         public GenericDbCommandAsync(IDbCommand command)
         {
-            _command = command;
+            Command = command;
         }
 
         public void Dispose()
         {
-            _command.Dispose();
+            Command.Dispose();
         }
 
-        public IDbCommand Command => _command;
+        public IDbCommand Command { get; }
 
-        public IDataReaderAsync ExecuteReader()
-        {
-            return new GenericDataReaderAsync(_command.ExecuteReader());
-        }
+        public IDataReaderAsync ExecuteReader() => new GenericDataReaderAsync(Command.ExecuteReader());
 
         public Task<IDataReaderAsync> ExecuteReaderAsync(CancellationToken cancellationToken)
         {
             // TODO: Use reflection to try to find a suitable async method to call
-            var reader = new GenericDataReaderAsync(_command.ExecuteReader());
+            var reader = new GenericDataReaderAsync(Command.ExecuteReader());
             return Task.FromResult<IDataReaderAsync>(reader);
         }
 
         public Task<int> ExecuteNonQueryAsync(CancellationToken cancellationToken)
         {
             // TODO: Use reflection to try to find a suitable async method to call
-            var count = _command.ExecuteNonQuery();
+            var count = Command.ExecuteNonQuery();
             return Task.FromResult(count);
         }
     }

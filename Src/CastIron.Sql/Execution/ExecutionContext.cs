@@ -101,10 +101,7 @@ namespace CastIron.Sql.Execution
             return this;
         }
 
-        public IContextBuilder SetTimeout(TimeSpan timeSpan)
-        {
-            return SetTimeoutSeconds((int) timeSpan.TotalSeconds);
-        }
+        public IContextBuilder SetTimeout(TimeSpan timeSpan) => SetTimeoutSeconds((int) timeSpan.TotalSeconds);
 
         public void StartSetupCommand(int index)
         {

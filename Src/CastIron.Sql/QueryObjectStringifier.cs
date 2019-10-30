@@ -67,26 +67,16 @@ namespace CastIron.Sql
                 Command = command;
             }
 
-            public void Dispose()
-            {
-                throw new System.NotImplementedException();
-            }
-
             public IDbCommand Command { get; }
-            public IDataReaderAsync ExecuteReader()
-            {
-                throw new System.NotImplementedException();
-            }
 
-            public Task<IDataReaderAsync> ExecuteReaderAsync(CancellationToken cancellationToken)
-            {
-                throw new System.NotImplementedException();
-            }
+            public void Dispose() => throw new System.NotImplementedException();
 
-            public Task<int> ExecuteNonQueryAsync(CancellationToken cancellationToken)
-            {
-                throw new System.NotImplementedException();
-            }
+
+            public IDataReaderAsync ExecuteReader() => throw new System.NotImplementedException();
+
+            public Task<IDataReaderAsync> ExecuteReaderAsync(CancellationToken cancellationToken) => throw new System.NotImplementedException();
+
+            public Task<int> ExecuteNonQueryAsync(CancellationToken cancellationToken) => throw new System.NotImplementedException();
         }
     }
 }

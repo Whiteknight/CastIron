@@ -35,9 +35,6 @@ namespace CastIron.Sql.Statements
             return interaction.IsValid;
         }
 
-        public T Read(IDataResults result)
-        {
-            return _simple.Read(result);
-        }
+        public T Read(IDataResults result) => _simple.Read(result);
     }
 }

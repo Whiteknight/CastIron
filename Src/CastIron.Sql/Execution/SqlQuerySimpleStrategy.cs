@@ -11,70 +11,62 @@ namespace CastIron.Sql.Execution
         public T Execute<T>(ISqlQuerySimple query, IResultMaterializer<T> queryReader, IExecutionContext context, int index)
         {
             context.StartSetupCommand(index);
-            using (var dbCommand = context.CreateCommand())
+            using var dbCommand = context.CreateCommand();
+            if (!SetupCommand(query, dbCommand))
             {
-                if (!SetupCommand(query, dbCommand))
-                {
-                    context.MarkAborted();
-                    return default(T);
-                }
+                context.MarkAborted();
+                return default;
+            }
 
-                try
-                {
-                    context.StartExecute(index, dbCommand);
-                    using (var reader = dbCommand.ExecuteReader())
-                    {
-                        context.StartMapResults(index);
-                        var rawResultSet = new DataReaderResults(context.Provider, dbCommand, context, reader);
-                        return queryReader.Read(rawResultSet);
-                    }
-                }
-                catch (SqlQueryException)
-                {
-                    context.MarkAborted();
-                    throw;
-                }
-                catch (Exception e)
-                {
-                    context.MarkAborted();
-                    var sql = context.Stringifier.Stringify(dbCommand);
-                    throw SqlQueryException.Wrap(e, sql, index);
-                }
+            try
+            {
+                context.StartExecute(index, dbCommand);
+                using var reader = dbCommand.ExecuteReader();
+                context.StartMapResults(index);
+                var rawResultSet = new DataReaderResults(context.Provider, dbCommand, context, reader);
+                return queryReader.Read(rawResultSet);
+            }
+            catch (SqlQueryException)
+            {
+                context.MarkAborted();
+                throw;
+            }
+            catch (Exception e)
+            {
+                context.MarkAborted();
+                var sql = context.Stringifier.Stringify(dbCommand);
+                throw SqlQueryException.Wrap(e, sql, index);
             }
         }
 
         public async Task<T> ExecuteAsync<T>(ISqlQuerySimple query, IResultMaterializer<T> queryReader, IExecutionContext context, int index, CancellationToken cancellationToken)
         {
             context.StartSetupCommand(index);
-            using (var dbCommand = context.CreateCommand())
+            using var dbCommand = context.CreateCommand();
+            if (!SetupCommand(query, dbCommand))
             {
-                if (!SetupCommand(query, dbCommand))
-                {
-                    context.MarkAborted();
-                    return default(T);
-                }
+                context.MarkAborted();
+                return default;
+            }
 
-                try
-                {
-                    context.StartExecute(index, dbCommand);
-                    using (var reader = await dbCommand.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false))
-                    {
-                        context.StartMapResults(index);
-                        var rawResultSet = new DataReaderResults(context.Provider, dbCommand, context, reader);
-                        return await Task.Run(() => queryReader.Read(rawResultSet), cancellationToken).ConfigureAwait(false);
-                    }
-                }
-                catch (SqlQueryException)
-                {
-                    context.MarkAborted();
-                    throw;
-                }
-                catch (Exception e)
-                {
-                    context.MarkAborted();
-                    var sql = context.Stringifier.Stringify(dbCommand.Command);
-                    throw SqlQueryException.Wrap(e, sql, index);
-                }
+            try
+            {
+                context.StartExecute(index, dbCommand);
+                using var reader = await dbCommand.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+                context.StartMapResults(index);
+                var rawResultSet = new DataReaderResults(context.Provider, dbCommand, context, reader);
+                return await Task.Run(() => queryReader.Read(rawResultSet), cancellationToken).ConfigureAwait(false);
+            }
+            catch (SqlQueryException)
+            {
+                context.MarkAborted();
+                throw;
+            }
+            catch (Exception e)
+            {
+                context.MarkAborted();
+                var sql = context.Stringifier.Stringify(dbCommand.Command);
+                throw SqlQueryException.Wrap(e, sql, index);
             }
         }
 

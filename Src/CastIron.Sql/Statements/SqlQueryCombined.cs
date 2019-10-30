@@ -15,14 +15,8 @@ namespace CastIron.Sql.Statements
             _materializer = materializer;
         }
 
-        public bool SetupCommand(IDataInteraction interaction)
-        {
-            return _query.SetupCommand(interaction);
-        }
+        public bool SetupCommand(IDataInteraction interaction) => _query.SetupCommand(interaction);
 
-        public T Read(IDataResults result)
-        {
-            return _materializer.Read(result);
-        }
+        public T Read(IDataResults result) => _materializer.Read(result);
     }
 }

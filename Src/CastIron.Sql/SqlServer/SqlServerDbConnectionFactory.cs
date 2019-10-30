@@ -17,10 +17,7 @@ namespace CastIron.Sql.SqlServer
             _connectionString = connectionString;
         }
 
-        public IDbConnectionAsync Create()
-        {
-            return new SqlServerDbConnectionAsync(new SqlConnection(_connectionString));
-        }
+        public IDbConnectionAsync Create() => new SqlServerDbConnectionAsync(new SqlConnection(_connectionString));
 
         public class SqlServerDbConnectionAsync : IDbConnectionAsync
         {
@@ -33,20 +30,11 @@ namespace CastIron.Sql.SqlServer
 
             public IDbConnection Connection => _connection;
 
-            public Task OpenAsync(CancellationToken cancellationToken)
-            {
-                return _connection.OpenAsync(cancellationToken);
-            }
+            public Task OpenAsync(CancellationToken cancellationToken) => _connection.OpenAsync(cancellationToken);
 
-            public IDbCommandAsync CreateCommand()
-            {
-                return new SqlServerDbCommandAsync(_connection.CreateCommand());
-            }
+            public IDbCommandAsync CreateCommand() => new SqlServerDbCommandAsync(_connection.CreateCommand());
 
-            public void Dispose()
-            {
-                _connection?.Dispose();
-            }
+            public void Dispose() => _connection?.Dispose();
         }
 
         public class SqlServerDbCommandAsync : IDbCommandAsync
@@ -72,15 +60,9 @@ namespace CastIron.Sql.SqlServer
                 return new SqlServerDataReaderAsync(reader);
             }
 
-            public Task<int> ExecuteNonQueryAsync(CancellationToken cancellationToken)
-            {
-                return _command.ExecuteNonQueryAsync(cancellationToken);
-            }
+            public Task<int> ExecuteNonQueryAsync(CancellationToken cancellationToken) => _command.ExecuteNonQueryAsync(cancellationToken);
 
-            public void Dispose()
-            {
-                _command?.Dispose();
-            }
+            public void Dispose() => _command?.Dispose();
         }
 
         public class SqlServerDataReaderAsync : IDataReaderAsync
@@ -94,20 +76,11 @@ namespace CastIron.Sql.SqlServer
 
             public IDataReader Reader => _reader;
 
-            public Task<bool> NextResultAsync(CancellationToken cancellationToken)
-            {
-                return _reader.NextResultAsync(cancellationToken);
-            }
+            public Task<bool> NextResultAsync(CancellationToken cancellationToken) => _reader.NextResultAsync(cancellationToken);
 
-            public Task<bool> ReadAsync(CancellationToken cancellationToken)
-            {
-                return _reader.ReadAsync(cancellationToken);
-            }
+            public Task<bool> ReadAsync(CancellationToken cancellationToken) => _reader.ReadAsync(cancellationToken);
 
-            public void Dispose()
-            {
-                _reader?.Dispose();
-            }
+            public void Dispose() => _reader?.Dispose();
         }
     }
 }

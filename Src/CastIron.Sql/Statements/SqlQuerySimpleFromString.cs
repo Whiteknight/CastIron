@@ -16,10 +16,7 @@ namespace CastIron.Sql.Statements
             _sql = sql;
         }
 
-        public string GetSql()
-        {
-            return _sql;
-        }
+        public string GetSql() => _sql;
     }
 
     public class SqlQuerySimpleFromString<TRow> : ISqlQuerySimple<IReadOnlyList<TRow>>
@@ -34,14 +31,9 @@ namespace CastIron.Sql.Statements
             _setupCompiler = setupCompiler;
         }
 
-        public string GetSql()
-        {
-            return _sql;
-        }
+        public string GetSql() => _sql;
 
-        public IReadOnlyList<TRow> Read(IDataResults result)
-        {
-            return result.AsEnumerable(_setupCompiler).ToList();
-        }
+        public IReadOnlyList<TRow> Read(IDataResults result) 
+            => result.AsEnumerable(_setupCompiler).ToList();
     }
 }

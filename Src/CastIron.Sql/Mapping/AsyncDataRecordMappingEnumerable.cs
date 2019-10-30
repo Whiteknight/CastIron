@@ -55,23 +55,19 @@ namespace CastIron.Sql.Mapping
             {
                 if (_context.IsCompleted || _reader.Reader.IsClosed)
                 {
-                    Current = default(T);
+                    Current = default;
                     return false;
                 }
 
                 var ok = await _reader.ReadAsync(new CancellationToken()).ConfigureAwait(false);
                 // TODO: have an async  _reader variant
-                Current = ok ? _read(_reader.Reader) : default(T);
+                Current = ok ? _read(_reader.Reader) : default;
                 return ok;
             }
 
-            public ValueTask DisposeAsync()
-            {
-                return new ValueTask(Task.CompletedTask);
-            }
+            public ValueTask DisposeAsync() => new ValueTask(Task.CompletedTask);
 
             public T Current { get; private set; }
-
         }
     }
 }

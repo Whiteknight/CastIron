@@ -61,6 +61,8 @@ namespace CastIron.Sql
         /// </summary>
         /// <returns></returns>
         ParameterCache GetParameters();
+
+        // TODO: Be able to get the text of the sql query executed
     }
 
     /// <summary>
@@ -77,6 +79,10 @@ namespace CastIron.Sql
         /// </summary>
         /// <returns></returns>
         IDataReader AsRawReader();
+
+        // TODO: Tuple<T1, T2> ToLists<T1, T2>()
+        // TODO: Tuple<T1, T2, T3> ToLists<T1, T2, T3>()
+        // TODO: ...
     }
 
     public interface IDataResultsStream : IDataResultsBase, IDisposable

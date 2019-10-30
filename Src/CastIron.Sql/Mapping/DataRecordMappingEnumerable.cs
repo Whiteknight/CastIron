@@ -27,10 +27,7 @@ namespace CastIron.Sql.Mapping
             _readAttempts = 0;
         }
 
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return GetEnumerator();
-        }
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
         public IEnumerator<T> GetEnumerator()
         {
@@ -65,19 +62,16 @@ namespace CastIron.Sql.Mapping
                 // TODO: While this is enumerating we cannot do anything else with the reader.
                 if (_context.IsCompleted || _reader.Reader.IsClosed)
                 {
-                    Current = default(T);
+                    Current = default;
                     return false;
                 }
 
                 var ok = _reader.Reader.Read();
-                Current = ok ? _read(_reader.Reader) : default(T);
+                Current = ok ? _read(_reader.Reader) : default;
                 return ok;
             }
 
-            public void Reset()
-            {
-                throw new NotImplementedException();
-            }
+            public void Reset() => throw new NotImplementedException();
 
             public T Current { get; private set; }
 

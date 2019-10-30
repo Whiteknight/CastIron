@@ -130,7 +130,7 @@ namespace CastIron.Sql.Mapping
         public MapCompileContext CreateSubcontext(Type t, string prefix)
         {
             if (!string.IsNullOrEmpty(prefix))
-                prefix = prefix + _separator;
+                prefix += _separator;
             return new MapCompileContext(this, t, prefix, _separator);
         }
 
@@ -187,10 +187,7 @@ namespace CastIron.Sql.Mapping
                 .Where(c => c != null);
         }
 
-        public ParameterExpression AddVariable<T>(string name)
-        {
-            return AddVariable(typeof(T), name);
-        }
+        public ParameterExpression AddVariable<T>(string name) => AddVariable(typeof(T), name);
 
         public ParameterExpression AddVariable(Type t, string name)
         {
@@ -225,15 +222,10 @@ namespace CastIron.Sql.Mapping
             Debug.WriteLine(code);
         }
 
-        public int GetNextVarNumber()
-        {
-            return _variableNumbers.GetNext();
-        }
+        public int GetNextVarNumber() => _variableNumbers.GetNext();
 
-        public IReadOnlyDictionary<string, int> GetColumnNameCounts()
-        {
-            return _columnNames.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.Count);
-        }
+        public IReadOnlyDictionary<string, int> GetColumnNameCounts() 
+            => _columnNames.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.Count);
 
         public IEnumerable<ColumnInfo> GetColumnsForProperty(string name, ICustomAttributeProvider attrs)
         {

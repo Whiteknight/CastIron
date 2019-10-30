@@ -17,129 +17,121 @@ namespace CastIron.Sql.Execution
         public void Execute(ISqlCommand command, IExecutionContext context, int index)
         {
             context.StartSetupCommand(index);
-            using (var dbCommand = context.CreateCommand())
+            using var dbCommand = context.CreateCommand();
+            try
             {
-                try
+                if (!SetupCommand(command, dbCommand))
                 {
-                    if (!SetupCommand(command, dbCommand))
-                    {
-                        context.MarkAborted();
-                        return;
-                    }
+                    context.MarkAborted();
+                    return;
+                }
 
-                    context.StartExecute(index, dbCommand);
-                    dbCommand.Command.ExecuteNonQuery();
-                }
-                catch (SqlQueryException)
-                {
-                    context.MarkAborted();
-                    throw;
-                }
-                catch (Exception e)
-                {
-                    context.MarkAborted();
-                    var sql = context.Stringifier.Stringify(dbCommand);
-                    throw SqlQueryException.Wrap(e, sql, index);
-                }
+                context.StartExecute(index, dbCommand);
+                dbCommand.Command.ExecuteNonQuery();
+            }
+            catch (SqlQueryException)
+            {
+                context.MarkAborted();
+                throw;
+            }
+            catch (Exception e)
+            {
+                context.MarkAborted();
+                var sql = context.Stringifier.Stringify(dbCommand);
+                throw SqlQueryException.Wrap(e, sql, index);
             }
         }
 
         public async Task ExecuteAsync(ISqlCommand command, IExecutionContext context, int index, CancellationToken cancellationToken)
         {
             context.StartSetupCommand(index);
-            using (var dbCommand = context.CreateCommand())
+            using var dbCommand = context.CreateCommand();
+            try
             {
-                try
-                {
-                    if (!SetupCommand(command, dbCommand))
-                    {
-                        context.MarkAborted();
-                        return;
-                    }
-
-                    context.StartExecute(index, dbCommand);
-                    await dbCommand.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
-
-                }
-                catch (SqlQueryException)
+                if (!SetupCommand(command, dbCommand))
                 {
                     context.MarkAborted();
-                    throw;
+                    return;
                 }
-                catch (Exception e)
-                {
-                    context.MarkAborted();
-                    var sql = context.Stringifier.Stringify(dbCommand.Command);
-                    throw SqlQueryException.Wrap(e, sql, index);
-                }
+
+                context.StartExecute(index, dbCommand);
+                await dbCommand.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+
+            }
+            catch (SqlQueryException)
+            {
+                context.MarkAborted();
+                throw;
+            }
+            catch (Exception e)
+            {
+                context.MarkAborted();
+                var sql = context.Stringifier.Stringify(dbCommand.Command);
+                throw SqlQueryException.Wrap(e, sql, index);
             }
         }
 
         public T Execute<T>(ISqlCommand<T> command, IExecutionContext context, int index)
         {
             context.StartSetupCommand(index);
-            using (var dbCommand = context.CreateCommand())
+            using var dbCommand = context.CreateCommand();
+            try
             {
-                try
-                {
-                    if (!SetupCommand(command, dbCommand))
-                    {
-                        context.MarkAborted();
-                        return default(T);
-                    }
-
-                    context.StartExecute(index, dbCommand);
-                    int rowsAffected = dbCommand.Command.ExecuteNonQuery();
-
-                    context.StartMapResults(index);
-                    var resultSet = new DataReaderResults(context.Provider, dbCommand, context, null, rowsAffected);
-                    return command.ReadOutputs(resultSet);
-                }
-                catch (SqlQueryException)
+                if (!SetupCommand(command, dbCommand))
                 {
                     context.MarkAborted();
-                    throw;
+                    return default;
                 }
-                catch (Exception e)
-                {
-                    context.MarkAborted();
-                    var sql = context.Stringifier.Stringify(dbCommand);
-                    throw SqlQueryException.Wrap(e, sql, index);
-                }
+
+                context.StartExecute(index, dbCommand);
+                int rowsAffected = dbCommand.Command.ExecuteNonQuery();
+
+                context.StartMapResults(index);
+                var resultSet = new DataReaderResults(context.Provider, dbCommand, context, null, rowsAffected);
+                return command.ReadOutputs(resultSet);
+            }
+            catch (SqlQueryException)
+            {
+                context.MarkAborted();
+                throw;
+            }
+            catch (Exception e)
+            {
+                context.MarkAborted();
+                var sql = context.Stringifier.Stringify(dbCommand);
+                throw SqlQueryException.Wrap(e, sql, index);
             }
         }
 
         public async Task<T> ExecuteAsync<T>(ISqlCommand<T> command, IExecutionContext context, int index, CancellationToken cancellationToken)
         {
             context.StartSetupCommand(index);
-            using (var dbCommand = context.CreateCommand())
+            using var dbCommand = context.CreateCommand();
+            try
             {
-                try
-                {
-                    if (!SetupCommand(command, dbCommand))
-                    {
-                        context.MarkAborted();
-                        return default(T);
-                    }
-
-                    context.StartExecute(index, dbCommand);
-                    var rowsAffected = await dbCommand.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
-
-                    context.StartMapResults(index);
-                    var resultSet = new DataReaderResults(context.Provider, dbCommand, context, null, rowsAffected);
-                    return command.ReadOutputs(resultSet);
-                }
-                catch (SqlQueryException)
+                if (!SetupCommand(command, dbCommand))
                 {
                     context.MarkAborted();
-                    throw;
+                    return default;
                 }
-                catch (Exception e)
-                {
-                    context.MarkAborted();
-                    var sql = context.Stringifier.Stringify(dbCommand.Command);
-                    throw SqlQueryException.Wrap(e, sql, index);
-                }
+
+                context.StartExecute(index, dbCommand);
+                var rowsAffected = await dbCommand.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+
+                context.StartMapResults(index);
+                var resultSet = new DataReaderResults(context.Provider, dbCommand, context, null, rowsAffected);
+                return command.ReadOutputs(resultSet);
+            }
+            catch (SqlQueryException)
+            {
+                context.MarkAborted();
+                throw;
+            }
+            catch (Exception e)
+            {
+                context.MarkAborted();
+                var sql = context.Stringifier.Stringify(dbCommand.Command);
+                throw SqlQueryException.Wrap(e, sql, index);
             }
         }
 

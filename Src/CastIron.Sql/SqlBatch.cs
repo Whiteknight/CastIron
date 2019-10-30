@@ -44,10 +44,7 @@ namespace CastIron.Sql
             return promise;
         }
 
-        public ISqlResultPromise<T> Add<T>(ISqlQuerySimple<T> query)
-        {
-            return Add(query, query);
-        }
+        public ISqlResultPromise<T> Add<T>(ISqlQuerySimple<T> query) => Add(query, query);
 
         public ISqlResultPromise<T> Add<T>(ISqlQuery query, IResultMaterializer<T> reader)
         {
@@ -62,10 +59,7 @@ namespace CastIron.Sql
             return promise;
         }
 
-        public ISqlResultPromise<T> Add<T>(ISqlQuery<T> query)
-        {
-            return Add(query, query);
-        }
+        public ISqlResultPromise<T> Add<T>(ISqlQuery<T> query) => Add(query, query);
 
         public ISqlResultPromise Add(ISqlCommandSimple command)
         {

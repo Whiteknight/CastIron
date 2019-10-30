@@ -15,10 +15,11 @@ namespace CastIron.Sql.Mapping
         IMapCompilerBuilderBase<T> UseChildSeparator(string separator);
     }
 
-    public interface IMapCompilerBuilder<T> : IMapCompilerBuilderBase<T>
+    public interface IMapCompilerBuilder<in T> : IMapCompilerBuilderBase<T>
     {
         IMapCompilerBuilder<T> UseClass<TSpecific>()
             where TSpecific : T;
+
         IMapCompilerBuilder<T> UseSubclass<TSubclass>(Func<IDataRecord, bool> predicate, Action<IMapCompilerBuilderBase<T>> setup = null)
             where TSubclass : T;
     }

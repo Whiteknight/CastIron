@@ -30,6 +30,10 @@ namespace CastIron.Sql.Mapping
 
         private static Expression GetRawValueConversionExpression(Type targetType, ParameterExpression rawVar, Type columnType)
         {
+            // TODO: Break out a list of ConversionCompiler objects which take the params and output the expression
+            // Then merge this static method to be an instance method on MapCompiler to call those compilers
+            // Expose the interface to make them editable/injectable
+            // Would like to have extensions to be able to map dbstring to XmlDocument, etc
             if (targetType == typeof(object))
             {
                 // raw != DBNull.Instance ? raw : (object)null;
