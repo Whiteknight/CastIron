@@ -25,16 +25,17 @@ namespace CastIron.Sql.Mapping
             new SameTypeMapCompiler()
         };
 
-        public static ConstructedValueExpression GetScalarMappingExpression(int columnIdx, MapCompileContext context, ColumnInfo column, Type targetType)
+        public static ConstructedValueExpression GetScalarMappingExpression(MapCompileContext context, ColumnInfo column, Type targetType)
         {
             var expressions = new List<Expression>();
 
             // Pull the value out of the reader into the rawVar
             var rawVar = context.AddVariable<object>("raw");
-            var getRawStmt = Expression.Assign(rawVar, Expression.Call(context.RecordParam, _getValueMethod, Expression.Constant(columnIdx)));
+            var getRawStmt = Expression.Assign(rawVar, Expression.Call(context.RecordParam, _getValueMethod, Expression.Constant(column.Index)));
             expressions.Add(getRawStmt);
 
             var rawConvertExpr = MapScalar(targetType, column, rawVar);
+            column.MarkMapped();
             return new ConstructedValueExpression(expressions, rawConvertExpr);
         }
 

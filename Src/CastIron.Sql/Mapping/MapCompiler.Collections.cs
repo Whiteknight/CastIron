@@ -97,10 +97,9 @@ namespace CastIron.Sql.Mapping
             foreach (var column in columns)
             {
                 // TODO: Is it possible to try recurse here? 
-                var getScalarExpression = GetScalarMappingExpression(column.Index, context, column, elementType);
+                var getScalarExpression = GetScalarMappingExpression(context, column, elementType);
                 expressions.AddRange(getScalarExpression.Expressions);
                 expressions.Add(Expression.Call(listVar, addMethod, getScalarExpression.FinalValue));
-                column.MarkMapped();
             }
         }
 
@@ -155,10 +154,9 @@ namespace CastIron.Sql.Mapping
             for (var i = 0; i < columns.Count; i++)
             {
                 var column = columns[i];
-                var getScalarExpression = GetScalarMappingExpression(column.Index, context, column, elementType);
+                var getScalarExpression = GetScalarMappingExpression(context, column, elementType);
                 expressions.AddRange(getScalarExpression.Expressions);
                 expressions.Add(Expression.Assign(Expression.ArrayAccess(arrayVar, Expression.Constant(i)), getScalarExpression.FinalValue));
-                column.MarkMapped();
             }
 
             return new ConstructedValueExpression(expressions, arrayVar);
