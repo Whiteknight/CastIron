@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Linq.Expressions;
 
-namespace CastIron.Sql.Mapping.Scalars
+namespace CastIron.Sql.Mapping.ScalarCompilers
 {
     public class ObjectMapCompiler : IScalarMapCompiler
     {

@@ -2,7 +2,7 @@
 using System.Linq.Expressions;
 using System.Reflection;
 
-namespace CastIron.Sql.Mapping.Scalars
+namespace CastIron.Sql.Mapping.ScalarCompilers
 {
     public class StringToGuidMapCompiler : IScalarMapCompiler
     {

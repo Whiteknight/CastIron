@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.Data;
 using System.Linq.Expressions;
 using System.Reflection;
-using CastIron.Sql.Mapping.Scalars;
+using CastIron.Sql.Mapping.ScalarCompilers;
 
-namespace CastIron.Sql.Mapping
+namespace CastIron.Sql.Mapping.Compilers
 {
-    public partial class MapCompiler
+    public class ScalarCompiler : ICompiler
     {
         private static readonly MethodInfo _getValueMethod = typeof(IDataRecord).GetMethod(nameof(IDataRecord.GetValue), new[] { typeof(int) });
 
@@ -25,18 +25,26 @@ namespace CastIron.Sql.Mapping
             new SameTypeMapCompiler()
         };
 
-        public static ConstructedValueExpression GetScalarMappingExpression(MapCompileContext context, ColumnInfo column, Type targetType)
+        public ConstructedValueExpression Compile(MapState state)
         {
-            var expressions = new List<Expression>();
+            var column = state.SingleColumn();
+            if (column == null)
+                return ConstructedValueExpression.Nothing;
 
             // Pull the value out of the reader into the rawVar
-            var rawVar = context.AddVariable<object>("raw");
-            var getRawStmt = Expression.Assign(rawVar, Expression.Call(context.RecordParam, _getValueMethod, Expression.Constant(column.Index)));
-            expressions.Add(getRawStmt);
+            var rawVar = state.CreateVariable<object>("raw");
+            var getRawStmt = Expression.Assign(
+                rawVar,
+                Expression.Call(
+                    state.RecordParameter,
+                    _getValueMethod,
+                    Expression.Constant(column.Index)
+                )
+            );
 
-            var rawConvertExpr = MapScalar(targetType, column, rawVar);
+            var rawConvertExpr = MapScalar(state.TargetType, column, rawVar);
             column.MarkMapped();
-            return new ConstructedValueExpression(expressions, rawConvertExpr);
+            return new ConstructedValueExpression(new[] { getRawStmt }, rawConvertExpr, new[] { rawVar });
         }
 
         private static Expression MapScalar(Type targetType, ColumnInfo column, ParameterExpression rawVar)

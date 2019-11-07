@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -175,6 +176,19 @@ namespace CastIron.Sql.Mapping
         public static bool IsNumericType(this Type t) => _numericTypes.Contains(t);
 
         public static bool IsMappableScalarType(this Type t) => _primitiveTypes.Contains(t) || t == typeof(object);
+
+        public static bool IsUntypedEnumerableType(this Type t) => t == typeof(IEnumerable) || t == typeof(IList) || t == typeof(ICollection);
+
+        public static bool IsMappableCustomObjectType(this Type t)
+        {
+            return t.IsClass
+                   && !t.IsInterface
+                   && !t.IsAbstract
+                   && !t.IsArray
+                   && t != typeof(string)
+                   && !(t.Namespace ?? string.Empty).StartsWith("System.Collections")
+                   && t != typeof(object);
+        }
 
         public static object GetDefaultValue(this Type t) => t.IsValueType ? Activator.CreateInstance(t) : null;
     }

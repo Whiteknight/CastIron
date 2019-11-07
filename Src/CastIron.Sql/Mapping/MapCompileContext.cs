@@ -25,9 +25,8 @@ namespace CastIron.Sql.Mapping
 
     public class MapCompileContext
     {
-        private readonly IProviderConfiguration _provider;
-        
-        private readonly List<ParameterExpression> _variables;
+        public IProviderConfiguration Provider { get; }
+
         private readonly VariableNumberSource _variableNumbers;
         private readonly string _separator;
 
@@ -45,11 +44,10 @@ namespace CastIron.Sql.Mapping
 
             RecordParam = Expression.Parameter(typeof(IDataRecord), "record");
             
-            _provider = provider;
+            Provider = provider;
             Columns = columns;
 
             _variableNumbers = new VariableNumberSource();
-            _variables = new List<ParameterExpression>();
         }
 
         private MapCompileContext(MapCompileContext parent, Type type, ColumnInfoCollection columns, string separator)
@@ -60,14 +58,13 @@ namespace CastIron.Sql.Mapping
 
             _separator = separator;
             Specific = type;
-            _provider = parent._provider;
+            Provider = parent.Provider;
 
             RecordParam = parent.RecordParam;
 
             CreatePreferences = parent.CreatePreferences;
 
             _variableNumbers = parent._variableNumbers;
-            _variables = parent._variables;
             Columns = columns;
         }
 
@@ -75,56 +72,30 @@ namespace CastIron.Sql.Mapping
         public ParameterExpression RecordParam { get; }
         public Type Specific { get; }
         public ObjectCreatePreferences CreatePreferences { get; }
-        public IReadOnlyList<ParameterExpression> Variables => _variables;
 
-        public MapCompileContext CreateSubcontext(Type t, string prefix)
-        {
-            if (!string.IsNullOrEmpty(prefix))
-                prefix += _separator;
-            var columns = Columns.ForPrefix(prefix);
-            return new MapCompileContext(this, t, columns, _separator);
-        }
-
-        public ConstructorInfo GetConstructor()
+        public ConstructorInfo GetConstructor(Type type)
         {
             var finder = CreatePreferences.ConstructorFinder ?? ConstructorFinder.GetDefaultInstance();
-            return finder.FindBestMatch(_provider, CreatePreferences.PreferredConstructor, Specific, GetColumnNameCounts());
+            return finder.FindBestMatch(Provider, CreatePreferences.PreferredConstructor, type, GetColumnNameCounts());
         }
 
-        public ParameterExpression AddVariable<T>(string name) => AddVariable(typeof(T), name);
+        public ParameterExpression CreateVariable<T>(string name) => CreateVariable(typeof(T), name);
 
-        public ParameterExpression AddVariable(Type t, string name)
+        public ParameterExpression CreateVariable(Type t, string name)
         {
             name = name + "_" + _variableNumbers.GetNext();
             var variable = Expression.Variable(t, name);
-            _variables.Add(variable);
             return variable;
         }
 
         public IReadOnlyDictionary<string, int> GetColumnNameCounts() => Columns.GetColumnNameCounts();
 
-        public IEnumerable<ColumnInfo> GetColumnsForProperty(string name, ICustomAttributeProvider attrs)
+        
+
+
+        public MapState GetState(string name, Type targetType)
         {
-            if (name == null)
-                return Columns.GetColumns(null);
-
-            var propertyName = name.ToLowerInvariant();
-            if (Columns.HasColumn(propertyName))
-                return Columns.GetColumns(propertyName);
-
-            if (attrs == null)
-                return Enumerable.Empty<ColumnInfo>();
-
-            var columnName = attrs.GetTypedAttributes<ColumnAttribute>()
-                .Select(c => c.Name.ToLowerInvariant())
-                .FirstOrDefault();
-            if (Columns.HasColumn(columnName))
-                return Columns.GetColumns(columnName);
-
-            var acceptsUnnamed = attrs.GetTypedAttributes<UnnamedColumnsAttribute>().Any();
-            if (acceptsUnnamed && _provider.UnnamedColumnName != null)
-                return Columns.GetColumns(_provider.UnnamedColumnName);
-            return Enumerable.Empty<ColumnInfo>();
+            return new MapState(this, Columns.ForName(name), targetType, name, null);
         }
 
         public class VariableNumberSource
