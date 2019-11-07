@@ -3,6 +3,9 @@ using System.Runtime.Serialization;
 
 namespace CastIron.Sql.Mapping
 {
+    /// <summary>
+    /// Exception when something goes wrong during Constructor finding
+    /// </summary>
     [Serializable]
     public class ConstructorFindException : Exception
     {

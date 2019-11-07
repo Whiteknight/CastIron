@@ -6,12 +6,12 @@ using CastIron.Sql.Utility;
 
 namespace CastIron.Sql.Mapping
 {
-    public class CachingMappingCompiler : IMapCompiler
+    public class CachingMapCompiler : IMapCompiler
     {
         private readonly IMapCompiler _inner;
         private readonly ConcurrentDictionary<string, object> _cache;
 
-        public CachingMappingCompiler(IMapCompiler inner)
+        public CachingMapCompiler(IMapCompiler inner)
         {
             _inner = inner;
             _cache = new ConcurrentDictionary<string, object>();
@@ -27,7 +27,8 @@ namespace CastIron.Sql.Mapping
             Argument.NotNull(context, nameof(context));
 
             // We cannot cache if a custom factory is provided. The internals of the factory can change
-            if (context.CreatePreferences.Factory != null)
+            var factory = context.GetFactoryMethod(context.Specific);
+            if (factory != null)
                 return _inner.CompileExpression<T>(context, reader);
 
             var key = CreateKey<T>(context, reader);
@@ -44,10 +45,11 @@ namespace CastIron.Sql.Mapping
             var sb = new StringBuilder();
             sb.AppendLine("P:" + typeof(T).FullName);
             sb.AppendLine("S:" + context.Specific.FullName);
-            if (context.CreatePreferences.PreferredConstructor != null)
+            var preferredConstructor = context.GetPreferredConstructor(context.Specific);
+            if (preferredConstructor != null)
             {
                 sb.Append("C:");
-                foreach (var param in context.CreatePreferences.PreferredConstructor.GetParameters())
+                foreach (var param in preferredConstructor.GetParameters())
                 {
                     sb.Append(param.Name);
                     sb.Append(":");

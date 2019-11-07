@@ -6,11 +6,11 @@ using System.Reflection;
 
 namespace CastIron.Sql.Mapping
 {
-    public class ConstructorFinder : IConstructorFinder
+    public class BestMatchConstructorFinder : IConstructorFinder
     {
-        private static readonly ConstructorFinder _defaultInstance = new ConstructorFinder();
+        private static readonly BestMatchConstructorFinder _defaultInstance = new BestMatchConstructorFinder();
 
-        public static ConstructorFinder GetDefaultInstance() => _defaultInstance;
+        public static BestMatchConstructorFinder GetDefaultInstance() => _defaultInstance;
 
         public ConstructorInfo FindBestMatch(IProviderConfiguration provider, ConstructorInfo preferredConstructor, Type type, IReadOnlyDictionary<string, int> columnNames)
         {

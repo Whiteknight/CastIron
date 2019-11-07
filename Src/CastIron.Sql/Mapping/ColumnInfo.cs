@@ -2,6 +2,9 @@
 
 namespace CastIron.Sql.Mapping
 {
+    /// <summary>
+    /// Holds information about a single column from a result set
+    /// </summary>
     public class ColumnInfo
     {
         public ColumnInfo(int index, string originalName, Type columnType, string sqlTypeName)

@@ -103,6 +103,9 @@ namespace CastIron.Sql.Mapping
             return dictType != null;
         }
 
+        public static bool IsArrayType(this Type t)
+            => t.IsArray && t.HasElementType;
+
         // Is one of IDictionary<string,X> or IReadOnlyDictionary<string,X>
         public static bool IsDictionaryInterfaceType(this Type t)
         {
@@ -112,7 +115,17 @@ namespace CastIron.Sql.Mapping
             return (genericDef == typeof(IDictionary<,>) || genericDef == typeof(IReadOnlyDictionary<,>)) && t.GenericTypeArguments[0] == typeof(string);
         }
 
-        public static bool IsConcreteCollectionType(this Type t) => !t.IsInterface && !t.IsAbstract && t.GetInterfaces().Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(ICollection<>));
+        public static bool IsConcreteCollectionType(this Type t) 
+            => 
+                !t.IsInterface 
+                && !t.IsAbstract 
+                && t.GetInterfaces().Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(ICollection<>));
+
+        public static bool IsAbstractCollectionType(this Type t)
+            =>
+                t.IsGenericType
+                && t.IsInterface
+                && (t.Namespace ?? string.Empty).StartsWith("System.Collections");
 
         private static readonly HashSet<Type> _numericTypes = new HashSet<Type>
         {

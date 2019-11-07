@@ -8,6 +8,10 @@ using System.Threading;
 
 namespace CastIron.Sql.Mapping
 {
+    /// <summary>
+    /// IEnumerable implementation to apply a map function to every row in an IDataReader
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
     public sealed class DataRecordMappingEnumerable<T> : IEnumerable<T>
     {
         private readonly IDataReaderAsync _reader;

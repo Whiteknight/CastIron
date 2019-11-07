@@ -6,6 +6,9 @@ using System.Reflection;
 
 namespace CastIron.Sql.Mapping.Compilers
 {
+    /// <summary>
+    /// Maps any class except one of the other supported options
+    /// </summary>
     public class CustomObjectCompiler : ICompiler
     {
         private static readonly MethodInfo _createMapExceptionMethod = typeof(DataMappingException).GetMethod(nameof(DataMappingException.UserFactoryReturnedNull), BindingFlags.Public | BindingFlags.Static);
@@ -37,9 +40,7 @@ namespace CastIron.Sql.Mapping.Compilers
         private ConstructedValueExpression AddInstantiationExpressionForObjectInstance(MapState state)
         {
             var factory = state.GetFactoryForCurrentObjectType();
-            if (factory != null)
-                return AddFactoryMethodCallExpression(state, factory);
-            return GetConstructorCallExpression(state);
+            return factory != null ? AddFactoryMethodCallExpression(state, factory) : GetConstructorCallExpression(state);
         }
 
         // var instance = cast(type, factory());
@@ -100,7 +101,10 @@ namespace CastIron.Sql.Mapping.Compilers
                 {
                     expressions.AddRange(expr.Expressions);
                     variables.AddRange(expr.Variables);
+                    continue;
                 }
+
+                args[i] = parameter.ParameterType.GetDefaultValueExpression();
             }
 
             // Map columns to constructor parameters by name, marking the columns consumed so they aren't used again later

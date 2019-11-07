@@ -2,6 +2,10 @@
 
 namespace CastIron.Sql.Mapping.Compilers
 {
+    /// <summary>
+    /// Executes compilers in order and returns as soon as any compiler succeeds. If no compilers succeed,
+    /// a failure result is returned
+    /// </summary>
     public class FirstCompiler : ICompiler
     {
         private readonly IReadOnlyList<ICompiler> _compilers;

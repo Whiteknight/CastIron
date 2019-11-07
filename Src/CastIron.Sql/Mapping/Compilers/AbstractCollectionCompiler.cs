@@ -6,6 +6,9 @@ using System.Reflection;
 
 namespace CastIron.Sql.Mapping.Compilers
 {
+    /// <summary>
+    /// Attempt to instantiate a List to fill a slot of type IList, IReadOnlyList, ICollection, IEnumerable, etc
+    /// </summary>
     public class AbstractCollectionCompiler : ICompiler
     {
         private readonly ICompiler _values;
@@ -19,21 +22,12 @@ namespace CastIron.Sql.Mapping.Compilers
 
         public ConstructedValueExpression Compile(MapState state)
         {
-            if (state.TargetType.GenericTypeArguments.Length != 1)
-                throw MapCompilerException.InvalidInterfaceType(state.TargetType);
+            var elementType = GetElementType(state);
+            var listType = GetConcreteListType(state.TargetType, elementType);
 
-            var elementType = state.TargetType.GenericTypeArguments[0];
-            var listType = typeof(List<>).MakeGenericType(elementType);
-            if (!state.TargetType.IsAssignableFrom(listType))
-                throw MapCompilerException.CannotConvertType(state.TargetType, listType);
+            var constructor = GetListConstructor(listType);
 
-            var constructor = listType.GetConstructor(new Type[0]);
-            if (constructor == null)
-                throw MapCompilerException.MissingParameterlessConstructor(listType);
-
-            var addMethod = listType.GetMethod(nameof(List<object>.Add));
-            if (addMethod == null)
-                throw MapCompilerException.MissingMethod(state.TargetType, nameof(List<object>.Add), elementType);
+            var addMethod = GetListAddMethod(state.TargetType, listType, elementType);
 
             var originalTargetType = state.TargetType;
             state = state.ChangeTargetType(listType);
@@ -47,13 +41,43 @@ namespace CastIron.Sql.Mapping.Compilers
             );
         }
 
+        private static Type GetElementType(MapState state)
+        {
+            if (state.TargetType.GenericTypeArguments.Length != 1)
+                throw MapCompilerException.InvalidInterfaceType(state.TargetType);
+
+            var elementType = state.TargetType.GenericTypeArguments[0];
+            return elementType;
+        }
+
+        private static MethodInfo GetListAddMethod(Type targetType, Type listType, Type elementType)
+        {
+            return listType.GetMethod(nameof(List<object>.Add)) ?? throw MapCompilerException.MissingMethod(targetType, nameof(List<object>.Add), elementType);
+        }
+
+        private static ConstructorInfo GetListConstructor(Type listType)
+        {
+            return listType.GetConstructor(new Type[0]) ?? throw MapCompilerException.MissingParameterlessConstructor(listType);
+        }
+
+        private static Type GetConcreteListType(Type targetType, Type elementType)
+        {
+            var listType = typeof(List<>).MakeGenericType(elementType);
+            if (!targetType.IsAssignableFrom(listType))
+                throw MapCompilerException.CannotConvertType(targetType, listType);
+            return listType;
+        }
+
         private static ConstructedValueExpression GetMaybeInstantiateCollectionExpression(MapState state, ConstructorInfo constructor)
         {
             var newInstance = state.CreateVariable(state.TargetType, "list");
             if (state.GetExisting == null)
             {
                 // var newInstance = new TargetType()
-                var createNewExpr = Expression.Assign(newInstance, Expression.New(constructor));
+                var createNewExpr = Expression.Assign(
+                    newInstance, 
+                    Expression.New(constructor)
+                );
                 return new ConstructedValueExpression(new [] { createNewExpr }, newInstance, new [] { newInstance });
             }
 
@@ -82,20 +106,19 @@ namespace CastIron.Sql.Mapping.Compilers
 
             if (elementType.IsMappableCustomObjectType())
             {
-                // TODO: We should be able to loop here, and instantiate more than one instance so long as we
-                // still have mappable columns (and so long as the number of mappable columns decreases each
-                // iteration)
                 var elementState = state.ChangeTargetType(elementType);
-                var result = _customObjects.Compile(elementState);
-                expressions.AddRange(result.Expressions);
-                expressions.Add(
-                    Expression.Call(
-                        listVar, 
-                        addMethod, 
-                        result.FinalValue
-                    )
-                );
-                variables.AddRange(result.Variables);
+                var numberOfColumns = state.NumberOfColumns();
+                while (numberOfColumns > 0)
+                {
+                    var result = _customObjects.Compile(elementState);
+                    var newNumberOfColumns = state.NumberOfColumns();
+                    if (newNumberOfColumns == numberOfColumns)
+                        break;
+                    expressions.AddRange(result.Expressions);
+                    expressions.Add(Expression.Call(listVar, addMethod, result.FinalValue));
+                    variables.AddRange(result.Variables);
+                    numberOfColumns = newNumberOfColumns;
+                }
                 return new ConstructedValueExpression(expressions, null, variables);
             }
 

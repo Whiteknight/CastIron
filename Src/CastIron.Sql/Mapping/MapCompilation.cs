@@ -3,19 +3,22 @@ using CastIron.Sql.Utility;
 
 namespace CastIron.Sql.Mapping
 {
+    /// <summary>
+    /// Accessor class to get pre-constructed instances of important compiler classes
+    /// </summary>
     public static class MapCompilation
     {
-        private static CachingMappingCompiler _cachingInstance;
+        private static CachingMapCompiler _cachingInstance;
         private static MapCompiler _uncachedInstance;
         private static IMapCompiler _defaultInstance;
 
-        public static CachingMappingCompiler GetCachingInstance()
+        public static CachingMapCompiler GetCachingInstance()
         {
             if (_cachingInstance != null)
                 return _cachingInstance;
 
             var uncached = GetMapCompilerInstance();
-            var newInstance = new CachingMappingCompiler(uncached);
+            var newInstance = new CachingMapCompiler(uncached);
             var oldValue = Interlocked.CompareExchange(ref _cachingInstance, newInstance, null);
             return oldValue ?? newInstance;
         }

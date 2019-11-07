@@ -6,6 +6,9 @@ using System.Runtime.Serialization;
 
 namespace CastIron.Sql.Mapping
 {
+    /// <summary>
+    /// Exception when something goes wrong during map compilation
+    /// </summary>
     [Serializable]
     public class MapCompilerException : Exception
     {

@@ -6,6 +6,10 @@ using System.Reflection;
 
 namespace CastIron.Sql.Mapping.Compilers
 {
+    /// <summary>
+    /// Compiler to map columns to a tuple. Because tuple item names are not kept at runtime, the columns
+    /// of the result set are mapped to the items of the tuple in order. Name matching is not used.
+    /// </summary>
     public class TupleCompiler : ICompiler
     {
         private readonly ICompiler _values;

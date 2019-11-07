@@ -4,6 +4,9 @@ using System.Runtime.Serialization;
 
 namespace CastIron.Sql.Mapping
 {
+    /// <summary>
+    /// Exception when something goes wrong managing the IDataReader state 
+    /// </summary>
     [Serializable]
     public class DataReaderException : Exception
     {

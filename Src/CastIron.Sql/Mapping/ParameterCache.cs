@@ -7,6 +7,10 @@ using System.Reflection;
 
 namespace CastIron.Sql.Mapping
 {
+    /// <summary>
+    /// Extracts OUT and INOUT parameters from the IDbCommand and makes their values available at all phases
+    /// of the map
+    /// </summary>
     public class ParameterCache
     {
         private readonly IReadOnlyDictionary<string, object> _parameterCache;

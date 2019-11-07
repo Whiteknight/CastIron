@@ -7,6 +7,9 @@ using CastIron.Sql.Mapping.ScalarCompilers;
 
 namespace CastIron.Sql.Mapping.Compilers
 {
+    /// <summary>
+    /// Compiler type to map a column to one of the supported primitive types
+    /// </summary>
     public class ScalarCompiler : ICompiler
     {
         private static readonly MethodInfo _getValueMethod = typeof(IDataRecord).GetMethod(nameof(IDataRecord.GetValue), new[] { typeof(int) });

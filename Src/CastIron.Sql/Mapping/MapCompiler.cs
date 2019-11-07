@@ -9,6 +9,10 @@ using CastIron.Sql.Utility;
 
 namespace CastIron.Sql.Mapping
 {
+    /// <summary>
+    /// Basic IMapCompiler implementation, creates the ICompiler graph and constructs a map lambda from the
+    /// resulting compiled expression list
+    /// </summary>
     public class MapCompiler : IMapCompiler
     {
         private static readonly ICompiler _allTypes;
@@ -17,48 +21,58 @@ namespace CastIron.Sql.Mapping
 
         static MapCompiler()
         {
+            // Setup some deferrals to avoid circular references
             ICompiler allTypes = new DeferredCompiler(() => _allTypes);
             ICompiler arrays = new DeferredCompiler(() => _arrays);
             ICompiler objects = new DeferredCompiler(() => _objects);
+            ICompiler maybeObjects = new IfCompiler(s => s.TargetType == typeof(object), objects);
 
+            // Scalars are primitive types which can be directly converted to from column values
             ICompiler scalars = new ScalarCompiler();
-            ICompiler customObjects = new CustomObjectCompiler(allTypes, scalars);
+            ICompiler maybeScalars = new IfCompiler(s => s.TargetType.IsSupportedPrimitiveType(), scalars);
 
+            // Custom objects are objects which are not dictionaries, collections, tuples or object
+            // Needs to handle scalars separately because of the set-in-place requirements
+            ICompiler customObjects = new CustomObjectCompiler(allTypes, scalars);
+            ICompiler maybeCustomObjects = new IfCompiler(s => s.TargetType.IsMappableCustomObjectType(), customObjects);
+
+            // Tuple compiler fills by index, so tuple values cannot be things which consume all contents
+            // greedily (collections, dictionaries)
             ICompiler tupleContents = new FirstCompiler(
-                new IfCompiler(s => s.TargetType == typeof(object), objects),
-                new IfCompiler(s => s.TargetType.IsSupportedPrimitiveType(), scalars),
-                new IfCompiler(s => s.TargetType.IsMappableCustomObjectType(), customObjects),
-                new FailCompiler()
+                maybeObjects,
+                maybeScalars,
+                maybeCustomObjects
             );
             ICompiler tuples = new TupleCompiler(tupleContents);
 
+            // Dictionaries consume contents greedily and fill in as much as possible by column name
             ICompiler dictionaryContents = allTypes;
             ICompiler concreteDictionaries = new ConcreteDictionaryCompiler(dictionaryContents);
             ICompiler abstractDictionaries = new AbstractDictionaryCompiler(dictionaryContents);
 
+            // "object" compiler may instantiate a dictionary, scalar or array depending on location in the
+            // object graph and number of available columns
             _objects = new ObjectCompiler(concreteDictionaries, scalars, arrays);
 
-            ICompiler arrayContents = new FirstCompiler(
-                scalars,
-                objects
-            );
+            // arrays and collections can contain scalars which don't consume greedily
+            ICompiler arrayContents = scalars;
             ICompiler concreteCollections = new ConcreteCollectionCompiler(arrayContents, customObjects);
             ICompiler abstractCollections = new AbstractCollectionCompiler(arrayContents, customObjects);
             
             _arrays = new ArrayCompiler(customObjects, arrayContents);
 
+            // All the possible mapping types, each of which behind a predicate
             _allTypes = new FirstCompiler(
-                new IfCompiler(s => s.TargetType == typeof(object), objects),
-                new IfCompiler(s => s.TargetType.IsSupportedPrimitiveType(), scalars),
-                new IfCompiler(s => s.TargetType.IsArray && s.TargetType.HasElementType, arrays),
+                maybeObjects,
+                maybeScalars,
+                new IfCompiler(s => s.TargetType.IsArrayType(), arrays),
                 new IfCompiler(s => s.TargetType.IsUntypedEnumerableType(), arrays),
                 new IfCompiler(s => s.TargetType.IsConcreteDictionaryType(), concreteDictionaries),
                 new IfCompiler(s => s.TargetType.IsDictionaryInterfaceType(), abstractDictionaries),
-                new IfCompiler(s => s.TargetType.IsGenericType && s.TargetType.IsInterface && (s.TargetType.Namespace ?? string.Empty).StartsWith("System.Collections"), abstractCollections),
+                new IfCompiler(s => s.TargetType.IsAbstractCollectionType(), abstractCollections),
                 new IfCompiler(s => s.TargetType.IsConcreteCollectionType(), concreteCollections),
                 new IfCompiler(s => s.TargetType.IsTupleType(), tuples),
-                new IfCompiler(s => s.TargetType.IsMappableCustomObjectType(), customObjects),
-                new FailCompiler()
+                maybeCustomObjects
             );
         }
 
@@ -68,12 +82,17 @@ namespace CastIron.Sql.Mapping
             Argument.NotNull(context, nameof(context));
 
             // For all other cases, fall back to normal recursive conversion routines.
-            var state = context.GetState(null, context.Specific);
+            var state = MapState.FromDataReader(context, context.Specific, reader);
             var expressions = _allTypes.Compile(state);
             var statements = expressions.Expressions.Concat(new[] { expressions.FinalValue }).Where(e => e != null);
 
             var lambdaExpression = Expression.Lambda<Func<IDataRecord, T>>(
-                Expression.Block(typeof(T), expressions.Variables, statements), context.RecordParam
+                Expression.Block(
+                    typeof(T), 
+                    expressions.Variables, 
+                    statements
+                ), 
+                context.RecordParam
             );
             DumpCodeToDebugConsole(lambdaExpression);
             return lambdaExpression.Compile();

@@ -220,5 +220,39 @@ namespace CastIron.Sqlite.Tests.Mapping
             result.Count.Should().Be(1);
             result[0].Should().Be(new DateTime(2018, 12, 11, 17, 1, 2));
         }
+
+        private class TestObjectSimple
+        {
+            public int Id { get; set; }
+            public string Name { get; set; }
+        }
+
+        [Test]
+        public void TestQuery_MultipleCustomObjectList()
+        {
+            var target = RunnerFactory.Create();
+            var result = target.Query<List<TestObjectSimple>>("SELECT 1 AS ID, 'TEST1' AS Name, 2 AS ID, 'TEST2' AS Name, 3 AS ID, 'TEST3' AS Name").First();
+            result.Count.Should().Be(3);
+            result[0].Id.Should().Be(1);
+            result[0].Name.Should().Be("TEST1");
+            result[1].Id.Should().Be(2);
+            result[1].Name.Should().Be("TEST2");
+            result[2].Id.Should().Be(3);
+            result[2].Name.Should().Be("TEST3");
+        }
+
+        [Test]
+        public void TestQuery_MultipleCustomObjectIList()
+        {
+            var target = RunnerFactory.Create();
+            var result = target.Query<List<TestObjectSimple>>("SELECT 1 AS ID, 'TEST1' AS Name, 2 AS ID, 'TEST2' AS Name, 3 AS ID, 'TEST3' AS Name").First();
+            result.Count.Should().Be(3);
+            result[0].Id.Should().Be(1);
+            result[0].Name.Should().Be("TEST1");
+            result[1].Id.Should().Be(2);
+            result[1].Name.Should().Be("TEST2");
+            result[2].Id.Should().Be(3);
+            result[2].Name.Should().Be("TEST3");
+        }
     }
 }

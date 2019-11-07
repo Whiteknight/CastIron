@@ -6,6 +6,9 @@ using System.Reflection;
 
 namespace CastIron.Sql.Mapping.Compilers
 {
+    /// <summary>
+    /// Compiles a mapping for any concrete implementation of ICollection
+    /// </summary>
     public class ConcreteCollectionCompiler : ICompiler
     {
         private readonly ICompiler _values;
@@ -19,29 +22,39 @@ namespace CastIron.Sql.Mapping.Compilers
 
         public ConstructedValueExpression Compile(MapState state)
         {
-            var icollectionType = state.TargetType
-                .GetInterfaces()
-                .FirstOrDefault(i => i.Namespace == "System.Collections.Generic" && i.IsGenericType && i.GetGenericTypeDefinition() == typeof(ICollection<>));
-            if (icollectionType == null)
-                throw MapCompilerException.CannotConvertType(state.TargetType, typeof(ICollection<>));
+            var icollectionType = GetICollectionInterfaceType(state);
             var elementType = icollectionType.GenericTypeArguments[0];
+            var constructor = GetConstructor(state);
 
-            if (!icollectionType.IsAssignableFrom(state.TargetType))
-                throw MapCompilerException.CannotConvertType(state.TargetType, icollectionType);
-
-            var constructor = state.TargetType.GetConstructor(Type.EmptyTypes);
-            if (constructor == null)
-                throw MapCompilerException.MissingParameterlessConstructor(state.TargetType);
-
-            var addMethod = icollectionType.GetMethod(nameof(ICollection<object>.Add));
-            if (addMethod == null)
-                throw MapCompilerException.MissingMethod(state.TargetType, nameof(ICollection<object>.Add), elementType);
+            var addMethod = GetAddMethod(state, icollectionType, elementType);
 
             var listVar = GetMaybeInstantiateCollectionExpression(state, constructor);
 
             var addStmts = GetCollectionPopulateStatements(state, elementType, listVar.FinalValue, addMethod);
 
             return new ConstructedValueExpression(listVar.Expressions.Concat(addStmts.Expressions), listVar.FinalValue, listVar.Variables.Concat(addStmts.Variables));
+        }
+
+        private static MethodInfo GetAddMethod(MapState state, Type icollectionType, Type elementType)
+        {
+            return icollectionType.GetMethod(nameof(ICollection<object>.Add)) ?? throw MapCompilerException.MissingMethod(state.TargetType, nameof(ICollection<object>.Add), elementType);
+        }
+
+        private static ConstructorInfo GetConstructor(MapState state)
+        {
+            return state.TargetType.GetConstructor(Type.EmptyTypes) ?? throw MapCompilerException.MissingParameterlessConstructor(state.TargetType);
+        }
+
+        private static Type GetICollectionInterfaceType(MapState state)
+        {
+            var icollectionType = state.TargetType
+                .GetInterfaces()
+                .FirstOrDefault(i => i.Namespace == "System.Collections.Generic" && i.IsGenericType && i.GetGenericTypeDefinition() == typeof(ICollection<>));
+            if (icollectionType == null)
+                throw MapCompilerException.CannotConvertType(state.TargetType, typeof(ICollection<>));
+            if (!icollectionType.IsAssignableFrom(state.TargetType))
+                throw MapCompilerException.CannotConvertType(state.TargetType, icollectionType);
+            return icollectionType;
         }
 
         private ConstructedValueExpression GetMaybeInstantiateCollectionExpression(MapState state, ConstructorInfo constructor)
@@ -64,7 +77,8 @@ namespace CastIron.Sql.Mapping.Compilers
                     ),
                     Expression.Convert(
                         Expression.New(constructor),
-                        state.TargetType),
+                        state.TargetType
+                    ),
                     Expression.Convert(state.GetExisting, state.TargetType)
                 )
             );
@@ -80,10 +94,18 @@ namespace CastIron.Sql.Mapping.Compilers
             if (elementType.IsMappableCustomObjectType())
             {
                 var elementState = state.ChangeTargetType(elementType);
-                var result = _customObjects.Compile(elementState);
-                expressions.AddRange(result.Expressions);
-                expressions.Add(Expression.Call(listVar, addMethod, result.FinalValue));
-                variables.AddRange(result.Variables);
+                var numberOfColumns = state.NumberOfColumns();
+                while (numberOfColumns > 0)
+                {
+                    var result = _customObjects.Compile(elementState);
+                    var newNumberOfColumns = state.NumberOfColumns();
+                    if (newNumberOfColumns == numberOfColumns)
+                        break;
+                    expressions.AddRange(result.Expressions);
+                    expressions.Add(Expression.Call(listVar, addMethod, result.FinalValue));
+                    variables.AddRange(result.Variables);
+                    numberOfColumns = newNumberOfColumns;
+                }
             }
             else
             {
@@ -97,7 +119,6 @@ namespace CastIron.Sql.Mapping.Compilers
                     variables.AddRange(result.Variables);
                 }
             }
-
 
             return new ConstructedValueExpression(expressions, null, variables);
         }

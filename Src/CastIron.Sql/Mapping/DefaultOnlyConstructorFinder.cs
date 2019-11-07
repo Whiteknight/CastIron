@@ -5,6 +5,9 @@ using CastIron.Sql.Utility;
 
 namespace CastIron.Sql.Mapping
 {
+    /// <summary>
+    /// IConstructorFinder implementation which forces only the use of the default parameterless constructor
+    /// </summary>
     public class DefaultOnlyConstructorFinder : IConstructorFinder
     {
         public ConstructorInfo FindBestMatch(IProviderConfiguration provider, ConstructorInfo preferredConstructor, Type type, IReadOnlyDictionary<string, int> columnNames)

@@ -13,13 +13,6 @@ namespace CastIron.Sql.Mapping
             FinalValue = finalValue;
         }
 
-        public ConstructedValueExpression(IEnumerable<Expression> expressions, Expression finalValue)
-        {
-            Expressions = expressions ?? Enumerable.Empty<Expression>();
-            FinalValue = finalValue;
-            Variables = Enumerable.Empty<ParameterExpression>();
-        }
-
         public ConstructedValueExpression(IEnumerable<Expression> expressions, Expression finalValue, IEnumerable<ParameterExpression> variables)
         {
             Expressions = expressions ?? Enumerable.Empty<Expression>();
@@ -34,5 +27,7 @@ namespace CastIron.Sql.Mapping
 
         public Expression FinalValue { get; }
         public IEnumerable<ParameterExpression> Variables { get; }
+
+        // TODO: Method to merge one of these into another
     }
 }

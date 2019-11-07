@@ -6,6 +6,8 @@ using CastIron.Sql.Utility;
 
 namespace CastIron.Sql.Mapping
 {
+    // TODO: This class is a mess and needs to be cleaned up.
+    // TODO: Several more options from the compiler need to be (cleanly) exposed here
     public class MapCompilerBuilder<T> : IMapCompilerBuilder<T>
     {
         private readonly IProviderConfiguration _provider;
@@ -146,9 +148,10 @@ namespace CastIron.Sql.Mapping
                 throw new InvalidOperationException($"Type {subclass.Type.Name} must be a concrete class type which is assignable to {typeof(T).Name}.");
             if (subclass.Mapper == null)
             {
-                var columns = new ColumnInfoCollection(reader);
-                var createPrefs = new ObjectCreatePreferences(subclass.Factory as Func<object>, subclass.Constructor, subclass.ConstructorFinder);
-                var context = new MapCompileContext(_provider, subclass.Type, createPrefs, columns, subclass.Separator);
+                // TODO: Need a way to specify constructor/factory prefs for other types as well
+                var createPrefs = new ObjectCreatePreferences(subclass.ConstructorFinder);
+                createPrefs.AddType(subclass.Type, subclass.Factory as Func<object>, subclass.Constructor);
+                var context = new MapCompileContext(_provider, subclass.Type, createPrefs, subclass.Separator);
                 subclass.Mapper = (subclass.Compiler ?? defaultCompiler).CompileExpression<T>(context, reader);
             }
 

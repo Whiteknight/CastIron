@@ -4,6 +4,11 @@ using System.Linq.Expressions;
 
 namespace CastIron.Sql.Mapping.Compilers
 {
+    /// <summary>
+    /// Instantiate an object. The concrete type chosen is decided upon by heuristic and may be a dictionary,
+    /// array or primitive type depending on where we are in the object graph and how many columns we have
+    /// to map.
+    /// </summary>
     public class ObjectCompiler : ICompiler
     {
         private readonly ICompiler _dictionaries;
