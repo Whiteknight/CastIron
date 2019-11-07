@@ -67,7 +67,8 @@ namespace CastIron.Sql.Mapping.Compilers
                     ),
                     Expression.Convert(
                         Expression.New(constructor),
-                        state.TargetType),
+                        state.TargetType
+                    ),
                     Expression.Convert(state.GetExisting, state.TargetType)
                 )
             );
@@ -78,22 +79,47 @@ namespace CastIron.Sql.Mapping.Compilers
         {
             var expressions = new List<Expression>();
             var variables = new List<ParameterExpression>();
+
             if (elementType.IsMappableCustomObjectType())
             {
+                // TODO: We should be able to loop here, and instantiate more than one instance so long as we
+                // still have mappable columns (and so long as the number of mappable columns decreases each
+                // iteration)
                 var elementState = state.ChangeTargetType(elementType);
                 var result = _customObjects.Compile(elementState);
                 expressions.AddRange(result.Expressions);
-                expressions.Add(Expression.Call(listVar, addMethod, result.FinalValue));
+                expressions.Add(
+                    Expression.Call(
+                        listVar, 
+                        addMethod, 
+                        result.FinalValue
+                    )
+                );
                 variables.AddRange(result.Variables);
                 return new ConstructedValueExpression(expressions, null, variables);
             }
 
+            // TODO: We should be able to map to tuple types here, for Tuple<N> we should be able to map the
+            // first N columns and continue in a loop
+
+            // TODO: We should be able to map to a dictionary type here, for the first column of each name
+            // map to a dictionary and loop while mappable columns exist.
+
+            // TODO: Above TODO notes apply to ConcreteCollectionCompiler also.
+
             var columns = state.GetColumns();
             foreach (var column in columns)
             {
-                var result = _values.Compile(state.GetSubstateForColumn(column, elementType, null));
+                var columnState = state.GetSubstateForColumn(column, elementType, null);
+                var result = _values.Compile(columnState);
                 expressions.AddRange(result.Expressions);
-                expressions.Add(Expression.Call(listVar, addMethod, result.FinalValue));
+                expressions.Add(
+                    Expression.Call(
+                        listVar, 
+                        addMethod, 
+                        result.FinalValue
+                    )
+                );
                 variables.AddRange(result.Variables);
             }
 

@@ -11,34 +11,47 @@ namespace CastIron.Sql.Mapping
 {
     public class MapCompiler : IMapCompiler
     {
-        private static readonly ICompiler _allTypesInternal;
         private static readonly ICompiler _allTypes;
         private static readonly ICompiler _arrays;
+        private static readonly ICompiler _objects;
 
         static MapCompiler()
         {
-            _allTypes = new DeferredCompiler(() => _allTypesInternal);
+            ICompiler allTypes = new DeferredCompiler(() => _allTypes);
+            ICompiler arrays = new DeferredCompiler(() => _arrays);
+            ICompiler objects = new DeferredCompiler(() => _objects);
+
             ICompiler scalars = new ScalarCompiler();
-            ICompiler customObjects = new CustomObjectCompiler(_allTypes, scalars);
-            ICompiler tuples = new TupleCompiler(scalars);
-            ICompiler concreteDictionaries = new ConcreteDictionaryCompiler(_allTypes);
-            ICompiler abstractDictionaries = new AbstractDictionaryCompiler(_allTypes);
-            ICompiler objects = new ObjectCompiler(concreteDictionaries, scalars, new DeferredCompiler(() => _arrays));
+            ICompiler customObjects = new CustomObjectCompiler(allTypes, scalars);
+
+            ICompiler tupleContents = new FirstCompiler(
+                new IfCompiler(s => s.TargetType == typeof(object), objects),
+                new IfCompiler(s => s.TargetType.IsSupportedPrimitiveType(), scalars),
+                new IfCompiler(s => s.TargetType.IsMappableCustomObjectType(), customObjects),
+                new FailCompiler()
+            );
+            ICompiler tuples = new TupleCompiler(tupleContents);
+
+            ICompiler dictionaryContents = allTypes;
+            ICompiler concreteDictionaries = new ConcreteDictionaryCompiler(dictionaryContents);
+            ICompiler abstractDictionaries = new AbstractDictionaryCompiler(dictionaryContents);
+
+            _objects = new ObjectCompiler(concreteDictionaries, scalars, arrays);
+
             ICompiler arrayContents = new FirstCompiler(
                 scalars,
                 objects
             );
             ICompiler concreteCollections = new ConcreteCollectionCompiler(arrayContents, customObjects);
-            
             ICompiler abstractCollections = new AbstractCollectionCompiler(arrayContents, customObjects);
             
             _arrays = new ArrayCompiler(customObjects, arrayContents);
 
-            _allTypesInternal = new FirstCompiler(
+            _allTypes = new FirstCompiler(
                 new IfCompiler(s => s.TargetType == typeof(object), objects),
                 new IfCompiler(s => s.TargetType.IsSupportedPrimitiveType(), scalars),
-                new IfCompiler(s => s.TargetType.IsArray && s.TargetType.HasElementType, _arrays),
-                new IfCompiler(s => s.TargetType.IsUntypedEnumerableType(), _arrays),
+                new IfCompiler(s => s.TargetType.IsArray && s.TargetType.HasElementType, arrays),
+                new IfCompiler(s => s.TargetType.IsUntypedEnumerableType(), arrays),
                 new IfCompiler(s => s.TargetType.IsConcreteDictionaryType(), concreteDictionaries),
                 new IfCompiler(s => s.TargetType.IsDictionaryInterfaceType(), abstractDictionaries),
                 new IfCompiler(s => s.TargetType.IsGenericType && s.TargetType.IsInterface && (s.TargetType.Namespace ?? string.Empty).StartsWith("System.Collections"), abstractCollections),

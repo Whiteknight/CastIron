@@ -88,8 +88,7 @@ namespace CastIron.Sql.Mapping
 
         public ColumnInfo GetColumn()
         {
-            var list = _columnNames.FirstOrDefault().Value;
-            return list?.First();
+            return _columnNames.SelectMany(kvp => kvp.Value).Where(c => !c.Mapped).OrderBy(c => c.Index).FirstOrDefault();
         }
 
         public IEnumerable<ColumnInfo> GetColumns(string name)

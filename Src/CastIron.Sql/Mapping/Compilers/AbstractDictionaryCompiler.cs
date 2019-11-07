@@ -75,7 +75,8 @@ namespace CastIron.Sql.Mapping.Compilers
                             ),
                             state.TargetType
                         ),
-                        Expression.Convert(state.GetExisting, state.TargetType))
+                        Expression.Convert(state.GetExisting, state.TargetType)
+                    )
                 )
             );
             return new ConstructedValueExpression(expressions, newInstance, new[] { newInstance });
