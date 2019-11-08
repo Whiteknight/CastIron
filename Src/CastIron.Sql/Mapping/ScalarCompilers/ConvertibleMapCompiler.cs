@@ -4,6 +4,10 @@ using System.Reflection;
 
 namespace CastIron.Sql.Mapping.ScalarCompilers
 {
+    /// <summary>
+    /// Compile an expression to use the IConvertable interface to convert the column value to the target
+    /// type. Requires both the column value and the target type inherit from IConvertible
+    /// </summary>
     public class ConvertibleMapCompiler : IScalarMapCompiler
     {
         private static readonly MethodInfo _convertMethod = typeof(Convert).GetMethod(nameof(Convert.ChangeType), new[] { typeof(object), typeof(Type) });
@@ -16,10 +20,20 @@ namespace CastIron.Sql.Mapping.ScalarCompilers
             // raw != DBNull.Instance ? (targetType)Convert.ChangeType(raw, targetType) : default(targetType)
             var baseTargetType = targetType.GetTypeWithoutNullability();
             return Expression.Condition(
-                Expression.NotEqual(Expressions._dbNullExp, rawVar),
+                Expression.NotEqual(Expressions.DbNullExp, rawVar),
                 Expression.Convert(
-                    Expression.Call(null, _convertMethod, new Expression[] { rawVar, Expression.Constant(baseTargetType, typeof(Type)) }), targetType),
-                targetType.GetDefaultValueExpression());
+                    Expression.Call(
+                        null, 
+                        _convertMethod,
+                        new Expression[] { 
+                            rawVar, 
+                            Expression.Constant(baseTargetType, typeof(Type)) 
+                        }
+                    ), 
+                    targetType
+                ),
+                targetType.GetDefaultValueExpression()
+            );
         }
     }
 }

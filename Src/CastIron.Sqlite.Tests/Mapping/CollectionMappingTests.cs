@@ -245,7 +245,7 @@ namespace CastIron.Sqlite.Tests.Mapping
         public void TestQuery_MultipleCustomObjectIList()
         {
             var target = RunnerFactory.Create();
-            var result = target.Query<List<TestObjectSimple>>("SELECT 1 AS ID, 'TEST1' AS Name, 2 AS ID, 'TEST2' AS Name, 3 AS ID, 'TEST3' AS Name").First();
+            var result = target.Query<IList<TestObjectSimple>>("SELECT 1 AS ID, 'TEST1' AS Name, 2 AS ID, 'TEST2' AS Name, 3 AS ID, 'TEST3' AS Name").First();
             result.Count.Should().Be(3);
             result[0].Id.Should().Be(1);
             result[0].Name.Should().Be("TEST1");
@@ -253,6 +253,90 @@ namespace CastIron.Sqlite.Tests.Mapping
             result[1].Name.Should().Be("TEST2");
             result[2].Id.Should().Be(3);
             result[2].Name.Should().Be("TEST3");
+        }
+
+        [Test]
+        public void TestQuery_MultipleTupleList()
+        {
+            var target = RunnerFactory.Create();
+            var result = target.Query<List<Tuple<int, string>>>("SELECT 1 AS ID, 'TEST1' AS Name, 2 AS ID, 'TEST2' AS Name, 3 AS ID, 'TEST3' AS Name").First();
+            result.Count.Should().Be(3);
+            result[0].Item1.Should().Be(1);
+            result[0].Item2.Should().Be("TEST1");
+            result[1].Item1.Should().Be(2);
+            result[1].Item2.Should().Be("TEST2");
+            result[2].Item1.Should().Be(3);
+            result[2].Item2.Should().Be("TEST3");
+        }
+
+        [Test]
+        public void TestQuery_MultipleDictionaryList()
+        {
+            var target = RunnerFactory.Create();
+            var result = target.Query<List<Dictionary<string, string>>>("SELECT 1 AS ID, 'TEST1' AS Name, 2 AS ID, 'TEST2' AS Name, 3 AS ID, 'TEST3' AS Name").First();
+            result.Count.Should().Be(3);
+            result[0]["ID"].Should().Be("1");
+            result[0]["Name"].Should().Be("TEST1");
+            result[1]["ID"].Should().Be("2");
+            result[1]["Name"].Should().Be("TEST2");
+            result[2]["ID"].Should().Be("3");
+            result[2]["Name"].Should().Be("TEST3");
+        }
+
+        [Test]
+        public void TestQuery_MultipleIDictionaryList()
+        {
+            var target = RunnerFactory.Create();
+            var result = target.Query<List<IDictionary<string, string>>>("SELECT 1 AS ID, 'TEST1' AS Name, 2 AS ID, 'TEST2' AS Name, 3 AS ID, 'TEST3' AS Name").First();
+            result.Count.Should().Be(3);
+            result[0]["ID"].Should().Be("1");
+            result[0]["Name"].Should().Be("TEST1");
+            result[1]["ID"].Should().Be("2");
+            result[1]["Name"].Should().Be("TEST2");
+            result[2]["ID"].Should().Be("3");
+            result[2]["Name"].Should().Be("TEST3");
+        }
+
+        [Test]
+        public void TestQuery_MultipleTupleIList()
+        {
+            var target = RunnerFactory.Create();
+            var result = target.Query<IList<Tuple<int, string>>>("SELECT 1 AS ID, 'TEST1' AS Name, 2 AS ID, 'TEST2' AS Name, 3 AS ID, 'TEST3' AS Name").First();
+            result.Count.Should().Be(3);
+            result[0].Item1.Should().Be(1);
+            result[0].Item2.Should().Be("TEST1");
+            result[1].Item1.Should().Be(2);
+            result[1].Item2.Should().Be("TEST2");
+            result[2].Item1.Should().Be(3);
+            result[2].Item2.Should().Be("TEST3");
+        }
+
+        [Test]
+        public void TestQuery_MultipleDictionaryIList()
+        {
+            var target = RunnerFactory.Create();
+            var result = target.Query<IList<Dictionary<string, string>>>("SELECT 1 AS ID, 'TEST1' AS Name, 2 AS ID, 'TEST2' AS Name, 3 AS ID, 'TEST3' AS Name").First();
+            result.Count.Should().Be(3);
+            result[0]["ID"].Should().Be("1");
+            result[0]["Name"].Should().Be("TEST1");
+            result[1]["ID"].Should().Be("2");
+            result[1]["Name"].Should().Be("TEST2");
+            result[2]["ID"].Should().Be("3");
+            result[2]["Name"].Should().Be("TEST3");
+        }
+
+        [Test]
+        public void TestQuery_MultipleIDictionaryIList()
+        {
+            var target = RunnerFactory.Create();
+            var result = target.Query<IList<IDictionary<string, string>>>("SELECT 1 AS ID, 'TEST1' AS Name, 2 AS ID, 'TEST2' AS Name, 3 AS ID, 'TEST3' AS Name").First();
+            result.Count.Should().Be(3);
+            result[0]["ID"].Should().Be("1");
+            result[0]["Name"].Should().Be("TEST1");
+            result[1]["ID"].Should().Be("2");
+            result[1]["Name"].Should().Be("TEST2");
+            result[2]["ID"].Should().Be("3");
+            result[2]["Name"].Should().Be("TEST3");
         }
     }
 }

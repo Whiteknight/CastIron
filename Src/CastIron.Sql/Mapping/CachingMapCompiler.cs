@@ -22,30 +22,30 @@ namespace CastIron.Sql.Mapping
             _cache.Clear();
         }
 
-        public Func<IDataRecord, T> CompileExpression<T>(MapCompileContext context, IDataReader reader)
+        public Func<IDataRecord, T> CompileExpression<T>(MapCompileOperation operation, IDataReader reader)
         {
-            Argument.NotNull(context, nameof(context));
+            Argument.NotNull(operation, nameof(operation));
 
             // We cannot cache if a custom factory is provided. The internals of the factory can change
-            var factory = context.GetFactoryMethod(context.Specific);
+            var factory = operation.GetFactoryMethod(operation.TopLevelTargetType);
             if (factory != null)
-                return _inner.CompileExpression<T>(context, reader);
+                return _inner.CompileExpression<T>(operation, reader);
 
-            var key = CreateKey<T>(context, reader);
+            var key = CreateKey<T>(operation, reader);
             if (_cache.TryGetValue(key, out var cached) && cached is Func<IDataRecord, T> func)
                 return func;
 
-            var compiled = _inner.CompileExpression<T>(context, reader);
+            var compiled = _inner.CompileExpression<T>(operation, reader);
             _cache.TryAdd(key, compiled);
             return compiled;
         }
 
-        private static string CreateKey<T>(MapCompileContext context, IDataReader reader)
+        private static string CreateKey<T>(MapCompileOperation operation, IDataReader reader)
         {
             var sb = new StringBuilder();
             sb.AppendLine("P:" + typeof(T).FullName);
-            sb.AppendLine("S:" + context.Specific.FullName);
-            var preferredConstructor = context.GetPreferredConstructor(context.Specific);
+            sb.AppendLine("S:" + operation.TopLevelTargetType.FullName);
+            var preferredConstructor = operation.GetPreferredConstructor(operation.TopLevelTargetType);
             if (preferredConstructor != null)
             {
                 sb.Append("C:");

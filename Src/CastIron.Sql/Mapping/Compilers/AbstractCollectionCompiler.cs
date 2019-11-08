@@ -11,28 +11,27 @@ namespace CastIron.Sql.Mapping.Compilers
     /// </summary>
     public class AbstractCollectionCompiler : ICompiler
     {
-        private readonly ICompiler _values;
-        private readonly ICompiler _customObjects;
+        private readonly ICompiler _scalars;
+        private readonly ICompiler _nonScalars;
 
-        public AbstractCollectionCompiler(ICompiler values, ICompiler customObjects)
+        public AbstractCollectionCompiler(ICompiler scalars, ICompiler nonScalars)
         {
-            _values = values;
-            _customObjects = customObjects;
+            _scalars = scalars;
+            _nonScalars = nonScalars;
         }
 
-        public ConstructedValueExpression Compile(MapState state)
+        public ConstructedValueExpression Compile(MapContext context)
         {
-            var elementType = GetElementType(state);
-            var listType = GetConcreteListType(state.TargetType, elementType);
+            var elementType = GetElementType(context);
+            var listType = GetConcreteListType(context.TargetType, elementType);
 
             var constructor = GetListConstructor(listType);
+            var addMethod = GetListAddMethod(context.TargetType, listType, elementType);
 
-            var addMethod = GetListAddMethod(state.TargetType, listType, elementType);
-
-            var originalTargetType = state.TargetType;
-            state = state.ChangeTargetType(listType);
-            var listVar = GetMaybeInstantiateCollectionExpression(state, constructor);
-            var addStmts = GetCollectionPopulateStatements(state, elementType, listVar.FinalValue, addMethod);
+            var originalTargetType = context.TargetType;
+            context = context.ChangeTargetType(listType);
+            var listVar = GetMaybeInstantiateCollectionExpression(context, constructor);
+            var addStmts = GetCollectionPopulateStatements(context, elementType, listVar.FinalValue, addMethod);
 
             return new ConstructedValueExpression(
                 listVar.Expressions.Concat(addStmts.Expressions), 
@@ -41,12 +40,12 @@ namespace CastIron.Sql.Mapping.Compilers
             );
         }
 
-        private static Type GetElementType(MapState state)
+        private static Type GetElementType(MapContext context)
         {
-            if (state.TargetType.GenericTypeArguments.Length != 1)
-                throw MapCompilerException.InvalidInterfaceType(state.TargetType);
+            if (context.TargetType.GenericTypeArguments.Length != 1)
+                throw MapCompilerException.InvalidInterfaceType(context.TargetType);
 
-            var elementType = state.TargetType.GenericTypeArguments[0];
+            var elementType = context.TargetType.GenericTypeArguments[0];
             return elementType;
         }
 
@@ -57,6 +56,8 @@ namespace CastIron.Sql.Mapping.Compilers
 
         private static ConstructorInfo GetListConstructor(Type listType)
         {
+            // TODO: If it's a custom type, we should be able to call IConstructorFinder and try to get a 
+            // mappable constructor
             return listType.GetConstructor(new Type[0]) ?? throw MapCompilerException.MissingParameterlessConstructor(listType);
         }
 
@@ -68,10 +69,10 @@ namespace CastIron.Sql.Mapping.Compilers
             return listType;
         }
 
-        private static ConstructedValueExpression GetMaybeInstantiateCollectionExpression(MapState state, ConstructorInfo constructor)
+        private static ConstructedValueExpression GetMaybeInstantiateCollectionExpression(MapContext context, ConstructorInfo constructor)
         {
-            var newInstance = state.CreateVariable(state.TargetType, "list");
-            if (state.GetExisting == null)
+            var newInstance = context.CreateVariable(context.TargetType, "list");
+            if (context.GetExisting == null)
             {
                 // var newInstance = new TargetType()
                 var createNewExpr = Expression.Assign(
@@ -86,66 +87,65 @@ namespace CastIron.Sql.Mapping.Compilers
                 newInstance,
                 Expression.Condition(
                     Expression.Equal(
-                        state.GetExisting,
+                        context.GetExisting,
                         Expression.Constant(null)
                     ),
                     Expression.Convert(
                         Expression.New(constructor),
-                        state.TargetType
+                        context.TargetType
                     ),
-                    Expression.Convert(state.GetExisting, state.TargetType)
+                    Expression.Convert(context.GetExisting, context.TargetType)
                 )
             );
             return new ConstructedValueExpression(new[] { getExistingExpr }, newInstance, new [] { newInstance });
         }
 
-        private ConstructedValueExpression GetCollectionPopulateStatements(MapState state, Type elementType, Expression listVar, MethodInfo addMethod)
+        private ConstructedValueExpression GetCollectionPopulateStatements(MapContext context, Type elementType, Expression listVar, MethodInfo addMethod)
         {
+            if (!context.HasColumns())
+                return new ConstructedValueExpression(null);
+
             var expressions = new List<Expression>();
             var variables = new List<ParameterExpression>();
 
-            if (elementType.IsMappableCustomObjectType())
+            // For scalar types (object is treated like a scalar here), map each column to an entry in the
+            // array, consuming all remaining columns.
+            if (elementType.IsSupportedPrimitiveType() || elementType == typeof(object))
             {
-                var elementState = state.ChangeTargetType(elementType);
-                var numberOfColumns = state.NumberOfColumns();
-                while (numberOfColumns > 0)
+                var columns = context.GetColumns();
+                foreach (var column in columns)
                 {
-                    var result = _customObjects.Compile(elementState);
-                    var newNumberOfColumns = state.NumberOfColumns();
-                    if (newNumberOfColumns == numberOfColumns)
-                        break;
+                    var columnState = context.GetSubstateForColumn(column, elementType, null);
+                    var result = _scalars.Compile(columnState);
                     expressions.AddRange(result.Expressions);
-                    expressions.Add(Expression.Call(listVar, addMethod, result.FinalValue));
+                    expressions.Add(
+                        Expression.Call(
+                            listVar,
+                            addMethod,
+                            result.FinalValue
+                        )
+                    );
                     variables.AddRange(result.Variables);
-                    numberOfColumns = newNumberOfColumns;
                 }
+
                 return new ConstructedValueExpression(expressions, null, variables);
             }
 
-            // TODO: We should be able to map to tuple types here, for Tuple<N> we should be able to map the
-            // first N columns and continue in a loop
-
-            // TODO: We should be able to map to a dictionary type here, for the first column of each name
-            // map to a dictionary and loop while mappable columns exist.
-
-            // TODO: Above TODO notes apply to ConcreteCollectionCompiler also.
-
-            var columns = state.GetColumns();
-            foreach (var column in columns)
+            // For all non-scalar types
+            // loop so long as we have columns and consume columns every iteration.
+            var elementState = context.ChangeTargetType(elementType);
+            var numberOfColumns = context.NumberOfColumns();
+            while (numberOfColumns > 0)
             {
-                var columnState = state.GetSubstateForColumn(column, elementType, null);
-                var result = _values.Compile(columnState);
+                var result = _nonScalars.Compile(elementState);
+                var newNumberOfColumns = context.NumberOfColumns();
+                if (newNumberOfColumns == numberOfColumns)
+                    break;
                 expressions.AddRange(result.Expressions);
-                expressions.Add(
-                    Expression.Call(
-                        listVar, 
-                        addMethod, 
-                        result.FinalValue
-                    )
-                );
+                expressions.Add(Expression.Call(listVar, addMethod, result.FinalValue));
                 variables.AddRange(result.Variables);
+                numberOfColumns = newNumberOfColumns;
             }
-
             return new ConstructedValueExpression(expressions, null, variables);
         }
     }

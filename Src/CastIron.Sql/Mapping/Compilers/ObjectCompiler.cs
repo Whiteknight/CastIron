@@ -22,17 +22,19 @@ namespace CastIron.Sql.Mapping.Compilers
             _arrays = arrays;
         }
 
-        public ConstructedValueExpression Compile(MapState state)
+        public ConstructedValueExpression Compile(MapContext context)
         {
             // At the top-level (name==null) we convert to dictionary to preserve column name information
-            if (state.Name == null)
+            if (context.Name == null)
             {
-                var dictState = state.ChangeTargetType(typeof(Dictionary<string, object>));
+                // Dictionary mapping logic will group by key name and recurse. When we get back to the 
+                // ObjectCompiler, we will have a smaller set of columns and we will have a non-null name
+                var dictState = context.ChangeTargetType(typeof(Dictionary<string, object>));
                 var dictExpr = _dictionaries.Compile(dictState);
                 return new ConstructedValueExpression(dictExpr.Expressions, Expression.Convert(dictExpr.FinalValue, typeof(object)), dictExpr.Variables);
             }
 
-            var columns = state.GetColumns().ToList();
+            var columns = context.GetColumns().ToList();
             var numColumns = columns.Count;
 
             // If we have no columns, just return null
@@ -43,13 +45,13 @@ namespace CastIron.Sql.Mapping.Compilers
             if (numColumns == 1)
             {
                 var firstColumn = columns[0];
-                var objectState = state.GetSubstateForColumn(firstColumn, typeof(object), null);
+                var objectState = context.GetSubstateForColumn(firstColumn, typeof(object), null);
                 var asScalar = _scalars.Compile(objectState);
                 return new ConstructedValueExpression(asScalar.Expressions, Expression.Convert(asScalar.FinalValue, typeof(object)), asScalar.Variables);
             }
 
             // If we have more than one column, map to object[]
-            var arrayState = state.ChangeTargetType(typeof(object[]));
+            var arrayState = context.ChangeTargetType(typeof(object[]));
             var exprs = _arrays.Compile(arrayState);
             return new ConstructedValueExpression(exprs.Expressions, Expression.Convert(exprs.FinalValue, typeof(object)), exprs.Variables);
         }

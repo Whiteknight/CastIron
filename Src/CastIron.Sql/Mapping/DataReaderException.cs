@@ -86,5 +86,10 @@ namespace CastIron.Sql.Mapping
                 "If you do not want to read this set more than once, please use a method to advance to the next " +
                 "result set in the reader");
         }
+
+        public static DataReaderException NamedParameterNotFound(string name)
+        {
+            return new DataReaderException($"Could not find parameter named {name}. Please check your query and your spelling and try again.");
+        }
     }
 }

@@ -53,9 +53,7 @@ namespace CastIron.Sql.Mapping
 
         public IMapCompilerBuilderBase<T> UseConstructor(params Type[] argumentTypes)
         {
-            var constructor = typeof(T).GetConstructor(argumentTypes);
-            if (constructor == null)
-                throw ConstructorFindException.NoSuitableConstructorFound(typeof(T));
+            var constructor = typeof(T).GetConstructor(argumentTypes) ?? throw ConstructorFindException.NoSuitableConstructorFound(typeof(T));
             return UseConstructor(constructor);
         }
 
@@ -116,6 +114,12 @@ namespace CastIron.Sql.Mapping
             return this;
         }
 
+        public IMapCompilerBuilder<T> IgnorePrefixes(params string[] prefixes)
+        {
+            _defaultCase.SetIgnorePrefixes(prefixes);
+            return this;
+        }
+
         private static Func<IDataRecord, T> CreateThunkExpression(IReadOnlyList<SubclassPredicate> subclasses)
         {
             if (subclasses.Count == 0)
@@ -151,7 +155,7 @@ namespace CastIron.Sql.Mapping
                 // TODO: Need a way to specify constructor/factory prefs for other types as well
                 var createPrefs = new ObjectCreatePreferences(subclass.ConstructorFinder);
                 createPrefs.AddType(subclass.Type, subclass.Factory as Func<object>, subclass.Constructor);
-                var context = new MapCompileContext(_provider, subclass.Type, createPrefs, subclass.Separator);
+                var context = new MapCompileOperation(_provider, subclass.Type, createPrefs, subclass.Separator, _defaultCase.IgnorePrefixes);
                 subclass.Mapper = (subclass.Compiler ?? defaultCompiler).CompileExpression<T>(context, reader);
             }
 
@@ -176,6 +180,7 @@ namespace CastIron.Sql.Mapping
             public ConstructorInfo Constructor { get; private set; }
             public Func<IDataRecord, T> Mapper { get; set; }
             public string Separator { get; private set; }
+            public ICollection<string> IgnorePrefixes { get; private set; }
 
             private static void ThrowMappingAlreadyConfiguredException()
             {
@@ -246,6 +251,11 @@ namespace CastIron.Sql.Mapping
             public void SetSeparator(string separator)
             {
                 Separator = separator;
+            }
+
+            public void SetIgnorePrefixes(ICollection<string> prefixes)
+            {
+                IgnorePrefixes = prefixes;
             }
         }
     }

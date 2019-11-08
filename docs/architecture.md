@@ -26,11 +26,11 @@ The basic types provided in `System.Data` have limitations and also can be diffi
 
 For these and several other reasons, CastIron provides several wrappers and abstractions which help to shield the developer from these problems:
 
-### `IDbConnectionAsync` and `IDbCommandAsync`
+### `IDbConnectionAsync`, `IDbCommandAsync` and `IDataReaderAsync`
 
-These types are mostly for internal use, and expose async method variants for `IDbConnection` and `IDbCommand` interfaces, respectively. The underlying `System.Data` objects can be retrieved from `IDbConnectionAsync.Connection` and `IDbCommandAsync.Command` respectively.
+These types are mostly for internal use, and expose async method variants for `IDbConnection`, `IDbCommand` and `IDataReader` interfaces, respectively. The underlying `System.Data` objects can be retrieved from `IDbConnectionAsync.Connection`, `IDbCommandAsync.Command` and `IDataReader.Reader` respectively.
 
-An async wrapper over `IDataReader` is forthcoming, and will probably coincide with the advent of C# 8.0 and `IAsyncEnumerable<T>`.
+`IDbConnectionAsync` and `IDbCommandAsync` are used to expose Async method variants with Tasks in the `ISqlRunner`. `IDataReaderAsync` is only used to provide an `IAsyncEnumerable<T>` interface, which is only available in the .NET Standard 2.1 build but not in the .NET Framework 4.5 or .NET Standard 2.0 builds. If your application does not target .NET Standard 2.1, .NET Core 3.0 or higher, you won't make use of `IDataReaderAsync` or `IAsyncEnumerable<T>`.
 
 ### `IDataInteraction`
 
@@ -57,3 +57,9 @@ See [Query Objects](queryobjects.md) for more details.
 When the `ISqlRunner` executes the command on the database, the results are wrapped up as an `IDataResults` object. This object provides access to the results from the `IDataReader` as well as any output parameters from the command and other helpful metadata.
 
 See the page on [Result Mapping](mapping.md) for more details about the algorithms and heuristics used to map columns from the result set into objects.
+
+You can provide your own mappings, if you have legacy code around which already accesses `IDataReader` to get the results you wish. However, an important feature of CastIron is the ability to automatically compile a mapping function from a result set to an enumerable of result objects. The map compiler is a Composite object consisting of three parts:
+
+1. `IScalarCompiler` which compiles a transformation from a single column to one of the primitive types.
+1. `ICompiler` which compiles transformations from several columns to an array, collection, dictionary, tuple or other object
+1. `IMapCompiler` which manages the `ICompiler`s and combines the output into a `Func<IDataRecord, T>` which can be executed on every row of the result set.

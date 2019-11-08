@@ -6,6 +6,6 @@
     /// </summary>
     public interface ICompiler
     {
-        ConstructedValueExpression Compile(MapState state);
+        ConstructedValueExpression Compile(MapContext context);
     }
 }

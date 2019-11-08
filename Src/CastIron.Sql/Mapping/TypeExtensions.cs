@@ -3,73 +3,23 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Text;
 
 namespace CastIron.Sql.Mapping
 {
     public static class TypeExtensions
     {
         public static string GetFriendlyName(this Type t)
-        {
-            if (t == null)
-                return "NULL";
-            var sb = new StringBuilder();
-            GetFriendlyName(t, sb);
-            return sb.ToString();
-        }
+            => TypeFriendlyNameStringifier.Instance.GetFriendlyName(t);
 
-        // TODO: Move these stringification methods into a separate class
-        private static void GetFriendlyName(Type t, StringBuilder sb)
-        {
-            if (t.IsArray)
-            {
-                GetFriendlyNameForArrayType(t, sb);
-                return;
-            }
 
-            var name = t.Name;
-            if (name.Contains("`"))
-                name = name.Split('`')[0];
-            sb.Append(t.Namespace);
-            sb.Append(".");
-            sb.Append(name);
-            if (t.IsGenericTypeDefinition)
-                GetFriendlyNameForGenericTypeDefinition(sb, t);
-            else if (t.IsConstructedGenericType)
-                GetFriendlyNameForConstructedGenericType(sb, t);
-        }
+        public static bool IsConvertible(this Type t) 
+            => t != null && typeof(IConvertible).IsAssignableFrom(t);
 
-        private static void GetFriendlyNameForArrayType(Type t, StringBuilder sb)
-        {
-            var elementType = t.GetElementType();
-            GetFriendlyName(elementType, sb);
-            var commas = string.Join(",", Enumerable.Range(0, t.GetArrayRank()).Select(x => ""));
-            sb.Append("[");
-            sb.Append(commas);
-            sb.Append("]");
-        }
+        public static Expression GetDefaultValueExpression(this Type t) 
+            => Expression.Convert(Expression.Constant(t.GetDefaultValue()), t);
 
-        private static void GetFriendlyNameForGenericTypeDefinition(StringBuilder sb, Type t)
-        {
-            var parameters = t.GetGenericArguments().Select((x, i) => "");
-            sb.Append("<");
-            sb.Append(string.Join(",", parameters));
-            sb.Append(">");
-        }
-
-        private static void GetFriendlyNameForConstructedGenericType(StringBuilder sb, Type t)
-        {
-            sb.Append("<");
-            var parameters = t.GetGenericArguments().Select(a => a.Namespace + "." + a.Name);
-            sb.Append(string.Join(",", parameters));
-            sb.Append(">");
-        }
-
-        public static bool IsConvertible(this Type t) => t != null && typeof(IConvertible).IsAssignableFrom(t);
-
-        public static Expression GetDefaultValueExpression(this Type t) => Expression.Convert(Expression.Constant(t.GetDefaultValue()), t);
-
-        public static Type GetTypeWithoutNullability(this Type t) => t.IsGenericType && t.GetGenericTypeDefinition() == typeof(Nullable<>) ? t.GenericTypeArguments[0] : t;
+        public static Type GetTypeWithoutNullability(this Type t) 
+            => t.IsGenericType && t.GetGenericTypeDefinition() == typeof(Nullable<>) ? t.GenericTypeArguments[0] : t;
 
         private static readonly HashSet<Type> _tupleTypes = new HashSet<Type>
         {
@@ -112,14 +62,16 @@ namespace CastIron.Sql.Mapping
             if (!t.IsGenericType && !t.IsInterface)
                 return false;
             var genericDef = t.GetGenericTypeDefinition();
-            return (genericDef == typeof(IDictionary<,>) || genericDef == typeof(IReadOnlyDictionary<,>)) && t.GenericTypeArguments[0] == typeof(string);
+            return (genericDef == typeof(IDictionary<,>) || genericDef == typeof(IReadOnlyDictionary<,>)) 
+                   && t.GenericTypeArguments[0] == typeof(string);
         }
 
         public static bool IsConcreteCollectionType(this Type t) 
             => 
                 !t.IsInterface 
                 && !t.IsAbstract 
-                && t.GetInterfaces().Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(ICollection<>));
+                && t.GetInterfaces()
+                    .Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(ICollection<>));
 
         public static bool IsAbstractCollectionType(this Type t)
             =>
@@ -188,9 +140,11 @@ namespace CastIron.Sql.Mapping
 
         public static bool IsNumericType(this Type t) => _numericTypes.Contains(t);
 
-        public static bool IsMappableScalarType(this Type t) => _primitiveTypes.Contains(t) || t == typeof(object);
+        public static bool IsMappableScalarType(this Type t) 
+            => _primitiveTypes.Contains(t) || t == typeof(object);
 
-        public static bool IsUntypedEnumerableType(this Type t) => t == typeof(IEnumerable) || t == typeof(IList) || t == typeof(ICollection);
+        public static bool IsUntypedEnumerableType(this Type t) 
+            => t == typeof(IEnumerable) || t == typeof(IList) || t == typeof(ICollection);
 
         public static bool IsMappableCustomObjectType(this Type t)
         {
@@ -203,6 +157,7 @@ namespace CastIron.Sql.Mapping
                    && t != typeof(object);
         }
 
-        public static object GetDefaultValue(this Type t) => t.IsValueType ? Activator.CreateInstance(t) : null;
+        public static object GetDefaultValue(this Type t) 
+            => t.IsValueType ? Activator.CreateInstance(t) : null;
     }
 }

@@ -15,11 +15,11 @@ namespace CastIron.Sql.Mapping.Compilers
             _compilers = compilers;
         }
 
-        public ConstructedValueExpression Compile(MapState state)
+        public ConstructedValueExpression Compile(MapContext context)
         {
             for (int i = 0; i < _compilers.Count; i++)
             {
-                var result = _compilers[i].Compile(state);
+                var result = _compilers[i].Compile(context);
                 if (!result.IsNothing)
                     return result;
             }

@@ -19,6 +19,7 @@ namespace CastIron.Sql.Mapping
             _types = new Dictionary<Type, SingleTypePreferences>();
             ConstructorFinder = constructorFinder;
         }
+
         public class SingleTypePreferences
         {
             public SingleTypePreferences(Type type, Func<object> factory, ConstructorInfo preferredConstructor)
@@ -45,14 +46,9 @@ namespace CastIron.Sql.Mapping
             return finder.FindBestMatch(provider, specificType.PreferredConstructor, type, columnNameCounts);
         }
 
-        public ConstructorInfo GetPreferredConstructor(Type type)
-        {
-            return _types.ContainsKey(type) ? _types[type].PreferredConstructor : null;
-        }
+        public ConstructorInfo GetPreferredConstructor(Type type) 
+            => _types.ContainsKey(type) ? _types[type].PreferredConstructor : null;
 
-        public Func<object> GetFactory(Type type)
-        {
-            return _types.ContainsKey(type) ? _types[type].Factory : null;
-        }
+        public Func<object> GetFactory(Type type) => _types.ContainsKey(type) ? _types[type].Factory : null;
     }
 }

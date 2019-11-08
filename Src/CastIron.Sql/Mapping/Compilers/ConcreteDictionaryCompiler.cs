@@ -18,21 +18,20 @@ namespace CastIron.Sql.Mapping.Compilers
             _valueCompiler = valueCompiler;
         }
 
-        public ConstructedValueExpression Compile(MapState state)
+        public ConstructedValueExpression Compile(MapContext context)
         {
-            var idictType = GetIDictionaryType(state);
+            var idictType = GetIDictionaryType(context);
             var elementType = idictType.GetGenericArguments()[1];
 
-            var constructor = GetDictionaryConstructor(state.TargetType);
+            var constructor = GetDictionaryConstructor(context.TargetType);
+            var addMethod = GetIDictionaryAddMethod(context.TargetType, idictType);
 
-            var addMethod = GetIDictionaryAddMethod(state.TargetType, idictType);
-
-            var dictVar = GetMaybeInstantiateDictionaryExpression(state,  constructor);
-            var addStmts = AddDictionaryPopulateStatements(state, elementType, dictVar.FinalValue, addMethod);
+            var dictVar = GetMaybeInstantiateDictionaryExpression(context,  constructor);
+            var addStmts = AddDictionaryPopulateStatements(context, elementType, dictVar.FinalValue, addMethod);
 
             return new ConstructedValueExpression(
                 dictVar.Expressions.Concat(addStmts.Expressions), 
-                Expression.Convert(dictVar.FinalValue, state.TargetType), 
+                Expression.Convert(dictVar.FinalValue, context.TargetType), 
                 dictVar.Variables.Concat(addStmts.Variables));
         }
 
@@ -46,21 +45,21 @@ namespace CastIron.Sql.Mapping.Compilers
             return targetType.GetConstructor(Type.EmptyTypes) ?? throw MapCompilerException.InvalidDictionaryTargetType(targetType);
         }
 
-        private static Type GetIDictionaryType(MapState state)
+        private static Type GetIDictionaryType(MapContext context)
         {
-            return state.TargetType.GetInterfaces()
+            return context.TargetType.GetInterfaces()
                 .Where(i => i.IsGenericType)
                 .FirstOrDefault(i => i.GetGenericTypeDefinition() == typeof(IDictionary<,>) && i.GenericTypeArguments[0] == typeof(string))
-                ?? throw MapCompilerException.InvalidDictionaryTargetType(state.TargetType);
+                ?? throw MapCompilerException.InvalidDictionaryTargetType(context.TargetType);
         }
 
         // var dict = new DictType();
         // OR
         // var dict = getExisting() == null ? new DictType() : getExisting() as DictType
-        private static ConstructedValueExpression GetMaybeInstantiateDictionaryExpression(MapState state, ConstructorInfo constructor)
+        private static ConstructedValueExpression GetMaybeInstantiateDictionaryExpression(MapContext context, ConstructorInfo constructor)
         {
-            var newInstance = state.CreateVariable(state.TargetType, "dict");
-            if (state.GetExisting == null)
+            var newInstance = context.CreateVariable(context.TargetType, "dict");
+            if (context.GetExisting == null)
             {
                 // var newInstance = new TargetType()
                 var getNewInstanceExpr = Expression.Assign(
@@ -75,7 +74,7 @@ namespace CastIron.Sql.Mapping.Compilers
                 newInstance,
                 Expression.Condition(
                     Expression.Equal(
-                        state.GetExisting,
+                        context.GetExisting,
                         Expression.Constant(null)
                     ),
                     Expression.Convert(
@@ -83,23 +82,24 @@ namespace CastIron.Sql.Mapping.Compilers
                             newInstance,
                             Expression.New(constructor)
                         ),
-                        state.TargetType
+                        context.TargetType
                     ),
-                    Expression.Convert(state.GetExisting, state.TargetType))
+                    Expression.Convert(context.GetExisting, context.TargetType)
+                )
             );
             return new ConstructedValueExpression(new[] { tryGetExistingInstanceExpr }, newInstance, new[] { newInstance });
         }
 
-        private ConstructedValueExpression AddDictionaryPopulateStatements(MapState state, Type elementType, Expression dictVar, MethodInfo addMethod)
+        private ConstructedValueExpression AddDictionaryPopulateStatements(MapContext context, Type elementType, Expression dictVar, MethodInfo addMethod)
         {
             var expressions = new List<Expression>();
             var variables = new List<ParameterExpression>();
-            if (state.Name == null)
+            if (context.Name == null)
             {
-                var firstColumnsByName = state.GetFirstIndexForEachColumnName();
+                var firstColumnsByName = context.GetFirstIndexForEachColumnName();
                 foreach (var column in firstColumnsByName)
                 {
-                    var substate = state.GetSubstateForProperty(column.CanonicalName, null, elementType);
+                    var substate = context.GetSubstateForProperty(column.CanonicalName, null, elementType);
                     var getScalarExpression = _valueCompiler.Compile(substate);
                     expressions.AddRange(getScalarExpression.Expressions);
                     expressions.Add(
@@ -116,15 +116,15 @@ namespace CastIron.Sql.Mapping.Compilers
                 return new ConstructedValueExpression(expressions, null, variables);
             }
 
-            var columns = state.GetFirstIndexForEachColumnName();
+            var columns = context.GetFirstIndexForEachColumnName();
             foreach (var column in columns)
             {
                 // TODO: This Substring is going to fail if we are more than 2 levels deep
                 // We need to pass the column to the State to ask for the short versions of the Original and 
                 // Canonical names.
-                var keyName = column.OriginalName.Substring(state.Name.Length + state.Separator.Length);
-                var childName = column.CanonicalName.Substring(state.Name.Length + state.Separator.Length);
-                var columnSubstate = state.GetSubstateForColumn(column, elementType, childName);
+                var keyName = column.OriginalName.Substring(context.Name.Length + context.Separator.Length);
+                var childName = column.CanonicalName.Substring(context.Name.Length + context.Separator.Length);
+                var columnSubstate = context.GetSubstateForColumn(column, elementType, childName);
                 var getScalarExpression = _valueCompiler.Compile(columnSubstate);
                 expressions.AddRange(getScalarExpression.Expressions);
                 expressions.Add(

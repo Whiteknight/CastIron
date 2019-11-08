@@ -22,32 +22,32 @@ namespace CastIron.Sql.Mapping.Compilers
             _scalars = scalars;
         }
 
-        public ConstructedValueExpression Compile(MapState state)
+        public ConstructedValueExpression Compile(MapContext context)
         {
             var expressions = new List<Expression>();
             var variables = new List<ParameterExpression>();
-            var initExpr = AddInstantiationExpressionForObjectInstance(state);
+            var initExpr = AddInstantiationExpressionForObjectInstance(context);
             expressions.AddRange(initExpr.Expressions);
             variables.AddRange(initExpr.Variables);
 
-            var addPropertyStmts = AddPropertyAssignmentExpressions(state, initExpr.FinalValue);
+            var addPropertyStmts = AddPropertyAssignmentExpressions(context, initExpr.FinalValue);
             expressions.AddRange(addPropertyStmts.Expressions);
             variables.AddRange(addPropertyStmts.Variables);
 
-            return new ConstructedValueExpression(expressions, Expression.Convert(initExpr.FinalValue, state.TargetType), variables);
+            return new ConstructedValueExpression(expressions, Expression.Convert(initExpr.FinalValue, context.TargetType), variables);
         }
 
-        private ConstructedValueExpression AddInstantiationExpressionForObjectInstance(MapState state)
+        private ConstructedValueExpression AddInstantiationExpressionForObjectInstance(MapContext context)
         {
-            var factory = state.GetFactoryForCurrentObjectType();
-            return factory != null ? AddFactoryMethodCallExpression(state, factory) : GetConstructorCallExpression(state);
+            var factory = context.GetFactoryForCurrentObjectType();
+            return factory != null ? AddFactoryMethodCallExpression(context, factory) : GetConstructorCallExpression(context);
         }
 
         // var instance = cast(type, factory());
         // if (instance == null) throw DataMappingException.UserFactoryReturnedNull(type);
-        private static ConstructedValueExpression AddFactoryMethodCallExpression(MapState state, Func<object> factory)
+        private static ConstructedValueExpression AddFactoryMethodCallExpression(MapContext context, Func<object> factory)
         {
-            var instanceVar = state.CreateVariable(state.TargetType, "instance");
+            var instanceVar = context.CreateVariable(context.TargetType, "instance");
             var expressions = new Expression[]
             {
                 // instance = cast(type, factory());
@@ -58,7 +58,7 @@ namespace CastIron.Sql.Mapping.Compilers
                             Expression.Constant(factory.Target),
                             factory.Method
                         ),
-                        state.TargetType
+                        context.TargetType
                     )
                 ),
 
@@ -71,7 +71,7 @@ namespace CastIron.Sql.Mapping.Compilers
                     Expression.Throw(
                         Expression.Call(
                             _createMapExceptionMethod, 
-                            Expression.Constant(state.TargetType)
+                            Expression.Constant(context.TargetType)
                         )
                     )
                 )
@@ -80,21 +80,22 @@ namespace CastIron.Sql.Mapping.Compilers
         }
 
         // var instance = new MyType(converted args)
-        private ConstructedValueExpression GetConstructorCallExpression(MapState state)
+        private ConstructedValueExpression GetConstructorCallExpression(MapContext context)
         {
-            var instanceVar = state.CreateVariable(state.TargetType, "instance");
             var expressions = new List<Expression>();
             var variables = new List<ParameterExpression>();
+
+            var instanceVar = context.CreateVariable(context.TargetType, "instance");
             variables.Add(instanceVar);
-            var constructor = state.GetConstructorForCurrentObjectType();
+            var constructor = context.GetConstructorForCurrentObjectType();
             var parameters = constructor.GetParameters();
             var args = new Expression[parameters.Length];
 
-            for (int i = 0; i < args.Length; i++)
+            for (int i = 0; i < parameters.Length; i++)
             {
                 var parameter = parameters[i];
                 var name = parameter.Name.ToLowerInvariant();
-                var substate = state.GetSubstateForProperty(name, parameter, parameter.ParameterType);
+                var substate = context.GetSubstateForProperty(name, parameter, parameter.ParameterType);
                 var expr = _values.Compile(substate);
                 args[i] = expr.FinalValue ?? parameter.ParameterType.GetDefaultValueExpression();
                 if (!expr.IsNothing)
@@ -107,7 +108,6 @@ namespace CastIron.Sql.Mapping.Compilers
                 args[i] = parameter.ParameterType.GetDefaultValueExpression();
             }
 
-            // Map columns to constructor parameters by name, marking the columns consumed so they aren't used again later
             expressions.Add(
                 Expression.Assign(instanceVar,
                     Expression.New(constructor, args)
@@ -117,12 +117,12 @@ namespace CastIron.Sql.Mapping.Compilers
         }
 
         // property = convert(column)
-        private ConstructedValueExpression AddPropertyAssignmentExpressions(MapState state, Expression instance)
+        private ConstructedValueExpression AddPropertyAssignmentExpressions(MapContext context, Expression instance)
         {
             var expressions = new List<Expression>();
             var variables = new List<ParameterExpression>();
 
-            var properties = state.TargetType.GetProperties(BindingFlags.Public | BindingFlags.Instance)
+            var properties = context.TargetType.GetProperties(BindingFlags.Public | BindingFlags.Instance)
                 .Where(p => p.GetMethod != null)
                 .Where(p => p.CanRead)
                 .Where(p => !p.GetMethod.IsPrivate);
@@ -133,31 +133,14 @@ namespace CastIron.Sql.Mapping.Compilers
                 // Primitive types cannot be updated in place, they must have a public setter
                 if (property.PropertyType.IsSupportedPrimitiveType())
                 {
-                    if (!property.IsSettable())
-                        continue;
-                    var propertyState = state.GetSubstateForProperty(name, property, property.PropertyType);
-                    var primitiveValueExpression = _scalars.Compile(propertyState);
-                    if (primitiveValueExpression.FinalValue == null)
-                        continue;
-                    expressions.AddRange(primitiveValueExpression.Expressions);
-                    expressions.Add(
-                        Expression.Call(
-                            instance, 
-                            property.GetSetMethod(), 
-                            Expression.Convert(
-                                primitiveValueExpression.FinalValue, 
-                                property.PropertyType
-                            )
-                        )
-                    );
-                    variables.AddRange(primitiveValueExpression.Variables);
+                    MapSupportedPrimitiveType(context, instance, property, name, expressions, variables);
                     continue;
                 }
 
                 // Non-primitive types may have an existing value which can be updated in-place
                 var getPropExpr = Expression.Property(instance, property);
 
-                var substate = state.HasColumn(name) ? state.GetSubstateForProperty(name, null, property.PropertyType, getPropExpr) : state.GetSubstateForPrefix(name, property.PropertyType, getPropExpr);
+                var substate = context.GetSubstateForProperty(name, property, property.PropertyType, getPropExpr);
                 var expression = _values.Compile(substate);
                 if (expression.Expressions == null)
                     continue;
@@ -182,6 +165,28 @@ namespace CastIron.Sql.Mapping.Compilers
             }
 
             return new ConstructedValueExpression(expressions, null, variables);
+        }
+
+        private void MapSupportedPrimitiveType(MapContext context, Expression instance, PropertyInfo property, string name, List<Expression> expressions, List<ParameterExpression> variables)
+        {
+            if (!property.IsSettable())
+                return;
+            var propertyState = context.GetSubstateForProperty(name, property, property.PropertyType);
+            var primitiveValueExpression = _scalars.Compile(propertyState);
+            if (primitiveValueExpression.FinalValue == null)
+                return;
+            expressions.AddRange(primitiveValueExpression.Expressions);
+            expressions.Add(
+                Expression.Call(
+                    instance,
+                    property.GetSetMethod(),
+                    Expression.Convert(
+                        primitiveValueExpression.FinalValue,
+                        property.PropertyType
+                    )
+                )
+            );
+            variables.AddRange(primitiveValueExpression.Variables);
         }
     }
 }

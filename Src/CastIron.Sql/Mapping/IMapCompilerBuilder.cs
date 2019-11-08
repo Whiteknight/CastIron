@@ -13,6 +13,7 @@ namespace CastIron.Sql.Mapping
         IMapCompilerBuilderBase<T> UseConstructorFinder(IConstructorFinder finder);
         IMapCompilerBuilderBase<T> UseFactoryMethod(Func<T> factory);
         IMapCompilerBuilderBase<T> UseChildSeparator(string separator);
+        
     }
 
     public interface IMapCompilerBuilder<in T> : IMapCompilerBuilderBase<T>
@@ -22,5 +23,7 @@ namespace CastIron.Sql.Mapping
 
         IMapCompilerBuilder<T> UseSubclass<TSubclass>(Func<IDataRecord, bool> predicate, Action<IMapCompilerBuilderBase<T>> setup = null)
             where TSubclass : T;
+
+        IMapCompilerBuilder<T> IgnorePrefixes(params string[] prefixes);
     }
 }

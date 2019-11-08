@@ -28,30 +28,33 @@ namespace CastIron.Sql.Mapping.Compilers
             new SameTypeMapCompiler()
         };
 
-        public ConstructedValueExpression Compile(MapState state)
+        public ConstructedValueExpression Compile(MapContext context)
         {
-            var column = state.SingleColumn();
+            var column = context.SingleColumn();
             if (column == null)
                 return ConstructedValueExpression.Nothing;
 
             // Pull the value out of the reader into the rawVar
-            var rawVar = state.CreateVariable<object>("raw");
+            var rawVar = context.CreateVariable<object>("raw");
             var getRawStmt = Expression.Assign(
                 rawVar,
                 Expression.Call(
-                    state.RecordParameter,
+                    context.RecordParameter,
                     _getValueMethod,
                     Expression.Constant(column.Index)
                 )
             );
 
-            var rawConvertExpr = MapScalar(state.TargetType, column, rawVar);
+            var rawConvertExpr = MapScalar(context.TargetType, column, rawVar);
             column.MarkMapped();
             return new ConstructedValueExpression(new[] { getRawStmt }, rawConvertExpr, new[] { rawVar });
         }
 
         private static Expression MapScalar(Type targetType, ColumnInfo column, ParameterExpression rawVar)
         {
+            // I put the compilers in reverse order, because I think when we can add custom compilers, they
+            // will be added at the end of the list (so they will run first before falling back to our
+            // other types and finally our default compiler
             for (var i = _scalarMapCompilers.Count - 1; i >= 0; i--)
             {
                 if (_scalarMapCompilers[i].CanMap(targetType, column))

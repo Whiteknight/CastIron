@@ -14,6 +14,6 @@ namespace CastIron.Sql.Mapping.Compilers
             _getCompiler = getCompiler;
         }
 
-        public ConstructedValueExpression Compile(MapState state) => _getCompiler().Compile(state);
+        public ConstructedValueExpression Compile(MapContext context) => _getCompiler().Compile(context);
     }
 }

@@ -20,14 +20,14 @@ namespace CastIron.Sql.Mapping.Compilers
         }
 
         // value = Tuple.Create(converted columns)
-        public ConstructedValueExpression Compile(MapState state)
+        public ConstructedValueExpression Compile(MapContext context)
         {
-            var typeParams = GetTupleTypeParameters(state);
-            var factoryMethod = GetTupleFactoryMethod(state, typeParams);
-            return MapTupleParameters(state, factoryMethod, typeParams);
+            var typeParams = GetTupleTypeParameters(context);
+            var factoryMethod = GetTupleFactoryMethod(context, typeParams);
+            return MapTupleParameters(context, factoryMethod, typeParams);
         }
 
-        private ConstructedValueExpression MapTupleParameters(MapState state, MethodInfo factoryMethod, Type[] typeParams)
+        private ConstructedValueExpression MapTupleParameters(MapContext context, MethodInfo factoryMethod, Type[] typeParams)
         {
             var expressions = new List<Expression>();
             var variables = new List<ParameterExpression>();
@@ -39,13 +39,13 @@ namespace CastIron.Sql.Mapping.Compilers
             // greedily consume as much as possible before moving to the next parameter.
             for (var i = 0; i < typeParams.Length; i++)
             {
-                if (!state.HasColumns())
+                if (!context.HasColumns())
                 {
                     args[i] = typeParams[i].GetDefaultValueExpression();
                     continue;
                 }
 
-                var elementState = state.ChangeTargetType(typeParams[i]);
+                var elementState = context.ChangeTargetType(typeParams[i]);
                 var expr = _values.Compile(elementState);
                 if (expr.IsNothing)
                 {
@@ -60,23 +60,21 @@ namespace CastIron.Sql.Mapping.Compilers
             return new ConstructedValueExpression(expressions, Expression.Call(null, factoryMethod, args), variables);
         }
 
-        private static Type[] GetTupleTypeParameters(MapState state)
+        private static Type[] GetTupleTypeParameters(MapContext context)
         {
-            var typeParams = state.TargetType.GenericTypeArguments;
+            var typeParams = context.TargetType.GenericTypeArguments;
             if (typeParams.Length == 0 || typeParams.Length > 7)
-                throw MapCompilerException.InvalidTupleMap(typeParams.Length, state.TargetType);
+                throw MapCompilerException.InvalidTupleMap(typeParams.Length, context.TargetType);
             return typeParams;
         }
 
-        private static MethodInfo GetTupleFactoryMethod(MapState state, Type[] typeParams)
+        private static MethodInfo GetTupleFactoryMethod(MapContext context, Type[] typeParams)
         {
             var factoryMethod = typeof(Tuple).GetMethods(BindingFlags.Public | BindingFlags.Static)
                 .Where(m => m.Name == nameof(Tuple.Create) && m.GetParameters().Length == typeParams.Length)
                 .Select(m => m.MakeGenericMethod(typeParams))
                 .FirstOrDefault();
-            if (factoryMethod == null)
-                throw MapCompilerException.InvalidTupleMap(typeParams.Length, state.TargetType);
-            return factoryMethod;
+            return factoryMethod ?? throw MapCompilerException.InvalidTupleMap(typeParams.Length, context.TargetType);
         }
     }
 }

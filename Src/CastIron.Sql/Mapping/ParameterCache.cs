@@ -8,7 +8,8 @@ using System.Reflection;
 namespace CastIron.Sql.Mapping
 {
     /// <summary>
-    /// Extracts OUT and INOUT parameters from the IDbCommand and makes their values available at all phases
+    /// Extracts OUT and INOUT parameters from the IDbCommand and makes their values available after the
+    /// connection is closed.
     /// of the map
     /// </summary>
     public class ParameterCache
@@ -34,6 +35,14 @@ namespace CastIron.Sql.Mapping
             var value = _parameterCache[parameterName];
             return value == null || value == DBNull.Value ? null : value;
         }
+        public object GetValueOrThrow(string name)
+        {
+            var parameterName = CanonicalizeParameterName(name);
+            if (!_parameterCache.ContainsKey(parameterName))
+                throw DataReaderException.NamedParameterNotFound(name);
+            var value = _parameterCache[parameterName];
+            return value == null || value == DBNull.Value ? null : value;
+        }
 
         public T GetValue<T>(string name)
         {
@@ -48,18 +57,6 @@ namespace CastIron.Sql.Mapping
                 return (T)Convert.ChangeType(value, typeof(T));
 
             return default;
-        }
-
-        private static DataReaderException ValueNotFound(string name)
-            => new DataReaderException($"Could not find parameter named {name}. Please check your query and your spelling and try again.");
-
-        public object GetValueOrThrow(string name)
-        {
-            var parameterName = CanonicalizeParameterName(name);
-            if (!_parameterCache.ContainsKey(parameterName))
-                throw ValueNotFound(name);
-            var value = _parameterCache[parameterName];
-            return value == null || value == DBNull.Value ? null : value;
         }
 
         public T GetOutputParameterOrThrow<T>(string name)

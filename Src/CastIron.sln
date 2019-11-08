@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.26730.8
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29411.108
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CastIron.Sql", "CastIron.Sql\CastIron.Sql.csproj", "{3823701F-4AA7-4BAF-9197-7F7DE40D5E64}"
 EndProject
@@ -17,11 +17,16 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Adapters", "Adapters", "{DF
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CastIron.Postgres", "CastIron.Postgres\CastIron.Postgres.csproj", "{2F86D8AD-76D2-461B-B711-B5B293511879}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CastIron.Sqlite.Tests", "CastIron.Sqlite.Tests\CastIron.Sqlite.Tests.csproj", "{CA9008A9-6FEF-48F2-A93C-C95667823CC3}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CastIron.Sqlite.Tests", "CastIron.Sqlite.Tests\CastIron.Sqlite.Tests.csproj", "{CA9008A9-6FEF-48F2-A93C-C95667823CC3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CastIron.Postgres.Tests", "CastIron.Postgres.Tests\CastIron.Postgres.Tests.csproj", "{402CD203-76D1-43FD-B851-5D0B34152B25}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CastIron.Postgres.Tests", "CastIron.Postgres.Tests\CastIron.Postgres.Tests.csproj", "{402CD203-76D1-43FD-B851-5D0B34152B25}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{7CBEBF17-72AB-43E6-B773-D0A6A1D06DC4}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{2B3D1EB2-7E85-40C3-9473-ABDEA14CA723}"
+	ProjectSection(SolutionItems) = preProject
+		..\TODO.md = ..\TODO.md
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

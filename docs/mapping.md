@@ -29,7 +29,7 @@ Notice that if you are using a normal query, the reader lifecycle will be manage
 public object Read(IDataResults results) {
     var reader = results.AsRawReader();
     ...
-    // DO NOT call reader.Dispose() here
+    // Call reader.Dispose() here
 }
 ```
 
@@ -62,7 +62,7 @@ CastIron defines a list of "primitive types" as the following, including the `Nu
 * `ulong`
 * `ushort`
 
-CastIron can typically convert almost all raw column values to any of the above primitive types so long as the data formats are convertible.
+CastIron can typically convert most of the raw column values to any of the above primitive types so long as the data formats are compatible.
 
 ## `AsEnumerable<T>()`
 
@@ -108,9 +108,9 @@ var name2 = names[1].ToString(); // 'B'
 
 CastIron does this because column name and ordering information is part of the metadata of the value and CastIron does not want to just throw data away if it doesn't know for sure the information will not be needed. In general, for all but the most fast-and-dirty queries, you'll want more control over the data structure than this and you should use a proper custom class instead of `object`.
 
-### Nested `object` mapping
+### Named `object` mapping
 
-If the `object` is nested somewhere, such as in `List<object>` or as an `object` property in a class, CastIron will instead map it according to a different set of heuristics:
+If the `object` is nested somewhere that has a name (in a `Dictionary<string, object>` or as a property in a class, for example) CastIron will instead map it according to a different set of heuristics:
 
 1. If there are no matching columns, the value is set to `null`
 1. If there is exactly one matching column, the value is mapped as a scalar
@@ -146,6 +146,10 @@ SELECT 1 AS Id, 'A' AS [Name], 'B' AS [Name];
 
 In this third case, the `.Name` property will contain an `object[]` array with the values `{ "A", "B" }`.
 
+### Scalar `object` mapping
+
+In cases where the object cannot be treated as a collection or a dictionary, the object will be treated as a scalar. In these cases, the value from exactly one column will be copied directly to the output (with `DBNull` converted to `null`).
+
 ## Object Array and Collection Mappings
 
 If we ask CastIron to map rows to `object[]` arrays, we will get an array with values from each column in the native data type, with `DBNull` converted to `null`.
@@ -179,7 +183,26 @@ string secondValue = firstRow.Item2;
 float thirdValue = firstRow.Item3;
 ```
 
-Each element of the tuple must be one of the Primitive Types listed above or `object`. If `object`, the raw value of the column will be used, with `DBNull` converted to `null`.
+Each element of the tuple must be one of the Primitive Types listed above, `object`, or a custom object type. If `object`, it will be converted as a scalar with the value of a single column converted to the tuple parameter. `DBNull` will be converted to `null`.
+
+Notice that if a custom object type is used as one of the tuple parameters, that object might greedily consume many rows and you might get fewer results than you expect. Here's an example:
+
+```csharp
+public class IdAndNames 
+{
+    public int Id { get; set; }
+    public string[] Names { get; set; }
+}
+
+var results = result.AsEnumerable<Tuple<IdAndNames, IdAndNames>>("SELECT 1 AS Id, 'TestA' AS Names, 2 AS Id, `TestB` AS Names").Single();
+results[0].Item1.Id == 1
+results[0].Item2.Names == new string[] { "TestA", "TestB" };
+
+results[0].Item1.Id == 2
+results[0].Item2.Names == new string[0];
+```
+
+This is because tuples mapping gets columns in order without names, while objects greedily map columns by property<->column name (discussed more below). The first instance of `IdAndName` maps a single `Id` column and all the columns named `Name`, and then the second `IdAndName` instance is able to map the second `Id` column but there are no remaining unmapped columns for the `Names` property.
 
 ## Primitive Mappings
 
@@ -213,7 +236,7 @@ By default, CastIron can support arrays of primitive types, any interface type w
 * `HashSet<T>`
 * Custom types which inherit from `ICollection<T>` and have a default parameterless constructor
 
-In these situations, CastIron will map values from all columns to the specified primitive type and store all values form a single row into a single collection instance.
+In these situations, CastIron will map values from all columns to the specified primitive type and store all values from a single row into a single collection instance.
 
 ## Dictionary Mappings
 
@@ -243,7 +266,7 @@ SELECT 5 AS Id, 'CastIron' AS [Name], '0.7.0' AS [Version];
 ```
 
 ```csharp
-dynamic expand = results.AsEnumerable<ExpandObject>();
+dynamic expand = results.AsEnumerable<ExpandObject>().First();
 int id = expand.Id;
 string name = expand.Name;
 string version = expand.Version;
@@ -271,9 +294,9 @@ CastIron's mapper obeys the following heuristics and principles when mapping col
 1. If the property or parameter is a supported collection type, all columns with a matching name will be mapped
 1. If the name of the property or parameter name matches, those columns will be mapped first
 1. Otherwise, if the property is tagged with the `ColumnAttribute`, and the `ColumnAttribute.Name` property matches columns (case insensitive), those columns will be mapped
-1. Otherwise, if the property or parameter is tagged with the `UnnamedColumnsAttribute`, any unnamed columns will be mapped, using the same rules about number of columns and scalars vs collections listed above.
+1. Otherwise, if the property or parameter is tagged with the `UnnamedColumnsAttribute`, any unnamed columns will be mapped, using the same rules about number of columns and scalars vs collections listed above (Notice that some DB providers don't support this option).
 1. If the type of the property is `object`, the property will be mapped as a scalar if there is only one matching column, and will be mapped as `object[]` if there are multiple matching columns.
-1. If the type of the property is a supported dictionary type or a custom child object type, the name of the property will be used as a prefix to match column names and the mapper will recurse using that name prefix.
+1. If the type of the property is a supported dictionary type or a custom child object type, the name of the property will be used as a prefix to match column names and the mapper will recurse using that name prefix, with a default separator of `"_"`.
 
 It is possible to provide mappings which use other behaviors, but CastIron does not supply any of these (yet). `ColumnAttribute.Order` and `ColumnAttribute.TypeName` are not currently supported.
 
@@ -334,7 +357,7 @@ With no options specified, CastIron will create an object instance by searching 
 
 #### Best Match Constructor
 
-The default behavior of CastIron is to search for the "best" matching constructor. The default heuristic for what consistutes "best" is to find the constructor with the largest number of parameters which can be mapped from columns in the result set. This heuristic can be overridden by providing your own custom `IConstructorFinder` instance:
+The default behavior of CastIron is to search for the "best" matching constructor. The default heuristic for what constitutes "best" is to find the constructor with the largest number of parameters which can be mapped from columns in the result set. This heuristic can be overridden by providing your own custom `IConstructorFinder` instance:
 
 ```csharp
 var objects = results.AsEnumerable<MyType>(c => c.UseConstructorFinder(myConstructorFinder));
@@ -342,7 +365,7 @@ var objects = results.AsEnumerable<MyType>(c => c.UseConstructorFinder(myConstru
 
 CastIron provides two types which can be used:
 
-* `CastIron.Sql.Mapping.ConstructorFinder` which uses the "best" heuristic above and
+* `CastIron.Sql.Mapping.BestMatchConstructorFinder` which uses the "best" heuristic above and
 * `CastIron.Sql.Mapping.DefaultOnlyConstructorFinder` which only uses the default parameterless constructor, and forces all columns to map to public properties.
 
 Instead of these two, you can provide your own custom instance if you want to have different behavior.

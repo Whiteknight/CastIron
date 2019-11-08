@@ -44,45 +44,58 @@ namespace CastIron.Sql.Mapping
                 maybeCustomObjects
             );
             ICompiler tuples = new TupleCompiler(tupleContents);
+            ICompiler maybeTuples = new IfCompiler(s => s.TargetType.IsTupleType(), tuples);
 
             // Dictionaries consume contents greedily and fill in as much as possible by column name
             ICompiler dictionaryContents = allTypes;
             ICompiler concreteDictionaries = new ConcreteDictionaryCompiler(dictionaryContents);
+            ICompiler maybeConcreteDictionaries = new IfCompiler(s => s.TargetType.IsConcreteDictionaryType(), concreteDictionaries);
             ICompiler abstractDictionaries = new AbstractDictionaryCompiler(dictionaryContents);
+            ICompiler maybeAbstractDictionaries = new IfCompiler(s => s.TargetType.IsDictionaryInterfaceType(), abstractDictionaries);
 
             // "object" compiler may instantiate a dictionary, scalar or array depending on location in the
             // object graph and number of available columns
             _objects = new ObjectCompiler(concreteDictionaries, scalars, arrays);
 
             // arrays and collections can contain scalars which don't consume greedily
-            ICompiler arrayContents = scalars;
-            ICompiler concreteCollections = new ConcreteCollectionCompiler(arrayContents, customObjects);
-            ICompiler abstractCollections = new AbstractCollectionCompiler(arrayContents, customObjects);
+            ICompiler nonScalarCollectionContents = new FirstCompiler(
+                maybeTuples,
+                maybeConcreteDictionaries,
+                maybeAbstractDictionaries,
+                maybeCustomObjects
+            );
+            ICompiler concreteCollections = new ConcreteCollectionCompiler(scalars, nonScalarCollectionContents);
+            ICompiler abstractCollections = new AbstractCollectionCompiler(scalars, nonScalarCollectionContents);
             
-            _arrays = new ArrayCompiler(customObjects, arrayContents);
+            // We instantiate arrays for array types and collections without a specified element type
+            // (IEnumerable, ICollection, IList)
+            _arrays = new ArrayCompiler(customObjects, scalars);
+            ICompiler maybeArrays = new FirstCompiler(
+                new IfCompiler(s => s.TargetType.IsArrayType(), arrays),
+                new IfCompiler(s => s.TargetType.IsUntypedEnumerableType(), arrays)
+            );
 
             // All the possible mapping types, each of which behind a predicate
             _allTypes = new FirstCompiler(
                 maybeObjects,
                 maybeScalars,
-                new IfCompiler(s => s.TargetType.IsArrayType(), arrays),
-                new IfCompiler(s => s.TargetType.IsUntypedEnumerableType(), arrays),
-                new IfCompiler(s => s.TargetType.IsConcreteDictionaryType(), concreteDictionaries),
-                new IfCompiler(s => s.TargetType.IsDictionaryInterfaceType(), abstractDictionaries),
+                maybeArrays,
+                maybeConcreteDictionaries,
+                maybeAbstractDictionaries,
                 new IfCompiler(s => s.TargetType.IsAbstractCollectionType(), abstractCollections),
                 new IfCompiler(s => s.TargetType.IsConcreteCollectionType(), concreteCollections),
-                new IfCompiler(s => s.TargetType.IsTupleType(), tuples),
+                maybeTuples,
                 maybeCustomObjects
             );
         }
 
         // TODO: Ability to take the IDataRecord in the factory and consume some columns for constructor params so they aren't used later for properties?
-        public Func<IDataRecord, T> CompileExpression<T>(MapCompileContext context, IDataReader reader)
+        public Func<IDataRecord, T> CompileExpression<T>(MapCompileOperation operation, IDataReader reader)
         {
-            Argument.NotNull(context, nameof(context));
+            Argument.NotNull(operation, nameof(operation));
 
             // For all other cases, fall back to normal recursive conversion routines.
-            var state = MapState.FromDataReader(context, context.Specific, reader);
+            var state = operation.CreateContextFromDataReader(reader);
             var expressions = _allTypes.Compile(state);
             var statements = expressions.Expressions.Concat(new[] { expressions.FinalValue }).Where(e => e != null);
 
@@ -92,7 +105,7 @@ namespace CastIron.Sql.Mapping
                     expressions.Variables, 
                     statements
                 ), 
-                context.RecordParam
+                operation.RecordParam
             );
             DumpCodeToDebugConsole(lambdaExpression);
             return lambdaExpression.Compile();

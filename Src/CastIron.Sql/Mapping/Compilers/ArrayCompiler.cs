@@ -14,33 +14,41 @@ namespace CastIron.Sql.Mapping.Compilers
     public class ArrayCompiler : ICompiler
     {
         private readonly ICompiler _customObjects;
-        private readonly ICompiler _arrayContents;
+        private readonly ICompiler _scalars;
 
-        public ArrayCompiler(ICompiler customObjects, ICompiler arrayContents)
+        public ArrayCompiler(ICompiler customObjects, ICompiler scalars)
         {
             _customObjects = customObjects;
-            _arrayContents = arrayContents;
+            _scalars = scalars;
         }
 
-        public ConstructedValueExpression Compile(MapState state)
+        public ConstructedValueExpression Compile(MapContext context)
         {
-            if (state.TargetType.IsUntypedEnumerableType())
-                state = state.ChangeTargetType(typeof(object[]));
+            if (context.TargetType.IsUntypedEnumerableType())
+                context = context.ChangeTargetType(typeof(object[]));
 
-            var elementType = state.TargetType.GetElementType();
-            if (elementType == null)
-                throw MapCompilerException.CannotDetermineArrayElementType(state.TargetType);
+            var elementType = context.TargetType.GetElementType() ?? throw MapCompilerException.CannotDetermineArrayElementType(context.TargetType);
 
-            var constructor = state.TargetType.GetConstructor(new[] { typeof(int) });
-            if (constructor == null)
-                throw MapCompilerException.MissingArrayConstructor(state.TargetType);
+            var constructor = context.TargetType.GetConstructor(new[] { typeof(int) }) ?? throw MapCompilerException.MissingArrayConstructor(context.TargetType);
 
-            var columns = state.GetColumns().ToList();
+            var columns = context.GetColumns().ToList();
 
             if (elementType.IsMappableCustomObjectType())
-                return CompileArrayOfCustomObject(state, elementType, constructor);
+                return CompileArrayOfCustomObject(context, elementType, constructor);
 
-            var arrayVar = state.CreateVariable(state.TargetType, "array");
+            // In an array, object is always treated as a scalar type
+            if (elementType.IsSupportedPrimitiveType() || elementType == typeof(object))
+                return CompileArrayOfScalar(context, constructor, columns, elementType);
+            // TODO: We should be able to support Tuples here, because we can divide number of available
+            // columns by Tuple arity to get number of elements
+
+            // It's not a type we know how to support, so do nothing
+            return ConstructedValueExpression.Nothing;
+        }
+
+        private ConstructedValueExpression CompileArrayOfScalar(MapContext context, ConstructorInfo constructor, List<ColumnInfo> columns, Type elementType)
+        {
+            var arrayVar = context.CreateVariable(context.TargetType, "array");
             var expressions = new List<Expression>();
             var variables = new List<ParameterExpression>();
             variables.Add(arrayVar);
@@ -55,15 +63,15 @@ namespace CastIron.Sql.Mapping.Compilers
             );
             for (int i = 0; i < columns.Count; i++)
             {
-                var columnState = state.GetSubstateForColumn(columns[i], elementType, null);
-                var getScalarExpression = _arrayContents.Compile(columnState);
+                var columnState = context.GetSubstateForColumn(columns[i], elementType, null);
+                var getScalarExpression = _scalars.Compile(columnState);
                 expressions.AddRange(getScalarExpression.Expressions);
                 expressions.Add(
                     Expression.Assign(
                         Expression.ArrayAccess(
-                            arrayVar, 
+                            arrayVar,
                             Expression.Constant(i)
-                        ), 
+                        ),
                         getScalarExpression.FinalValue
                     )
                 );
@@ -73,12 +81,18 @@ namespace CastIron.Sql.Mapping.Compilers
             return new ConstructedValueExpression(expressions, arrayVar, variables);
         }
 
-        private ConstructedValueExpression CompileArrayOfCustomObject(MapState state, Type elementType, ConstructorInfo constructor)
+        private ConstructedValueExpression CompileArrayOfCustomObject(MapContext context, Type elementType, ConstructorInfo constructor)
         {
             var expressions = new List<Expression>();
             var variables = new List<ParameterExpression>();
 
-            var arrayVar = state.CreateVariable(state.TargetType, "array");
+            // TODO: We don't loop here because we need to know how many items we have in the array and we
+            // can't calculate that because the custom object might consume any number of columns. We don't 
+            // know until after each iteration has returned how many columns are left. We could map to
+            // a List and then .ToArray() to get the array, but that seems wasteful.
+
+            // var array = new T[1];
+            var arrayVar = context.CreateVariable(context.TargetType, "array");
             variables.Add(arrayVar);
             expressions.Add(
                 Expression.Assign(
@@ -89,9 +103,12 @@ namespace CastIron.Sql.Mapping.Compilers
                     )
                 )
             );
-            var elementState = state.ChangeTargetType(elementType);
+
+            var elementState = context.ChangeTargetType(elementType);
             var result = _customObjects.Compile(elementState);
             expressions.AddRange(result.Expressions);
+
+            // array[0] = obj;
             expressions.Add(
                 Expression.Assign(
                     Expression.ArrayAccess(
