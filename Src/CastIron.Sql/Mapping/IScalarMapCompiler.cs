@@ -8,7 +8,7 @@ namespace CastIron.Sql.Mapping
     /// </summary>
     public interface IScalarMapCompiler
     {
-        bool CanMap(Type targetType, ColumnInfo column);
-        Expression Map(Type targetType, ColumnInfo column, ParameterExpression rawVar);
+        bool CanMap(Type targetType, Type columnType, string sqlTypeName);
+        Expression Map(Type targetType, Type columnType, string sqlTypeName, ParameterExpression rawVar);
     }
 }

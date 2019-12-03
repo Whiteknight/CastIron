@@ -57,8 +57,8 @@ namespace CastIron.Sql.Mapping.Compilers
             // other types and finally our default compiler
             for (var i = _scalarMapCompilers.Count - 1; i >= 0; i--)
             {
-                if (_scalarMapCompilers[i].CanMap(targetType, column))
-                    return _scalarMapCompilers[i].Map(targetType, column, rawVar);
+                if (_scalarMapCompilers[i].CanMap(targetType, column.ColumnType, column.SqlTypeName))
+                    return _scalarMapCompilers[i].Map(targetType, column.ColumnType, column.SqlTypeName, rawVar);
             }
 
             return targetType.GetDefaultValueExpression();

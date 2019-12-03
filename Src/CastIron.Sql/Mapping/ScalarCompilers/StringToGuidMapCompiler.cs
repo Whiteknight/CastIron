@@ -11,10 +11,10 @@ namespace CastIron.Sql.Mapping.ScalarCompilers
     {
         private static readonly MethodInfo _guidParseMethod = typeof(Guid).GetMethod(nameof(Guid.Parse), new[] { typeof(string) });
 
-        public bool CanMap(Type targetType, ColumnInfo column)
-            => column.ColumnType == typeof(string) && (targetType == typeof(Guid) || targetType == typeof(Guid?));
+        public bool CanMap(Type targetType, Type columnType, string sqlTypeName)
+            => columnType == typeof(string) && (targetType == typeof(Guid) || targetType == typeof(Guid?));
 
-        public Expression Map(Type targetType, ColumnInfo column, ParameterExpression rawVar)
+        public Expression Map(Type targetType, Type columnType, string sqlTypeName, ParameterExpression rawVar)
             =>
                 // result = raw != DBNull ? (targetType)Guid.Parse((string)raw) : default(Guid);
                 Expression.Condition(

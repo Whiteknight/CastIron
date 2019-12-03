@@ -12,10 +12,10 @@ namespace CastIron.Sql.Mapping.ScalarCompilers
     {
         private static readonly MethodInfo _convertMethod = typeof(Convert).GetMethod(nameof(Convert.ChangeType), new[] { typeof(object), typeof(Type) });
 
-        public bool CanMap(Type targetType, ColumnInfo column)
-            => column.ColumnType.IsConvertible() && targetType.IsConvertible();
+        public bool CanMap(Type targetType, Type columnType, string sqlTypeName)
+            => columnType.IsConvertible() && targetType.IsConvertible();
 
-        public Expression Map(Type targetType, ColumnInfo column, ParameterExpression rawVar)
+        public Expression Map(Type targetType, Type columnType, string sqlTypeName, ParameterExpression rawVar)
         {
             // raw != DBNull.Instance ? (targetType)Convert.ChangeType(raw, targetType) : default(targetType)
             var baseTargetType = targetType.GetTypeWithoutNullability();

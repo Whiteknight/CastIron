@@ -11,17 +11,17 @@ namespace CastIron.Sql.Mapping.ScalarCompilers
     {
         // Target is bool, source type is numeric. Try to coerce by comparing against 0
 
-        public bool CanMap(Type targetType, ColumnInfo column)
-            => (targetType == typeof(bool) || targetType == typeof(bool?)) && column.ColumnType.IsNumericType();
+        public bool CanMap(Type targetType, Type columnType, string sqlTypeName)
+            => (targetType == typeof(bool) || targetType == typeof(bool?)) && columnType.IsNumericType();
 
-        public Expression Map(Type targetType, ColumnInfo column, ParameterExpression rawVar)
+        public Expression Map(Type targetType, Type columnType, string sqlTypeName, ParameterExpression rawVar)
             =>
                 // rawVar != DBNull.Instance ? ((targetType)rawVar != (targetType)0) : false
                 Expression.Condition(
                     Expression.NotEqual(Expressions.DbNullExp, rawVar),
                     Expression.NotEqual(
-                        Expression.Convert(Expression.Constant(0), column.ColumnType),
-                        Expression.Unbox(rawVar, column.ColumnType)
+                        Expression.Convert(Expression.Constant(0), columnType),
+                        Expression.Unbox(rawVar, columnType)
                     ),
                     Expression.Constant(false)
                 );

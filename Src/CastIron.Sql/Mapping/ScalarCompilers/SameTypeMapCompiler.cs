@@ -10,10 +10,10 @@ namespace CastIron.Sql.Mapping.ScalarCompilers
     {
         // They are the same type, so we can directly assign them
 
-        public bool CanMap(Type targetType, ColumnInfo column)
-            => column.ColumnType == targetType || (!column.ColumnType.IsClass && typeof(Nullable<>).MakeGenericType(column.ColumnType) == targetType);
+        public bool CanMap(Type targetType, Type columnType, string sqlTypeName)
+            => columnType == targetType || (!columnType.IsClass && typeof(Nullable<>).MakeGenericType(columnType) == targetType);
 
-        public Expression Map(Type targetType, ColumnInfo column, ParameterExpression rawVar)
+        public Expression Map(Type targetType, Type columnType, string sqlTypeName, ParameterExpression rawVar)
             =>
                 // raw != DBNull.Instance ? (targetType)raw : default(targetType);
                 Expression.Condition(

@@ -11,16 +11,16 @@ namespace CastIron.Sql.Mapping.ScalarCompilers
     {
         // They are both numeric but not the same type. Unbox and convert
 
-        public bool CanMap(Type targetType, ColumnInfo column)
-            => column.ColumnType.IsNumericType() && targetType.IsNumericType();
+        public bool CanMap(Type targetType, Type columnType, string sqlTypeName)
+            => columnType.IsNumericType() && targetType.IsNumericType();
 
-        public Expression Map(Type targetType, ColumnInfo column, ParameterExpression rawVar)
+        public Expression Map(Type targetType, Type columnType, string sqlTypeName, ParameterExpression rawVar)
             =>
                 // result = raw != DBNull ? (targetType)unbox(raw) : default(targetType
                 Expression.Condition(
                     Expression.NotEqual(Expressions.DbNullExp, rawVar),
                     Expression.Convert(
-                        Expression.Unbox(rawVar, column.ColumnType),
+                        Expression.Unbox(rawVar, columnType),
                         targetType
                     ),
                     targetType.GetDefaultValueExpression()

@@ -11,9 +11,9 @@ namespace CastIron.Sql.Mapping.ScalarCompilers
     {
         // There is no conversion rule, so just return a default value.
 
-        public bool CanMap(Type targetType, ColumnInfo column) => true;
+        public bool CanMap(Type targetType, Type columnType, string sqlTypeName) => true;
 
-        public Expression Map(Type targetType, ColumnInfo column, ParameterExpression rawVar)
+        public Expression Map(Type targetType, Type columnType, string sqlTypeName, ParameterExpression rawVar)
             => targetType.GetDefaultValueExpression();
     }
 }
