@@ -84,16 +84,25 @@ namespace CastIron.Sql.Mapping
             return this;
         }
 
-        public Func<IDataRecord, T> Compile(IDataReader reader)
+        public Func<IDataRecord, T> Compile(IDataReader reader, IMapCompiler defaultCompiler)
         {
-            var defaultCompiler = _defaultCase.Compiler ?? MapCompilation.GetDefaultInstance();
+            // The runner/context should provide a default compiler, but a custom ISqlRunner may not behave
+            // correctly. Make sure we have one.
+            var defaultCompilerInstance = defaultCompiler ?? MapCompilation.GetDefaultInstance();
 
             // 1. Compile a mapper for every possible subclass and creation options combo
             // The cache will prevent recompilation of same maps so we won't worry about .Distinct() here.
             var newSubclasses = new List<SubclassPredicate>();
             foreach (var subclass in _subclasses)
-                VerifyAndSetupSubclassPredicate(reader, defaultCompiler, subclass, newSubclasses);
-            VerifyAndSetupSubclassPredicate(reader, defaultCompiler, _defaultCase, newSubclasses);
+            {
+                var subclassCompiler = subclass.Compiler ?? _defaultCase.Compiler ?? defaultCompilerInstance;
+                VerifyAndSetupSubclassPredicate(reader, subclassCompiler, subclass);
+                newSubclasses.Add(subclass);
+            }
+
+            var defaultCaseCompiler = _defaultCase.Compiler ?? defaultCompilerInstance;
+            VerifyAndSetupSubclassPredicate(reader, defaultCaseCompiler, _defaultCase);
+            newSubclasses.Add(_defaultCase);
 
             // 2. Create a thunk which checks each predicate and calls the correct mapper
             return CreateThunkExpression(newSubclasses);
@@ -144,7 +153,7 @@ namespace CastIron.Sql.Mapping
             };
         }
 
-        private void VerifyAndSetupSubclassPredicate(IDataReader reader, IMapCompiler defaultCompiler, SubclassPredicate subclass, List<SubclassPredicate> newSubclasses)
+        private void VerifyAndSetupSubclassPredicate(IDataReader reader, IMapCompiler defaultCompiler, SubclassPredicate subclass)
         {
             if (subclass.Type == null)
                 throw new InvalidOperationException("The type specified may not be null");
@@ -158,8 +167,6 @@ namespace CastIron.Sql.Mapping
                 var context = new MapCompileOperation(_provider, subclass.Type, createPrefs, subclass.Separator, _defaultCase.IgnorePrefixes);
                 subclass.Mapper = (subclass.Compiler ?? defaultCompiler).CompileExpression<T>(context, reader);
             }
-
-            newSubclasses.Add(subclass);
         }
 
         private static void AssertValidType(Type t)

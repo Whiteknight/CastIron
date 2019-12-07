@@ -12,13 +12,7 @@ namespace CastIron.Sql.Mapping
         protected const string StateReaderConsuming = "ReaderConsuming";
         protected const string StateOutputParams = "OutputParams";
 
-        protected StringKeyedStateMachine StateMachine { get; }
-        protected IDbCommandAsync Command { get; }
-        protected IExecutionContext Context { get; }
-        protected IDataReaderAsync Reader { get; }
-        protected IProviderConfiguration Provider { get; }
         private readonly int? _rowsAffected;
-
         private ParameterCache _parameterCache;
 
         protected DataReaderResultsBase(IProviderConfiguration provider, IDbCommandAsync command, IExecutionContext context, IDataReaderAsync reader, int? rowsAffected)
@@ -44,6 +38,12 @@ namespace CastIron.Sql.Mapping
                 .TransitionOnEvent(StateReaderConsuming, null, () => throw DataReaderException.ReaderClosed())
                 .TransitionOnEvent(StateOutputParams, StateOutputParams, EnableOutputParameters);
         }
+
+        protected StringKeyedStateMachine StateMachine { get; }
+        protected IDbCommandAsync Command { get; }
+        protected IExecutionContext Context { get; }
+        protected IDataReaderAsync Reader { get; }
+        protected IProviderConfiguration Provider { get; }
 
         public int CurrentSet { get; private set; }
 
@@ -74,13 +74,19 @@ namespace CastIron.Sql.Mapping
 
         public IEnumerable<T> AsEnumerable<T>(Action<IMapCompilerBuilder<T>> setup = null)
         {
+            PrepareToEnumerate();
+            var defaultMapCompiler = Context.GetDefaultMapCompiler();
+            var compilerBuilder = new MapCompilerBuilder<T>(Provider);
+            setup?.Invoke(compilerBuilder);
+            var map = compilerBuilder.Compile(Reader.Reader, defaultMapCompiler);
+            return new DataRecordMappingEnumerable<T>(Reader, Context, map);
+        }
+
+        protected void PrepareToEnumerate()
+        {
             StateMachine.ReceiveEvent(StateReaderConsuming);
             if (CurrentSet == 0)
                 CurrentSet = 1;
-            var context = new MapCompilerBuilder<T>(Provider);
-            setup?.Invoke(context);
-            var map = context.Compile(Reader.Reader);
-            return new DataRecordMappingEnumerable<T>(Reader, Context, map);
         }
 
         public IDataResultsBase AdvanceToResultSet(int num)
@@ -174,10 +180,11 @@ namespace CastIron.Sql.Mapping
 
         public IAsyncEnumerable<T> AsEnumerableAsync<T>(Action<IMapCompilerBuilder<T>> setup = null)
         {
-            AdvanceToResultSet(1);
-            var context = new MapCompilerBuilder<T>(Provider);
-            setup?.Invoke(context);
-            var map = context.Compile(Reader.Reader);
+            PrepareToEnumerate();
+            var defaultMapCompiler = Context.GetDefaultMapCompiler();
+            var compilerBuilder = new MapCompilerBuilder<T>(Provider);
+            setup?.Invoke(compilerBuilder);
+            var map = compilerBuilder.Compile(Reader.Reader, defaultMapCompiler);
             return new AsyncDataRecordMappingEnumerable<T>(Reader, Context, map);
         }
 

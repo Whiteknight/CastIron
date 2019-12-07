@@ -1,4 +1,7 @@
-﻿using System.Threading;
+﻿using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using CastIron.Sql.Mapping.ScalarCompilers;
 using CastIron.Sql.Utility;
 
 namespace CastIron.Sql.Mapping
@@ -8,6 +11,7 @@ namespace CastIron.Sql.Mapping
     /// </summary>
     public static class MapCompilation
     {
+        // TODO: Move all this stuff onto the SqlRunner, SqlRunnerCore and/or ExecutionContext
         private static CachingMapCompiler _cachingInstance;
         private static MapCompiler _uncachedInstance;
         private static IMapCompiler _defaultInstance;
@@ -48,5 +52,23 @@ namespace CastIron.Sql.Mapping
             Argument.NotNull(compiler, nameof(compiler));
             _defaultInstance = compiler;
         }
+
+        // TODO: Would like to be able to configure compilers at the ISqlRunner level and pass it down into
+        // the map compilation machinery instead of having a static singleton list
+        // TODO: If the column is a serialized type like XML or JSON, we should be able to deserialize that into an object.
+        private static readonly IReadOnlyList<IScalarMapCompiler> _defaultScalarMapCompilers = new List<IScalarMapCompiler>
+        {
+            new SameTypeMapCompiler(),
+            new ObjectMapCompiler(),
+            new ToStringMapCompiler(),
+            new NumericConversionMapCompiler(),
+            new NumberToBoolMapCompiler(),
+            new StringToGuidMapCompiler(),
+            new ConvertibleMapCompiler(),
+            new DefaultScalarMapCompiler(),
+        };
+
+        public static IEnumerable<IScalarMapCompiler> GetDefaultScalarMapCompilers()
+            => _defaultScalarMapCompilers;
     }
 }

@@ -25,7 +25,7 @@ namespace CastIron.Sql.Mapping
             TopLevelTargetType = topLevelTargetType;
             CreatePreferences = create;
             IgnorePrefixes = ignorePrefixes ?? new List<string>();
-            Separator = separator ?? "_";
+            Separator = (separator ?? "_").ToLowerInvariant();
 
             RecordParam = Expression.Parameter(typeof(IDataRecord), "record");
 

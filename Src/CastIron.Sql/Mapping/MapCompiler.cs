@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Diagnostics;
 using System.Linq;
@@ -15,20 +16,42 @@ namespace CastIron.Sql.Mapping
     /// </summary>
     public class MapCompiler : IMapCompiler
     {
-        private static readonly ICompiler _allTypes;
-        private static readonly ICompiler _arrays;
-        private static readonly ICompiler _objects;
+        private static readonly Lazy<ICompiler> _defaultCompiler = new Lazy<ICompiler>(() => CreateCompiler(null));
+        private static readonly Lazy<IMapCompiler> _defaultInstance = new Lazy<IMapCompiler>(() => new MapCompiler());
+        private readonly ICompiler _compiler;
 
-        static MapCompiler()
+        public MapCompiler()
         {
+            _compiler = _defaultCompiler.Value;
+        }
+
+        public MapCompiler(ICompiler compiler)
+        {
+            _compiler = compiler ?? _defaultCompiler.Value;
+        }
+
+        public MapCompiler(IEnumerable<IScalarMapCompiler> scalarMapCompilers)
+        {
+            _compiler = CreateCompiler(scalarMapCompilers);
+        }
+
+        public static IMapCompiler GetDefaultInstance() => _defaultInstance.Value;
+
+        private static ICompiler CreateCompiler(IEnumerable<IScalarMapCompiler> scalarMapCompilers)
+        {
+            scalarMapCompilers ??= MapCompilation.GetDefaultScalarMapCompilers();
+
             // Setup some deferrals to avoid circular references
+            ICompiler _allTypes = null;
             ICompiler allTypes = new DeferredCompiler(() => _allTypes);
+            ICompiler _arrays = null;
             ICompiler arrays = new DeferredCompiler(() => _arrays);
+            ICompiler _objects = null;
             ICompiler objects = new DeferredCompiler(() => _objects);
             ICompiler maybeObjects = new IfCompiler(s => s.TargetType == typeof(object), objects);
 
             // Scalars are primitive types which can be directly converted to from column values
-            ICompiler scalars = new ScalarCompiler();
+            ICompiler scalars = new ScalarCompiler(scalarMapCompilers);
             ICompiler maybeScalars = new IfCompiler(s => s.TargetType.IsSupportedPrimitiveType(), scalars);
 
             // Custom objects are objects which are not dictionaries, collections, tuples or object
@@ -87,6 +110,7 @@ namespace CastIron.Sql.Mapping
                 maybeTuples,
                 maybeCustomObjects
             );
+            return _allTypes;
         }
 
         // TODO: Ability to take the IDataRecord in the factory and consume some columns for constructor params so they aren't used later for properties?
@@ -96,7 +120,7 @@ namespace CastIron.Sql.Mapping
 
             // For all other cases, fall back to normal recursive conversion routines.
             var state = operation.CreateContextFromDataReader(reader);
-            var expressions = _allTypes.Compile(state);
+            var expressions = _compiler.Compile(state);
             var statements = expressions.Expressions.Concat(new[] { expressions.FinalValue }).Where(e => e != null);
 
             var lambdaExpression = Expression.Lambda<Func<IDataRecord, T>>(

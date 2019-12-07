@@ -3,11 +3,13 @@ using System.Collections.Generic;
 using System.Data;
 using System.Threading;
 using System.Threading.Tasks;
+using CastIron.Sql.Mapping;
 
 namespace CastIron.Sql.Execution
 {
     public sealed class ExecutionContext : IExecutionContext, IContextBuilder
     {
+        private readonly IMapCompiler _defaultCompiler;
         private IsolationLevel? _isolationLevel;
         private bool _aborted;
         private int _completed;
@@ -16,8 +18,9 @@ namespace CastIron.Sql.Execution
         private PerformanceMonitor _monitor;
         private Action<string> _onCommandText;
 
-        public ExecutionContext(IDbConnectionFactory factory, IProviderConfiguration provider, IDbCommandStringifier stringifier)
+        public ExecutionContext(IDbConnectionFactory factory, IProviderConfiguration provider, IDbCommandStringifier stringifier, IMapCompiler defaultCompiler)
         {
+            _defaultCompiler = defaultCompiler;
             Stringifier = stringifier;
             Provider = provider;
             _completed = 0;
@@ -148,6 +151,8 @@ namespace CastIron.Sql.Execution
         {
             _aborted = true;
         }
+
+        public IMapCompiler GetDefaultMapCompiler() => _defaultCompiler;
 
         public void Dispose()
         {

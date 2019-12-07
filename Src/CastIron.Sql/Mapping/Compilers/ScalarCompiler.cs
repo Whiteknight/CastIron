@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-using CastIron.Sql.Mapping.ScalarCompilers;
 
 namespace CastIron.Sql.Mapping.Compilers
 {
@@ -12,21 +12,13 @@ namespace CastIron.Sql.Mapping.Compilers
     /// </summary>
     public class ScalarCompiler : ICompiler
     {
+        private readonly IReadOnlyList<IScalarMapCompiler> _scalarCompilers;
         private static readonly MethodInfo _getValueMethod = typeof(IDataRecord).GetMethod(nameof(IDataRecord.GetValue), new[] { typeof(int) });
 
-        // TODO: If the column is a serialized type like XML or JSON, we should be able to deserialize that into an object.
-        // TODO: Where to put this list so that it's configurable by the user?
-        private static readonly IReadOnlyList<IScalarMapCompiler> _scalarMapCompilers = new List<IScalarMapCompiler>
+        public ScalarCompiler(IEnumerable<IScalarMapCompiler> scalarCompilers)
         {
-            new DefaultScalarMapCompiler(),
-            new ConvertibleMapCompiler(),
-            new StringToGuidMapCompiler(),
-            new NumberToBoolMapCompiler(),
-            new NumericConversionMapCompiler(),
-            new ToStringMapCompiler(),
-            new ObjectMapCompiler(),
-            new SameTypeMapCompiler()
-        };
+            _scalarCompilers = scalarCompilers.ToList();
+        }
 
         public ConstructedValueExpression Compile(MapContext context)
         {
@@ -50,15 +42,15 @@ namespace CastIron.Sql.Mapping.Compilers
             return new ConstructedValueExpression(new[] { getRawStmt }, rawConvertExpr, new[] { rawVar });
         }
 
-        private static Expression MapScalar(Type targetType, ColumnInfo column, ParameterExpression rawVar)
+        private Expression MapScalar(Type targetType, ColumnInfo column, ParameterExpression rawVar)
         {
             // I put the compilers in reverse order, because I think when we can add custom compilers, they
             // will be added at the end of the list (so they will run first before falling back to our
             // other types and finally our default compiler
-            for (var i = _scalarMapCompilers.Count - 1; i >= 0; i--)
+            foreach (var compiler in _scalarCompilers)
             {
-                if (_scalarMapCompilers[i].CanMap(targetType, column.ColumnType, column.SqlTypeName))
-                    return _scalarMapCompilers[i].Map(targetType, column.ColumnType, column.SqlTypeName, rawVar);
+                if (compiler.CanMap(targetType, column.ColumnType, column.SqlTypeName))
+                    return compiler.Map(targetType, column.ColumnType, column.SqlTypeName, rawVar);
             }
 
             return targetType.GetDefaultValueExpression();

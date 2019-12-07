@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Data;
+using CastIron.Sql.Mapping;
 
 namespace CastIron.Sql.Execution
 {
@@ -23,5 +24,7 @@ namespace CastIron.Sql.Execution
         void MarkComplete();
         void MarkAborted();
         bool IsCompleted { get; }
+
+        IMapCompiler GetDefaultMapCompiler();
     }
 }

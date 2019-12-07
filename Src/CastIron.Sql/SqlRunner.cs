@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using CastIron.Sql.Execution;
+using CastIron.Sql.Mapping;
 using CastIron.Sql.Utility;
 
 namespace CastIron.Sql
@@ -14,6 +16,8 @@ namespace CastIron.Sql
         private readonly Action<IContextBuilder> _defaultBuilder;
         private readonly SqlRunnerCore _core;
         private readonly IDbConnectionFactory _connectionFactory;
+        private readonly List<IScalarMapCompiler> _customScalarMapCompilers;
+        private IMapCompiler _defaultCompiler;
 
         public SqlRunner(SqlRunnerCore core, IDbConnectionFactory connectionFactory, Action<IContextBuilder> defaultBuilder)
         {
@@ -23,6 +27,7 @@ namespace CastIron.Sql
             _core = core;
             _connectionFactory = connectionFactory;
             _defaultBuilder = defaultBuilder;
+            _customScalarMapCompilers = new List<IScalarMapCompiler>();
         }
 
         public IDataInteractionFactory InteractionFactory => _core.InteractionFactory;
@@ -33,7 +38,8 @@ namespace CastIron.Sql
 
         public ExecutionContext CreateExecutionContext()
         {
-            var context = new ExecutionContext(_connectionFactory, Provider, _core.CommandStringifier);
+            var compiler = GetCompiler();
+            var context = new ExecutionContext(_connectionFactory, Provider, _core.CommandStringifier, compiler);
             _defaultBuilder?.Invoke(context);
             return context;
         }
@@ -66,6 +72,34 @@ namespace CastIron.Sql
         {
             using var context = CreateExecutionContext();
             await _core.ExecuteAsync(context, executor).ConfigureAwait(false);
+        }
+
+        public void AddCustomScalarMapCompiler(IScalarMapCompiler compiler)
+        {
+            _defaultCompiler = null;
+            _customScalarMapCompilers.Add(compiler);
+        }
+
+        public void ClearCustomScalarMapCompilers()
+        {
+            if (_customScalarMapCompilers.Count > 0)
+            {
+                _defaultCompiler = null;
+                _customScalarMapCompilers.Clear();
+            }
+        }
+
+        private IMapCompiler GetCompiler()
+        {
+            if (_defaultCompiler != null)
+                return _defaultCompiler;
+            if (_customScalarMapCompilers.Count == 0)
+                return MapCompiler.GetDefaultInstance();
+
+            var defaultScalarCompilers = MapCompilation.GetDefaultScalarMapCompilers();
+            var allScalarCompilers = _customScalarMapCompilers.Concat(defaultScalarCompilers);
+            _defaultCompiler = new MapCompiler(allScalarCompilers);
+            return _defaultCompiler;
         }
     }
 }
