@@ -1,4 +1,5 @@
 ﻿using CastIron.Sql;
+using CastIron.Sql.Utility;
 using Microsoft.Data.Sqlite;
 using System.Data;
 using System.Threading;
@@ -15,6 +16,7 @@ namespace CastIron.Sqlite
 
         public SqliteDbConnectionFactory(string connectionString)
         {
+            Argument.NotNullOrEmpty(connectionString, nameof(connectionString));
             _connectionString = connectionString;
         }
 

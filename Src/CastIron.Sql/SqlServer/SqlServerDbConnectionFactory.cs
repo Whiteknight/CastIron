@@ -2,6 +2,7 @@
 using System.Data.SqlClient;
 using System.Threading;
 using System.Threading.Tasks;
+using CastIron.Sql.Utility;
 
 namespace CastIron.Sql.SqlServer
 {
@@ -14,6 +15,7 @@ namespace CastIron.Sql.SqlServer
 
         public SqlServerDbConnectionFactory(string connectionString)
         {
+            Argument.NotNullOrEmpty(connectionString, nameof(connectionString));
             _connectionString = connectionString;
         }
 
