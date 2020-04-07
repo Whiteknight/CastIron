@@ -42,13 +42,13 @@ namespace CastIron.Sql.Mapping
         {
             private readonly IDataReaderAsync _reader;
             private readonly IExecutionContext _context;
-            private readonly Func<IDataRecord, T> _read;
+            private readonly Func<IDataRecord, T> _map;
 
-            public ResultSetEnumerator(IDataReaderAsync reader, IExecutionContext context, Func<IDataRecord, T> read)
+            public ResultSetEnumerator(IDataReaderAsync reader, IExecutionContext context, Func<IDataRecord, T> map)
             {
                 _reader = reader;
                 _context = context;
-                _read = read;
+                _map = map;
             }
 
             public async ValueTask<bool> MoveNextAsync()
@@ -61,7 +61,7 @@ namespace CastIron.Sql.Mapping
 
                 var ok = await _reader.ReadAsync(new CancellationToken()).ConfigureAwait(false);
                 // TODO: have an async  _reader variant
-                Current = ok ? _read(_reader.Reader) : default;
+                Current = ok ? _map(_reader.Reader) : default;
                 return ok;
             }
 

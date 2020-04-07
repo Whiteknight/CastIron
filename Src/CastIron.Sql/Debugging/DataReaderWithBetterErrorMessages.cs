@@ -16,40 +16,19 @@ namespace CastIron.Sql.Debugging
             _inner = inner;
         }
 
-        public void Dispose()
-        {
-            _inner.Dispose();
-        }
+        public void Dispose() => _inner.Dispose();
 
-        public string GetName(int i)
-        {
-            return _inner.GetName(i);
-        }
+        public string GetName(int i) => _inner.GetName(i);
 
-        public string GetDataTypeName(int i)
-        {
-            return _inner.GetDataTypeName(i);
-        }
+        public string GetDataTypeName(int i) => _inner.GetDataTypeName(i);
 
-        public Type GetFieldType(int i)
-        {
-            return _inner.GetFieldType(i);
-        }
+        public Type GetFieldType(int i) => _inner.GetFieldType(i);
 
-        public object GetValue(int i)
-        {
-            return _inner.GetValue(i);
-        }
+        public object GetValue(int i) => _inner.GetValue(i);
 
-        public int GetValues(object[] values)
-        {
-            return _inner.GetValues(values);
-        }
+        public int GetValues(object[] values) => _inner.GetValues(values);
 
-        public int GetOrdinal(string name)
-        {
-            return _inner.GetOrdinal(name);
-        }
+        public int GetOrdinal(string name) => _inner.GetOrdinal(name);
 
         public bool GetBoolean(int i)
         {
@@ -63,10 +42,8 @@ namespace CastIron.Sql.Debugging
             return ExpectType<byte>(i);
         }
 
-        public long GetBytes(int i, long fieldOffset, byte[] buffer, int bufferoffset, int length)
-        {
-            return _inner.GetBytes(i, fieldOffset, buffer, bufferoffset, length);
-        }
+        public long GetBytes(int i, long fieldOffset, byte[] buffer, int bufferoffset, int length) 
+            => _inner.GetBytes(i, fieldOffset, buffer, bufferoffset, length);
 
         public char GetChar(int i)
         {
@@ -74,10 +51,8 @@ namespace CastIron.Sql.Debugging
             return ExpectType<char>(i);
         }
 
-        public long GetChars(int i, long fieldoffset, char[] buffer, int bufferoffset, int length)
-        {
-            return _inner.GetChars(i, fieldoffset, buffer, bufferoffset, length);
-        }
+        public long GetChars(int i, long fieldoffset, char[] buffer, int bufferoffset, int length) 
+            => _inner.GetChars(i, fieldoffset, buffer, bufferoffset, length);
 
         public Guid GetGuid(int i)
         {
@@ -133,15 +108,9 @@ namespace CastIron.Sql.Debugging
             return ExpectType<DateTime>(i);
         }
 
-        public IDataReader GetData(int i)
-        {
-            return _inner.GetData(i);
-        }
+        public IDataReader GetData(int i) => _inner.GetData(i);
 
-        public bool IsDBNull(int i)
-        {
-            return _inner.IsDBNull(i);
-        }
+        public bool IsDBNull(int i) => _inner.IsDBNull(i);
 
         public int FieldCount => _inner.FieldCount;
 
@@ -149,25 +118,13 @@ namespace CastIron.Sql.Debugging
 
         public object this[string name] => _inner[name];
 
-        public void Close()
-        {
-            _inner.Close();
-        }
+        public void Close() => _inner.Close();
 
-        public DataTable GetSchemaTable()
-        {
-            return _inner.GetSchemaTable();
-        }
+        public DataTable GetSchemaTable() => _inner.GetSchemaTable();
 
-        public bool NextResult()
-        {
-            return _inner.NextResult();
-        }
+        public bool NextResult() => _inner.NextResult();
 
-        public bool Read()
-        {
-            return _inner.Read();
-        }
+        public bool Read() => _inner.Read();
 
         public int Depth => _inner.Depth;
         public bool IsClosed => _inner.IsClosed;

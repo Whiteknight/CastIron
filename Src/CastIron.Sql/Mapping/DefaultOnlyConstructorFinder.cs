@@ -19,7 +19,6 @@ namespace CastIron.Sql.Mapping
             {
                 if (!preferredConstructor.IsPublic || preferredConstructor.IsStatic)
                     throw ConstructorFindException.NonInvokableConstructorSpecified();
-                // TODO: Should we allow case where type is assignable from DeclaringType?
                 if (preferredConstructor.DeclaringType != type)
                     throw ConstructorFindException.InvalidDeclaringType(preferredConstructor.DeclaringType, type);
 

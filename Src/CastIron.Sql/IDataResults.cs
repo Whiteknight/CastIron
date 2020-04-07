@@ -79,10 +79,6 @@ namespace CastIron.Sql
         /// </summary>
         /// <returns></returns>
         IDataReader AsRawReader();
-
-        // TODO: Tuple<T1, T2> ToLists<T1, T2>()
-        // TODO: Tuple<T1, T2, T3> ToLists<T1, T2, T3>()
-        // TODO: ...
     }
 
     public interface IDataResultsStream : IDataResultsBase, IDisposable
@@ -144,6 +140,7 @@ namespace CastIron.Sql
         /// <returns></returns>
         public static IEnumerable<T> GetNextEnumerable<T>(this IDataResultsBase results, Func<T> factory)
         {
+            Argument.NotNull(factory, nameof(factory));
             return GetNextEnumerable<T>(results, b => b.UseFactoryMethod(factory));
         }
 

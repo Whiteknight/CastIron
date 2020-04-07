@@ -91,9 +91,13 @@ namespace CastIron.Sql.Mapping.Compilers
             // know until after each iteration has returned how many columns are left. We could map to
             // a List and then .ToArray() to get the array, but that seems wasteful.
 
-            // var array = new T[1];
             var arrayVar = context.CreateVariable(context.TargetType, "array");
             variables.Add(arrayVar);
+            var elementState = context.ChangeTargetType(elementType);
+            var result = _customObjects.Compile(elementState);
+            expressions.AddRange(result.Expressions);
+
+            // var array = new T[1];
             expressions.Add(
                 Expression.Assign(
                     arrayVar,
@@ -103,10 +107,6 @@ namespace CastIron.Sql.Mapping.Compilers
                     )
                 )
             );
-
-            var elementState = context.ChangeTargetType(elementType);
-            var result = _customObjects.Compile(elementState);
-            expressions.AddRange(result.Expressions);
 
             // array[0] = obj;
             expressions.Add(

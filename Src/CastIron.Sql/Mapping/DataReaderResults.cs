@@ -51,7 +51,6 @@ namespace CastIron.Sql.Mapping
 
         public IDataReader AsRawReader()
         {
-            // TODO: If Reader?.Reader is null we should warn the user or return null or a default?
             StateMachine.ReceiveEvent(StateRawReaderConsumed);
             return Reader?.Reader;
         }
@@ -93,7 +92,6 @@ namespace CastIron.Sql.Mapping
         {
             StateMachine.ReceiveEvent(StateReaderConsuming);
 
-            // TODO: Review all this logic to make sure it is sane and necessary
             if (CurrentSet > num)
                 throw DataReaderException.ResultSetsAccessedOutOfOrder(CurrentSet, num);
             if (CurrentSet == 0)

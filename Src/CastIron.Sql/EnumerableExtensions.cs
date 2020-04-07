@@ -56,9 +56,7 @@ namespace CastIron.Sql
                 Inner = i
             });
             foreach (var pair in pairs)
-            {
                 onEach(pair.Outer, pair.Inner);
-            }
         }
     }
 }

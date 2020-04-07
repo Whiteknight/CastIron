@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using CastIron.Sql.Mapping.ScalarCompilers;
 using CastIron.Sql.Utility;
