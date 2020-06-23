@@ -58,5 +58,72 @@ namespace CastIron.Sql
             foreach (var pair in pairs)
                 onEach(pair.Outer, pair.Inner);
         }
+
+        /// <summary>
+        /// Left outer join the two enumerables on matching keys. For every item in the left enumerable,
+        /// return a result containing all matching items from the right enumerable, if any.
+        /// </summary>
+        /// <typeparam name="TLeft"></typeparam>
+        /// <typeparam name="TRight"></typeparam>
+        /// <typeparam name="TKey"></typeparam>
+        /// <param name="left"></param>
+        /// <param name="right"></param>
+        /// <param name="leftKeySelector"></param>
+        /// <param name="rightKeySelector"></param>
+        /// <returns></returns>
+        public static IEnumerable<GroupedOuterJoinResult<TLeft, TRight>> GroupedLeftOuterJoin<TLeft, TRight, TKey>(this IEnumerable<TLeft> left, IEnumerable<TRight> right, Func<TLeft, TKey> leftKeySelector, Func<TRight, TKey> rightKeySelector)
+        {
+            Argument.NotNull(left, nameof(left));
+            Argument.NotNull(right, nameof(right));
+            Argument.NotNull(leftKeySelector, nameof(leftKeySelector));
+            Argument.NotNull(rightKeySelector, nameof(rightKeySelector));
+
+            var rightGroups = right
+                .GroupBy(rightKeySelector)
+                .ToDictionary(g => g.Key, g => g.ToList());
+
+            return left
+                .Select(leftItem =>
+                {
+                    var leftKey = leftKeySelector(leftItem);
+                    var rightItems = rightGroups.ContainsKey(leftKey) ? rightGroups[leftKey] : Enumerable.Empty<TRight>();
+                    return new GroupedOuterJoinResult<TLeft, TRight>(leftItem, rightItems);
+                });
+        }
+
+        /// <summary>
+        /// Left outer join two enumerables. Return an enumerable for every item in the left enumerable
+        /// and every matching item in the right enumerable. If there are no matching items in the right
+        /// enumerable, a result is returned with the left item and a default value for the right item.
+        /// </summary>
+        /// <typeparam name="TLeft"></typeparam>
+        /// <typeparam name="TRight"></typeparam>
+        /// <typeparam name="TKey"></typeparam>
+        /// <param name="left"></param>
+        /// <param name="right"></param>
+        /// <param name="leftKeySelector"></param>
+        /// <param name="rightKeySelector"></param>
+        /// <returns></returns>
+        public static IEnumerable<OuterJoinResult<TLeft, TRight>> LeftOuterJoin<TLeft, TRight, TKey>(this IEnumerable<TLeft> left, IEnumerable<TRight> right, Func<TLeft, TKey> leftKeySelector, Func<TRight, TKey> rightKeySelector)
+        {
+            Argument.NotNull(left, nameof(left));
+            Argument.NotNull(right, nameof(right));
+            Argument.NotNull(leftKeySelector, nameof(leftKeySelector));
+            Argument.NotNull(rightKeySelector, nameof(rightKeySelector));
+
+            var rightGroups = right
+                .GroupBy(rightKeySelector)
+                .ToDictionary(g => g.Key, g => g.ToList());
+
+            return left
+                .SelectMany(leftItem =>
+                {
+                    var leftKey = leftKeySelector(leftItem);
+                    if (!rightGroups.ContainsKey(leftKey))
+                        return new[] { new OuterJoinResult<TLeft, TRight>(leftItem, default) };
+
+                    return rightGroups[leftKey].Select(r => new OuterJoinResult<TLeft, TRight>(leftItem, r));
+                });
+        }
     }
 }
