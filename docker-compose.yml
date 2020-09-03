@@ -1,0 +1,18 @@
+version: "3.2"
+services:
+  sql-server:
+    container_name: mssqlserver
+    image: microsoft/mssql-server-linux:2017-latest
+    ports:
+      - "1433:1433"
+    environment:
+      SA_PASSWORD: "passwordABC123"
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: "Developer"
+  postgresql:
+    container_name: postgresql
+    image: postgres:12-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_PASSWORD: "mysecretpassword"
