@@ -64,3 +64,5 @@ TestResults/
 # GIt Merge Files
 *.orig
 
+# Sonarqube and related
+.sonarqube/
