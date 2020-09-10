@@ -2,7 +2,10 @@ version: "3.2"
 services:
   sql-server:
     container_name: mssqlserver
-    image: microsoft/mssql-server-linux:2017-latest
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    # volumes:
+    #   - mssqlsystem:/var/opt/mssql
+    #   - mssqluser:/var/opt/sqlserver
     ports:
       - "1433:1433"
     environment:
@@ -12,7 +15,14 @@ services:
   postgresql:
     container_name: postgresql
     image: postgres:12-alpine
+    # volumes:
+    #   - postgresdata:/var/lib/postgresql/data
     ports:
       - "5432:5432"
     environment:
       POSTGRES_PASSWORD: "mysecretpassword"
+
+# volumes:
+#   mssqlsystem:
+#   mssqluser:
+#   postgresdata:
