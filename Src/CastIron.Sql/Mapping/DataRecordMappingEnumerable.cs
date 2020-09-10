@@ -1,14 +1,14 @@
-﻿using System;
+﻿using CastIron.Sql.Execution;
+using CastIron.Sql.Utility;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Data;
 using System.Threading;
-using CastIron.Sql.Execution;
-using CastIron.Sql.Utility;
 
 namespace CastIron.Sql.Mapping
 {
-    public class DataRecordMappingEnumerable<T> : IEnumerable<T>
+    public sealed class DataRecordMappingEnumerable<T> : IEnumerable<T>
     {
         private readonly IDataReaderAsync _reader;
         private readonly IExecutionContext _context;
@@ -54,6 +54,8 @@ namespace CastIron.Sql.Mapping
 
             public void Dispose()
             {
+                // Nothing to dispose here. We can't dispose the underlying reader, because we
+                // might create a new enumerator from the next result set
             }
 
             public bool MoveNext()

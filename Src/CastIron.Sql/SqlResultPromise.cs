@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 
 namespace CastIron.Sql
 {
-    public class SqlResultPromise : ISqlResultPromise
+    public sealed class SqlResultPromise : ISqlResultPromise
     {
         private readonly ManualResetEvent _waitHandle;
         private volatile bool _isComplete;
@@ -61,7 +61,7 @@ namespace CastIron.Sql
         }
     }
 
-    public class SqlResultPromise<T> : ISqlResultPromise<T>
+    public sealed class SqlResultPromise<T> : ISqlResultPromise<T>
     {
         private readonly ManualResetEvent _waitHandle;
         private volatile bool _isComplete;

@@ -1,11 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace CastIron.Sql
+﻿namespace CastIron.Sql
 {
     public interface IProviderConfiguration
     {
-        string UnnamedColumnName { get;  }
+        string UnnamedColumnName { get; }
     }
 }

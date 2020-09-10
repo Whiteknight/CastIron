@@ -1,8 +1,8 @@
-﻿using System;
+﻿using CastIron.Sql.Execution;
+using CastIron.Sql.Utility;
+using System;
 using System.Collections.Generic;
 using System.Data;
-using CastIron.Sql.Execution;
-using CastIron.Sql.Utility;
 
 namespace CastIron.Sql.Mapping
 {
@@ -150,9 +150,9 @@ namespace CastIron.Sql.Mapping
         }
     }
 
-    public class DataReaderResultsStream : DataReaderResultsBase, IDataResultsStream
+    public sealed class DataReaderResultsStream : DataReaderResultsBase, IDataResultsStream
     {
-        protected const string StateDisposed = "Disposed";
+        private const string StateDisposed = "Disposed";
 
         public DataReaderResultsStream(IProviderConfiguration provider, IDbCommandAsync command, IExecutionContext context, IDataReaderAsync reader)
             : base(provider, command, context, reader, null)

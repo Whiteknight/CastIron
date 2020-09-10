@@ -15,11 +15,11 @@ namespace CastIron.Sql.Mapping
         {
             _parameterCache = command?.Parameters
                 ?.Cast<DbParameter>()
-                ?.ToDictionary(p => CanonicalizeParameterName(p.ParameterName), p => p.Value) 
+                ?.ToDictionary(p => CanonicalizeParameterName(p.ParameterName), p => p.Value)
                 ?? new Dictionary<string, object>();
         }
 
-        private static string CanonicalizeParameterName(string name) 
+        private static string CanonicalizeParameterName(string name)
             => (name.StartsWith("@") ? name.Substring(1) : name).ToLowerInvariant();
 
         public object GetValue(string name)
@@ -27,18 +27,6 @@ namespace CastIron.Sql.Mapping
             var parameterName = CanonicalizeParameterName(name);
             if (!_parameterCache.ContainsKey(parameterName))
                 return null;
-            var value = _parameterCache[parameterName];
-            return value == null || value == DBNull.Value ? null : value;
-        }
-
-        public static Exception ValueNotFound(string name) 
-            => new DataReaderException($"Could not find parameter named {name}. Please check your query and your spelling and try again.");
-
-        public object GetValueOrThrow(string name)
-        {
-            var parameterName = CanonicalizeParameterName(name);
-            if (!_parameterCache.ContainsKey(parameterName))
-                throw ValueNotFound(name);
             var value = _parameterCache[parameterName];
             return value == null || value == DBNull.Value ? null : value;
         }
@@ -56,6 +44,18 @@ namespace CastIron.Sql.Mapping
                 return (T)Convert.ChangeType(value, typeof(T));
 
             return default;
+        }
+
+        private static DataReaderException ValueNotFound(string name)
+            => new DataReaderException($"Could not find parameter named {name}. Please check your query and your spelling and try again.");
+
+        public object GetValueOrThrow(string name)
+        {
+            var parameterName = CanonicalizeParameterName(name);
+            if (!_parameterCache.ContainsKey(parameterName))
+                throw ValueNotFound(name);
+            var value = _parameterCache[parameterName];
+            return value == null || value == DBNull.Value ? null : value;
         }
 
         public T GetOutputParameterOrThrow<T>(string name)

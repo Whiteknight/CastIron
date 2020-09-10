@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace CastIron.Sql.Execution
 {
-    public class ExecutionContext : IExecutionContext, IContextBuilder
+    public sealed class ExecutionContext : IExecutionContext, IContextBuilder
     {
         private IsolationLevel? _isolationLevel;
         private bool _aborted;
@@ -101,7 +101,7 @@ namespace CastIron.Sql.Execution
             return this;
         }
 
-        public IContextBuilder SetTimeout(TimeSpan timeSpan) => SetTimeoutSeconds((int) timeSpan.TotalSeconds);
+        public IContextBuilder SetTimeout(TimeSpan timeSpan) => SetTimeoutSeconds((int)timeSpan.TotalSeconds);
 
         public void StartSetupCommand(int index)
         {

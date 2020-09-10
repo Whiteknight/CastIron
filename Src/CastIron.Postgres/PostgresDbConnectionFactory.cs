@@ -1,8 +1,8 @@
-﻿using System.Data;
+﻿using CastIron.Sql;
+using Npgsql;
+using System.Data;
 using System.Threading;
 using System.Threading.Tasks;
-using CastIron.Sql;
-using Npgsql;
 
 namespace CastIron.Postgres
 {
@@ -23,7 +23,7 @@ namespace CastIron.Postgres
             return new DbConnectionAsync(new NpgsqlConnection(_connectionString));
         }
 
-        public class DbConnectionAsync : IDbConnectionAsync
+        public sealed class DbConnectionAsync : IDbConnectionAsync
         {
             private readonly NpgsqlConnection _connection;
 
@@ -50,7 +50,7 @@ namespace CastIron.Postgres
             }
         }
 
-        public class DbCommandAsync : IDbCommandAsync
+        public sealed class DbCommandAsync : IDbCommandAsync
         {
             private readonly NpgsqlCommand _command;
 
@@ -84,7 +84,7 @@ namespace CastIron.Postgres
             }
         }
 
-        public class DataReaderAsync : IDataReaderAsync
+        public sealed class DataReaderAsync : IDataReaderAsync
         {
             private readonly NpgsqlDataReader _reader;
 

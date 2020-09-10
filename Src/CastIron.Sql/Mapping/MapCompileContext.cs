@@ -77,9 +77,6 @@ namespace CastIron.Sql.Mapping
         public ObjectCreatePreferences CreatePreferences { get; }
         public IReadOnlyList<ParameterExpression> Variables => _variables;
 
-        //public List<ParameterExpression> Variables { get; }
-        //public List<Expression> Statements { get; }
-
         public MapCompileContext CreateSubcontext(Type t, string prefix)
         {
             if (!string.IsNullOrEmpty(prefix))

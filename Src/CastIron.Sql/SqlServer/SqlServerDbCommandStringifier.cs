@@ -1,8 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using CastIron.Sql.Execution;
+using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
 using System.Text;
-using CastIron.Sql.Execution;
 
 namespace CastIron.Sql.SqlServer
 {
@@ -17,7 +17,7 @@ namespace CastIron.Sql.SqlServer
 
     public class SqlServerDbCommandStringifier : IDbCommandStringifier
     {
-        private static readonly SqlServerDbCommandStringifier _instance;
+        private static readonly SqlServerDbCommandStringifier _instance = new SqlServerDbCommandStringifier();
 
         private static readonly HashSet<DbType> _quotedDbTypes = new HashSet<DbType>
         {
@@ -32,11 +32,6 @@ namespace CastIron.Sql.SqlServer
             DbType.DateTimeOffset,
             DbType.Xml
         };
-
-        static SqlServerDbCommandStringifier()
-        {
-            _instance = new SqlServerDbCommandStringifier();
-        }
 
         public static SqlServerDbCommandStringifier GetDefaultInstance()
         {

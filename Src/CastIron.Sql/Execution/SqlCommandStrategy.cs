@@ -1,7 +1,7 @@
-﻿using System;
+﻿using CastIron.Sql.Mapping;
+using System;
 using System.Threading;
 using System.Threading.Tasks;
-using CastIron.Sql.Mapping;
 
 namespace CastIron.Sql.Execution
 {
@@ -42,35 +42,6 @@ namespace CastIron.Sql.Execution
             }
         }
 
-        public async Task ExecuteAsync(ISqlCommand command, IExecutionContext context, int index, CancellationToken cancellationToken)
-        {
-            context.StartSetupCommand(index);
-            using var dbCommand = context.CreateCommand();
-            try
-            {
-                if (!SetupCommand(command, dbCommand))
-                {
-                    context.MarkAborted();
-                    return;
-                }
-
-                context.StartExecute(index, dbCommand);
-                await dbCommand.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
-
-            }
-            catch (SqlQueryException)
-            {
-                context.MarkAborted();
-                throw;
-            }
-            catch (Exception e)
-            {
-                context.MarkAborted();
-                var sql = context.Stringifier.Stringify(dbCommand.Command);
-                throw SqlQueryException.Wrap(e, sql, index);
-            }
-        }
-
         public T Execute<T>(ISqlCommand<T> command, IExecutionContext context, int index)
         {
             context.StartSetupCommand(index);
@@ -99,6 +70,35 @@ namespace CastIron.Sql.Execution
             {
                 context.MarkAborted();
                 var sql = context.Stringifier.Stringify(dbCommand);
+                throw SqlQueryException.Wrap(e, sql, index);
+            }
+        }
+
+        public async Task ExecuteAsync(ISqlCommand command, IExecutionContext context, int index, CancellationToken cancellationToken)
+        {
+            context.StartSetupCommand(index);
+            using var dbCommand = context.CreateCommand();
+            try
+            {
+                if (!SetupCommand(command, dbCommand))
+                {
+                    context.MarkAborted();
+                    return;
+                }
+
+                context.StartExecute(index, dbCommand);
+                await dbCommand.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+
+            }
+            catch (SqlQueryException)
+            {
+                context.MarkAborted();
+                throw;
+            }
+            catch (Exception e)
+            {
+                context.MarkAborted();
+                var sql = context.Stringifier.Stringify(dbCommand.Command);
                 throw SqlQueryException.Wrap(e, sql, index);
             }
         }

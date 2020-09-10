@@ -1,15 +1,17 @@
-﻿using System;
+﻿using CastIron.Sql;
+using Newtonsoft.Json;
 using System.Linq;
-using CastIron.Sql;
 
 namespace CastIron.Console
 {
-    class Program
+    static class Program
     {
         static void Main(string[] args)
         {
             var runner = RunnerFactory.Create("server=localhost;Integrated Security=SSPI;");
             var result = runner.Query(new TestQuery());
+            var json = JsonConvert.SerializeObject(result, Formatting.Indented);
+            System.Console.WriteLine(json);
         }
     }
 

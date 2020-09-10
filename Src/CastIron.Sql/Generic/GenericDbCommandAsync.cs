@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 
 namespace CastIron.Sql.Generic
 {
-    public class GenericDbCommandAsync : IDbCommandAsync
+    public sealed class GenericDbCommandAsync : IDbCommandAsync
     {
         public GenericDbCommandAsync(IDbCommand command)
         {

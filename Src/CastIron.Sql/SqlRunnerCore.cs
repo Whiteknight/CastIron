@@ -1,9 +1,9 @@
-﻿using System;
+﻿using CastIron.Sql.Execution;
+using CastIron.Sql.Utility;
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using CastIron.Sql.Execution;
-using CastIron.Sql.Utility;
 using ExecutionContext = CastIron.Sql.Execution.ExecutionContext;
 
 namespace CastIron.Sql
@@ -53,6 +53,14 @@ namespace CastIron.Sql
             return result;
         }
 
+        public void Execute(ExecutionContext context, Action<IExecutionContext> executor)
+        {
+            Argument.NotNull(executor, nameof(executor));
+            context.OpenConnection();
+            executor(context);
+            context.MarkComplete();
+        }
+
         public async Task<T> ExecuteAsync<T>(ExecutionContext context, Func<IExecutionContext, Task<T>> executor, CancellationToken cancellationToken = new CancellationToken())
         {
             Argument.NotNull(executor, nameof(executor));
@@ -60,14 +68,6 @@ namespace CastIron.Sql
             var result = await executor(context).ConfigureAwait(false);
             context.MarkComplete();
             return result;
-        }
-
-        public void Execute(ExecutionContext context, Action<IExecutionContext> executor)
-        {
-            Argument.NotNull(executor, nameof(executor));
-            context.OpenConnection();
-            executor(context);
-            context.MarkComplete();
         }
 
         public async Task ExecuteAsync(ExecutionContext context, Func<IExecutionContext, Task> executor, CancellationToken cancellationToken = new CancellationToken())

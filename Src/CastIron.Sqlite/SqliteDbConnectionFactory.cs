@@ -1,8 +1,8 @@
-﻿using System.Data;
+﻿using CastIron.Sql;
+using Microsoft.Data.Sqlite;
+using System.Data;
 using System.Threading;
 using System.Threading.Tasks;
-using CastIron.Sql;
-using Microsoft.Data.Sqlite;
 
 namespace CastIron.Sqlite
 {
@@ -20,7 +20,7 @@ namespace CastIron.Sqlite
 
         public IDbConnectionAsync Create() => new DbConnectionAsync(new SqliteConnection(_connectionString));
 
-        public class DbConnectionAsync : IDbConnectionAsync
+        public sealed class DbConnectionAsync : IDbConnectionAsync
         {
             private readonly SqliteConnection _connection;
 
@@ -38,7 +38,7 @@ namespace CastIron.Sqlite
             public void Dispose() => _connection?.Dispose();
         }
 
-        public class DbCommandAsync : IDbCommandAsync
+        public sealed class DbCommandAsync : IDbCommandAsync
         {
             private readonly SqliteCommand _command;
 
@@ -62,7 +62,7 @@ namespace CastIron.Sqlite
             public void Dispose() => _command?.Dispose();
         }
 
-        public class DataReaderAsync : IDataReaderAsync
+        public sealed class DataReaderAsync : IDataReaderAsync
         {
             private readonly SqliteDataReader _reader;
 

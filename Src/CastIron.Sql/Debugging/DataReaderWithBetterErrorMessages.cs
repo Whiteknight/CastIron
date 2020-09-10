@@ -3,12 +3,11 @@ using System.Data;
 
 namespace CastIron.Sql.Debugging
 {
-    // TODO: There may be other error conditions we want to catch here and re-wrap.
     /// <summary>
     /// IDataReader implementation which tries to provide slightly more helpful error messages
     /// when something goes wrong.
     /// </summary>
-    public class DataReaderWithBetterErrorMessages : IDataReader
+    public sealed class DataReaderWithBetterErrorMessages : IDataReader
     {
         private readonly IDataReader _inner;
 

@@ -6,6 +6,7 @@ namespace CastIron.Sql
     /// Exception wrapper type which encapsulates an exception and (if available) the SQL command
     /// text and parameter information which was attempting to execute
     /// </summary>
+    [Serializable]
     public class SqlQueryException : Exception
     {
         public SqlQueryException()

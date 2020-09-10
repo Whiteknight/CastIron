@@ -1,19 +1,14 @@
-﻿using System;
+﻿using CastIron.Sql.Utility;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using CastIron.Sql.Utility;
 
 namespace CastIron.Sql.Mapping
 {
     public class ConstructorFinder : IConstructorFinder
     {
-        private static readonly ConstructorFinder _defaultInstance;
-
-        static ConstructorFinder()
-        {
-            _defaultInstance = new ConstructorFinder();
-        }
+        private static readonly ConstructorFinder _defaultInstance = new ConstructorFinder();
 
         public static ConstructorFinder GetDefaultInstance() => _defaultInstance;
 

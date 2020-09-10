@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 
 namespace CastIron.Sql.Generic
 {
-    public class GenericDataReaderAsync : IDataReaderAsync
+    public sealed class GenericDataReaderAsync : IDataReaderAsync
     {
         public GenericDataReaderAsync(IDataReader reader)
         {

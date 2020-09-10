@@ -19,7 +19,7 @@ namespace CastIron.Sql.SqlServer
 
         public IDbConnectionAsync Create() => new SqlServerDbConnectionAsync(new SqlConnection(_connectionString));
 
-        public class SqlServerDbConnectionAsync : IDbConnectionAsync
+        public sealed class SqlServerDbConnectionAsync : IDbConnectionAsync
         {
             private readonly SqlConnection _connection;
 
@@ -37,7 +37,7 @@ namespace CastIron.Sql.SqlServer
             public void Dispose() => _connection?.Dispose();
         }
 
-        public class SqlServerDbCommandAsync : IDbCommandAsync
+        public sealed class SqlServerDbCommandAsync : IDbCommandAsync
         {
             private readonly SqlCommand _command;
 
@@ -65,7 +65,7 @@ namespace CastIron.Sql.SqlServer
             public void Dispose() => _command?.Dispose();
         }
 
-        public class SqlServerDataReaderAsync : IDataReaderAsync
+        public sealed class SqlServerDataReaderAsync : IDataReaderAsync
         {
             private readonly SqlDataReader _reader;
 

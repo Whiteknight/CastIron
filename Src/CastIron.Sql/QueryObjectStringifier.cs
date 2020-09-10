@@ -1,9 +1,9 @@
-﻿using System.Data;
+﻿using CastIron.Sql.Execution;
+using CastIron.Sql.Utility;
+using System.Data;
 using System.Data.SqlClient;
 using System.Threading;
 using System.Threading.Tasks;
-using CastIron.Sql.Execution;
-using CastIron.Sql.Utility;
 
 namespace CastIron.Sql
 {
@@ -60,7 +60,7 @@ namespace CastIron.Sql
             return _stringifier.Stringify(dummy);
         }
 
-        private class DummyCommandAsync : IDbCommandAsync
+        private sealed class DummyCommandAsync : IDbCommandAsync
         {
             public DummyCommandAsync(IDbCommand command)
             {
