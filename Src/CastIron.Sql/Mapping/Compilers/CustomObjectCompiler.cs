@@ -65,18 +65,18 @@ namespace CastIron.Sql.Mapping.Compilers
                 // if (instance == null) throw DataMappingException.UserFactoryReturnedNull(type);
                 Expression.IfThen(
                     Expression.Equal(
-                        instanceVar, 
+                        instanceVar,
                         Expression.Constant(null)
                     ),
                     Expression.Throw(
                         Expression.Call(
-                            _createMapExceptionMethod, 
+                            _createMapExceptionMethod,
                             Expression.Constant(context.TargetType)
                         )
                     )
                 )
             };
-            return new ConstructedValueExpression(expressions, instanceVar, new [] { instanceVar });
+            return new ConstructedValueExpression(expressions, instanceVar, new[] { instanceVar });
         }
 
         // var instance = new MyType(converted args)
@@ -97,15 +97,14 @@ namespace CastIron.Sql.Mapping.Compilers
                 var name = parameter.Name.ToLowerInvariant();
                 var substate = context.GetSubstateForProperty(name, parameter, parameter.ParameterType);
                 var expr = _values.Compile(substate);
-                args[i] = expr.FinalValue ?? parameter.ParameterType.GetDefaultValueExpression();
-                if (!expr.IsNothing)
+                if (expr.FinalValue == null || expr.IsNothing)
                 {
-                    expressions.AddRange(expr.Expressions);
-                    variables.AddRange(expr.Variables);
+                    args[i] = parameter.ParameterType.GetDefaultValueExpression();
                     continue;
                 }
-
-                args[i] = parameter.ParameterType.GetDefaultValueExpression();
+                args[i] = expr.FinalValue;
+                expressions.AddRange(expr.Expressions);
+                variables.AddRange(expr.Variables);
             }
 
             expressions.Add(
@@ -151,13 +150,13 @@ namespace CastIron.Sql.Mapping.Compilers
                 // but just ignore it. That seems rare but still sub-optimal.
                 if (!property.IsSettable())
                     continue;
-                
+
                 expressions.Add(
                     Expression.Call(
-                        instance, 
-                        property.GetSetMethod(), 
+                        instance,
+                        property.GetSetMethod(),
                         Expression.Convert(
-                            expression.FinalValue, 
+                            expression.FinalValue,
                             property.PropertyType
                         )
                     )
