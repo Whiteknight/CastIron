@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.Serialization;
 
 namespace CastIron.Sql
 {
@@ -41,6 +42,11 @@ namespace CastIron.Sql
             if (index >= 0)
                 message = $"Error executing statement {index}\n{e.Message}";
             return new SqlQueryException(message, sql, e);
+        }
+
+        protected SqlQueryException(SerializationInfo info, StreamingContext context)
+            : base(info, context)
+        {
         }
     }
 }

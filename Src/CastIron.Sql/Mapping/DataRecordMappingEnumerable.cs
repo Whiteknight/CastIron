@@ -39,7 +39,7 @@ namespace CastIron.Sql.Mapping
             return new ResultSetEnumerator(_reader, _context, _map);
         }
 
-        private class ResultSetEnumerator : IEnumerator<T>
+        private sealed class ResultSetEnumerator : IEnumerator<T>
         {
             private readonly IDataReaderAsync _reader;
             private readonly IExecutionContext _context;

@@ -1,7 +1,7 @@
-﻿using System;
+﻿using CastIron.Sql.Utility;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using CastIron.Sql.Utility;
 
 namespace CastIron.Sql
 {
@@ -59,16 +59,6 @@ namespace CastIron.Sql
             {
                 onEach(pair.Outer, pair.Inner);
             }
-
-            // TODO: This one needs to account for duplicate keys in the outer list
-            //var outerLookup = outer.ToDictionary(outerKeySelector);
-            //foreach (var innerItem in inner)
-            //{
-            //    var key = innerKeySelector(innerItem);
-            //    if (!outerLookup.ContainsKey(key))
-            //        continue;
-            //    onEach(outerLookup[key], innerItem);
-            //}
         }
     }
 }
