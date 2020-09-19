@@ -61,8 +61,6 @@ namespace CastIron.Sql
         /// </summary>
         /// <returns></returns>
         ParameterCache GetParameters();
-
-        // TODO: Be able to get the text of the sql query executed
     }
 
     /// <summary>

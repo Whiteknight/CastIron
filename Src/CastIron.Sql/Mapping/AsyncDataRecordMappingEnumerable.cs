@@ -60,7 +60,6 @@ namespace CastIron.Sql.Mapping
                 }
 
                 var ok = await _reader.ReadAsync(new CancellationToken()).ConfigureAwait(false);
-                // TODO: have an async  _reader variant
                 Current = ok ? _map(_reader.Reader) : default;
                 return ok;
             }

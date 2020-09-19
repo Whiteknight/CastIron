@@ -1,7 +1,7 @@
-﻿using CastIron.Sql.Utility;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using CastIron.Sql.Utility;
 
 namespace CastIron.Sql
 {
@@ -49,7 +49,6 @@ namespace CastIron.Sql
             Argument.NotNull(innerKeySelector, nameof(innerKeySelector));
             Argument.NotNull(onEach, nameof(onEach));
 
-            // TODO: Benchmark and figure out which implementation works better
             var pairs = outer.Join(inner, outerKeySelector, innerKeySelector, (o, i) => new
             {
                 Outer = o,
