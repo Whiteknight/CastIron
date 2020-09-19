@@ -1,0 +1,7 @@
+{
+  "profiles": {
+    "CastIron.SqlServer.Tests": {
+      "commandName": "Project"
+    }
+  }
+}

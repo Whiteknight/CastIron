@@ -10,6 +10,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\CastIron.SqlServer\CastIron.SqlServer.csproj" />
     <ProjectReference Include="..\CastIron.Sql\CastIron.Sql.csproj" />
   </ItemGroup>
 

@@ -7,7 +7,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CastIron.Sql", "CastIron.Sq
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CastIron.Console", "CastIron.Console\CastIron.Console.csproj", "{E0D35DBC-43D6-47BB-A11D-1F3F71DA5739}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CastIron.Sql.Tests", "CastIron.Sql.Tests\CastIron.Sql.Tests.csproj", "{C389127F-12DE-411F-A4D2-D20DF64673C6}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CastIron.SqlServer.Tests", "CastIron.SqlServer.Tests\CastIron.SqlServer.Tests.csproj", "{C389127F-12DE-411F-A4D2-D20DF64673C6}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CastIron.Sqlite", "CastIron.Sqlite\CastIron.Sqlite.csproj", "{85D9ED43-B883-427F-8C0B-F863D6DEC4F4}"
 EndProject
@@ -27,6 +27,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 	ProjectSection(SolutionItems) = preProject
 		..\TODO.md = ..\TODO.md
 	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CastIron.SqlServer", "CastIron.SqlServer\CastIron.SqlServer.csproj", "{786EC40C-F600-4490-AA20-F2FCE3FF7427}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -66,6 +68,10 @@ Global
 		{402CD203-76D1-43FD-B851-5D0B34152B25}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{402CD203-76D1-43FD-B851-5D0B34152B25}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{402CD203-76D1-43FD-B851-5D0B34152B25}.Release|Any CPU.Build.0 = Release|Any CPU
+		{786EC40C-F600-4490-AA20-F2FCE3FF7427}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{786EC40C-F600-4490-AA20-F2FCE3FF7427}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{786EC40C-F600-4490-AA20-F2FCE3FF7427}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{786EC40C-F600-4490-AA20-F2FCE3FF7427}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -77,6 +83,7 @@ Global
 		{2F86D8AD-76D2-461B-B711-B5B293511879} = {DFCF8801-CF0D-47BB-BFC6-E1C406B7720F}
 		{CA9008A9-6FEF-48F2-A93C-C95667823CC3} = {7CBEBF17-72AB-43E6-B773-D0A6A1D06DC4}
 		{402CD203-76D1-43FD-B851-5D0B34152B25} = {7CBEBF17-72AB-43E6-B773-D0A6A1D06DC4}
+		{786EC40C-F600-4490-AA20-F2FCE3FF7427} = {DFCF8801-CF0D-47BB-BFC6-E1C406B7720F}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {78C186B3-EF95-4703-9B32-AD60FEE1E70E}

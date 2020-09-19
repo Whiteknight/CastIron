@@ -1,0 +1,34 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.0;net45</TargetFrameworks>
+    <AssemblyName>CastIron.SqlServer</AssemblyName>
+    <RootNamespace>CastIron.SqlServer</RootNamespace>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Version>2.0.0-alpha2</Version>
+    <Authors>Andrew F. Whitworth</Authors>
+    <Company />
+    <Description>Bare-metal SqlServer QueryObject implementation</Description>
+    <Copyright>Copyright 2020</Copyright>
+    <PackageLicenseUrl>https://github.com/Whiteknight/CastIron/blob/master/LICENSE</PackageLicenseUrl>
+    <PackageProjectUrl>https://github.com/Whiteknight/CastIron</PackageProjectUrl>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <DefineConstants>CASTIRON_SQLSERVER</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup Condition=" '$(TargetFramework)' == 'netstandard2.0' ">
+    <PackageReference Include="System.Data.Common" Version="4.3.0" />
+    <PackageReference Include="System.Data.SqlClient" Version="4.4.2" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(Configuration)' == 'Release'">
+    <PackageReference Include="CastIron.Sql" Version="1.0.0"></PackageReference>
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(Configuration)' == 'Debug'">
+    <ProjectReference Include="..\CastIron.Sql\CastIron.Sql.csproj"></ProjectReference>
+  </ItemGroup>
+
+</Project>
