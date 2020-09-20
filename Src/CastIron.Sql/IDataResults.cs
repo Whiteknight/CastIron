@@ -31,7 +31,7 @@ namespace CastIron.Sql
         /// <typeparam name="T"></typeparam>
         /// <param name="setup">Setup the mapper or mapper compiler using a fluent interface</param>
         /// <returns></returns>
-        IEnumerable<T> AsEnumerable<T>(Action<IMapCompilerBuilder<T>> setup = null);
+        IEnumerable<T> AsEnumerable<T>(Action<IMapCompilerSettings<T>> setup = null);
 
         /// <summary>
         /// Advance to the result set in the reader by number, starting with the first result set as 1, 
@@ -91,7 +91,7 @@ namespace CastIron.Sql
         IDataReader AsRawReader();
 
 #if NETSTANDARD2_1
-        IAsyncEnumerable<T> AsEnumerableAsync<T>(Action<IMapCompilerBuilder<T>> setup = null);
+        IAsyncEnumerable<T> AsEnumerableAsync<T>(Action<IMapCompilerSettings<T>> setup = null);
 #endif
     }
 
@@ -162,7 +162,7 @@ namespace CastIron.Sql
         /// <param name="results"></param>
         /// <param name="setup"></param>
         /// <returns></returns>
-        public static IEnumerable<T> GetNextEnumerable<T>(this IDataResultsBase results, Action<IMapCompilerBuilder<T>> setup = null)
+        public static IEnumerable<T> GetNextEnumerable<T>(this IDataResultsBase results, Action<IMapCompilerSettings<T>> setup = null)
         {
             Argument.NotNull(results, nameof(results));
             return results.AdvanceToNextResultSet().AsEnumerable<T>(setup);
@@ -176,7 +176,7 @@ namespace CastIron.Sql
         /// <param name="results"></param>
         /// <param name="setup"></param>
         /// <returns></returns>
-        public static IEnumerable<T> AsEnumerableAll<T>(this IDataResultsBase results, Action<IMapCompilerBuilder<T>> setup = null)
+        public static IEnumerable<T> AsEnumerableAll<T>(this IDataResultsBase results, Action<IMapCompilerSettings<T>> setup = null)
         {
             return AsEnumerableNextSeveral<T>(results, int.MaxValue, setup);
         }
@@ -190,7 +190,7 @@ namespace CastIron.Sql
         /// <param name="numResultSets">The number of result sets to consume</param>
         /// <param name="setup"></param>
         /// <returns></returns>
-        public static IEnumerable<T> AsEnumerableNextSeveral<T>(this IDataResultsBase results, int numResultSets, Action<IMapCompilerBuilder<T>> setup = null)
+        public static IEnumerable<T> AsEnumerableNextSeveral<T>(this IDataResultsBase results, int numResultSets, Action<IMapCompilerSettings<T>> setup = null)
         {
             // TODO: Create an IEnumerable<T>/IEnumerator<T> object to hold this logic, so we can implement async variants
             // TODO: We need to mark the IDataResultsBase object as "locked" so we can't start another read operation or move-next operation while this is running

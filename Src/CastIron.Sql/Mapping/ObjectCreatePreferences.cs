@@ -11,7 +11,7 @@ namespace CastIron.Sql.Mapping
     {
         private readonly Dictionary<Type, SingleTypePreferences> _types;
         private static readonly SingleTypePreferences _default = new SingleTypePreferences(typeof(object), null, null);
-        
+
         public IConstructorFinder ConstructorFinder { get; }
 
         public ObjectCreatePreferences(IConstructorFinder constructorFinder)
@@ -46,7 +46,7 @@ namespace CastIron.Sql.Mapping
             return finder.FindBestMatch(provider, specificType.PreferredConstructor, type, columnNameCounts);
         }
 
-        public ConstructorInfo GetPreferredConstructor(Type type) 
+        public ConstructorInfo GetPreferredConstructor(Type type)
             => _types.ContainsKey(type) ? _types[type].PreferredConstructor : null;
 
         public Func<object> GetFactory(Type type) => _types.ContainsKey(type) ? _types[type].Factory : null;

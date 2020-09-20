@@ -1,8 +1,8 @@
-﻿using CastIron.Sql.Execution;
-using CastIron.Sql.Utility;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Data;
+using CastIron.Sql.Execution;
+using CastIron.Sql.Utility;
 
 namespace CastIron.Sql.Mapping
 {
@@ -71,13 +71,13 @@ namespace CastIron.Sql.Mapping
             return _parameterCache;
         }
 
-        public IEnumerable<T> AsEnumerable<T>(Action<IMapCompilerBuilder<T>> setup = null)
+        public IEnumerable<T> AsEnumerable<T>(Action<IMapCompilerSettings<T>> setup = null)
         {
             PrepareToEnumerate();
             var defaultMapCompiler = Context.GetDefaultMapCompiler();
-            var compilerBuilder = new MapCompilerBuilder<T>(Provider);
+            var compilerBuilder = new MapBuilder<T>(Provider);
             setup?.Invoke(compilerBuilder);
-            var map = compilerBuilder.Compile(Reader.Reader, defaultMapCompiler);
+            var map = compilerBuilder.Build(Reader.Reader, defaultMapCompiler);
             return new DataRecordMappingEnumerable<T>(Reader, Context, map);
         }
 
@@ -176,13 +176,13 @@ namespace CastIron.Sql.Mapping
 
 #if NETSTANDARD2_1
 
-        public IAsyncEnumerable<T> AsEnumerableAsync<T>(Action<IMapCompilerBuilder<T>> setup = null)
+        public IAsyncEnumerable<T> AsEnumerableAsync<T>(Action<IMapCompilerSettings<T>> setup = null)
         {
             PrepareToEnumerate();
             var defaultMapCompiler = Context.GetDefaultMapCompiler();
-            var compilerBuilder = new MapCompilerBuilder<T>(Provider);
+            var compilerBuilder = new MapBuilder<T>(Provider);
             setup?.Invoke(compilerBuilder);
-            var map = compilerBuilder.Compile(Reader.Reader, defaultMapCompiler);
+            var map = compilerBuilder.Build(Reader.Reader, defaultMapCompiler);
             return new AsyncDataRecordMappingEnumerable<T>(Reader, Context, map);
         }
 

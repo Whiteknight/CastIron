@@ -6,15 +6,19 @@ using CastIron.Sql.Utility;
 
 namespace CastIron.Sql.Mapping
 {
-    // TODO: This class is a mess and needs to be cleaned up.
-    // TODO: Several more options from the compiler need to be (cleanly) exposed here
-    public class MapCompilerBuilder<T> : IMapCompilerBuilder<T>
+    /// <summary>
+    /// Builder class for mapping functions. The builder takes several options for settings and
+    /// preferences, and then invokes the specified compilers to create a mapping function for the
+    /// given type T
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    public class MapBuilder<T> : IMapCompilerSettings<T>
     {
         private readonly IProviderConfiguration _provider;
         private readonly List<SubclassPredicate> _subclasses;
         private readonly SubclassPredicate _defaultCase;
 
-        public MapCompilerBuilder(IProviderConfiguration provider)
+        public MapBuilder(IProviderConfiguration provider)
         {
             _provider = provider;
             _subclasses = new List<SubclassPredicate>();
@@ -25,89 +29,66 @@ namespace CastIron.Sql.Mapping
             };
         }
 
-        private MapCompilerBuilder(SubclassPredicate defaultCase)
+        private MapBuilder(SubclassPredicate defaultCase)
         {
             _defaultCase = defaultCase;
         }
 
-        public IMapCompilerBuilderBase<T> UseMap(Func<IDataRecord, T> map)
+        public IMapCompilerSettingsBase<T> UseMap(Func<IDataRecord, T> map)
         {
             Argument.NotNull(map, nameof(map));
             _defaultCase.SetMap(map);
             return this;
         }
 
-        public IMapCompilerBuilderBase<T> UseCompiler(IMapCompiler compiler)
+        public IMapCompilerSettingsBase<T> UseCompiler(IMapCompiler compiler)
         {
             Argument.NotNull(compiler, nameof(compiler));
             _defaultCase.SetCompiler(compiler);
             return this;
         }
 
-        public IMapCompilerBuilderBase<T> UseConstructor(ConstructorInfo constructor)
+        public IMapCompilerSettingsBase<T> UseConstructor(ConstructorInfo constructor)
         {
             Argument.NotNull(constructor, nameof(constructor));
             _defaultCase.SetConstructor(constructor);
             return this;
         }
 
-        public IMapCompilerBuilderBase<T> UseConstructor(params Type[] argumentTypes)
+        public IMapCompilerSettingsBase<T> UseConstructor(params Type[] argumentTypes)
         {
             var constructor = typeof(T).GetConstructor(argumentTypes) ?? throw ConstructorFindException.NoSuitableConstructorFound(typeof(T));
             return UseConstructor(constructor);
         }
 
-        public IMapCompilerBuilderBase<T> UseConstructorFinder(IConstructorFinder finder)
+        public IMapCompilerSettingsBase<T> UseConstructorFinder(IConstructorFinder finder)
         {
             Argument.NotNull(finder, nameof(finder));
             _defaultCase.SetConstructorFinder(finder);
             return this;
         }
 
-        public IMapCompilerBuilderBase<T> UseFactoryMethod(Func<T> factory)
+        public IMapCompilerSettingsBase<T> UseFactoryMethod(Func<T> factory)
         {
             Argument.NotNull(factory, nameof(factory));
             _defaultCase.SetFactoryMethod(factory);
             return this;
         }
 
-        public IMapCompilerBuilderBase<T> UseChildSeparator(string separator)
+        public IMapCompilerSettingsBase<T> UseChildSeparator(string separator)
         {
             _defaultCase.SetSeparator(separator);
             return this;
         }
 
-        public IMapCompilerBuilder<T> UseClass<TSpecific>()
+        public IMapCompilerSettings<T> UseClass<TSpecific>()
             where TSpecific : T
         {
             _defaultCase.SetType(typeof(TSpecific));
             return this;
         }
 
-        public Func<IDataRecord, T> Compile(IDataReader reader, IMapCompiler defaultCompiler)
-        {
-            Argument.NotNull(reader, nameof(reader));
-            Argument.NotNull(defaultCompiler, nameof(defaultCompiler));
-
-            // 1. Compile a mapper for every possible subclass and creation options combo
-            // The cache will prevent recompilation of same maps so we won't worry about .Distinct() here.
-            var newSubclasses = new List<SubclassPredicate>();
-            foreach (var subclass in _subclasses)
-            {
-                var subclassCompiler = subclass.Compiler ?? _defaultCase.Compiler ?? defaultCompiler;
-                VerifyAndSetupSubclassPredicate(reader, subclassCompiler, subclass);
-                newSubclasses.Add(subclass);
-            }
-
-            var defaultCaseCompiler = _defaultCase.Compiler ?? defaultCompiler;
-            VerifyAndSetupSubclassPredicate(reader, defaultCaseCompiler, _defaultCase);
-            newSubclasses.Add(_defaultCase);
-
-            // 2. Create a thunk which checks each predicate and calls the correct mapper
-            return CreateThunkExpression(newSubclasses);
-        }
-
-        public IMapCompilerBuilder<T> UseSubclass<TSubclass>(Func<IDataRecord, bool> predicate, Action<IMapCompilerBuilderBase<T>> setup = null)
+        public IMapCompilerSettings<T> UseSubclass<TSubclass>(Func<IDataRecord, bool> predicate, Action<IMapCompilerSettingsBase<T>> setup = null)
             where TSubclass : T
         {
             Argument.NotNull(predicate, nameof(predicate));
@@ -116,19 +97,45 @@ namespace CastIron.Sql.Mapping
             predicateContext.SetType(typeof(TSubclass));
             predicateContext.Predicate = predicate;
 
-            var subclassContext = new MapCompilerBuilder<T>(predicateContext);
-            setup?.Invoke(subclassContext);
+            if (setup != null)
+            {
+                var subclassContext = new MapBuilder<T>(predicateContext);
+                setup.Invoke(subclassContext);
+            }
             _subclasses.Add(predicateContext);
             return this;
         }
 
-        public IMapCompilerBuilder<T> IgnorePrefixes(params string[] prefixes)
+        public IMapCompilerSettings<T> IgnorePrefixes(params string[] prefixes)
         {
             _defaultCase.SetIgnorePrefixes(prefixes);
             return this;
         }
 
-        private static Func<IDataRecord, T> CreateThunkExpression(IReadOnlyList<SubclassPredicate> subclasses)
+        // Uses all the configured options to invoke the compiler and build a map function. 
+        public Func<IDataRecord, T> Build(IDataReader reader, IMapCompiler defaultCompiler)
+        {
+            Argument.NotNull(reader, nameof(reader));
+            Argument.NotNull(defaultCompiler, nameof(defaultCompiler));
+
+            // 1. Compile a mapper for every possible subclass and creation options combo
+            // The cache will prevent recompilation of same maps so we won't worry about .Distinct() here.
+            var mappers = new List<SubclassMapper>();
+            foreach (var subclass in _subclasses)
+            {
+                var thisDefaultCompiler = _defaultCase.Compiler ?? defaultCompiler;
+                var mapper = subclass.CreateMapper(_provider, _defaultCase.IgnorePrefixes, thisDefaultCompiler, reader);
+                mappers.Add(mapper);
+            }
+
+            var defaultCaseMapper = _defaultCase.CreateMapper(_provider, _defaultCase.IgnorePrefixes, defaultCompiler, reader);
+            mappers.Add(defaultCaseMapper);
+
+            // 2. Create a thunk which checks each predicate and calls the correct mapper
+            return CreateThunkExpression(mappers);
+        }
+
+        private static Func<IDataRecord, T> CreateThunkExpression(IReadOnlyList<SubclassMapper> subclasses)
         {
             if (subclasses.Count == 0)
                 return r => default;
@@ -139,33 +146,13 @@ namespace CastIron.Sql.Mapping
             {
                 foreach (var subclass in subclasses)
                 {
-                    if (!subclass.Predicate(r))
+                    if (subclass.Mapper == null || !subclass.Predicate(r))
                         continue;
-                    if (subclass.Mapper == null)
-                        continue;
-                    var result = subclass.Mapper(r);
-
-                    return result;
+                    return subclass.Mapper(r);
                 }
 
                 return default;
             };
-        }
-
-        private void VerifyAndSetupSubclassPredicate(IDataReader reader, IMapCompiler defaultCompiler, SubclassPredicate subclass)
-        {
-            if (subclass.Type == null)
-                throw new InvalidOperationException("The type specified may not be null");
-            if (!typeof(T).IsAssignableFrom(subclass.Type))
-                throw new InvalidOperationException($"Type {subclass.Type.Name} must be a concrete class type which is assignable to {typeof(T).Name}.");
-            if (subclass.Mapper == null)
-            {
-                // TODO: Need a way to specify constructor/factory prefs for other types as well
-                var createPrefs = new ObjectCreatePreferences(subclass.ConstructorFinder);
-                createPrefs.AddType(subclass.Type, subclass.Factory as Func<object>, subclass.Constructor);
-                var context = new MapCompileOperation(_provider, subclass.Type, createPrefs, subclass.Separator, _defaultCase.IgnorePrefixes);
-                subclass.Mapper = (subclass.Compiler ?? defaultCompiler).CompileExpression<T>(context, reader);
-            }
         }
 
         private static void AssertValidType(Type t)
@@ -176,6 +163,20 @@ namespace CastIron.Sql.Mapping
                 throw new InvalidOperationException($"Type {t.Name} must be a concrete class type which is assignable to {typeof(T).Name}.");
         }
 
+        // The final, compiled mapper for the type, with all other information discarded
+        private class SubclassMapper
+        {
+            public SubclassMapper(Func<IDataRecord, bool> predicate, Func<IDataRecord, T> mapper)
+            {
+                Predicate = predicate;
+                Mapper = mapper;
+            }
+
+            public Func<IDataRecord, bool> Predicate { get; }
+            public Func<IDataRecord, T> Mapper { get; }
+        }
+
+        // Represents a single type to construct, and holds all mapping information for that type
         private class SubclassPredicate
         {
             public Type Type { get; set; }
@@ -195,6 +196,27 @@ namespace CastIron.Sql.Mapping
                     $"Method {nameof(SetMap)} may not be called in conjunction with any of {nameof(SetCompiler)}, {nameof(SetConstructor)}, {nameof(SetConstructorFinder)} and {nameof(SetFactoryMethod)}). " +
                     $"Methods {nameof(SetConstructor)}, {nameof(SetConstructorFinder)} and {nameof(SetFactoryMethod)} are exclusive and at most one of these may be called once."
                 );
+            }
+
+            public SubclassMapper CreateMapper(IProviderConfiguration provider, ICollection<string> ignorePrefixes, IMapCompiler defaultCompiler, IDataReader reader)
+            {
+                // First, check a few invariants
+                if (Type == null)
+                    throw new InvalidOperationException("The type specified may not be null");
+                if (!typeof(T).IsAssignableFrom(Type))
+                    throw new InvalidOperationException($"Type {Type.Name} must be a concrete class type which is assignable to {typeof(T).Name}.");
+
+                // If we already have a map, we're done. Otherwise let's compile one with our given
+                // compiler options
+                if (Mapper != null)
+                    return new SubclassMapper(Predicate, Mapper);
+
+                var createPrefs = new ObjectCreatePreferences(ConstructorFinder);
+                createPrefs.AddType(Type, Factory as Func<object>, Constructor);
+                var context = new MapCompileOperation(provider, Type, createPrefs, Separator, ignorePrefixes);
+                Mapper = (Compiler ?? defaultCompiler).CompileExpression<T>(context, reader);
+
+                return new SubclassMapper(Predicate, Mapper);
             }
 
             public void SetMap(Func<IDataRecord, T> map)
@@ -244,7 +266,6 @@ namespace CastIron.Sql.Mapping
             public void SetType(Type t)
             {
                 AssertValidType(t);
-                // TODO: We can probably clean up or ease some of these restrictions
                 if (Type != null && Type != typeof(T))
                     throw new InvalidOperationException("Cannot specify more than one specific class.");
                 if (Factory != null)
