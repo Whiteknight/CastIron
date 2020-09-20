@@ -77,7 +77,7 @@ namespace CastIron.Sql.Mapping
             return this;
         }
 
-        public IMapCompilerBuilder<T> UseClass<TSpecific>() 
+        public IMapCompilerBuilder<T> UseClass<TSpecific>()
             where TSpecific : T
         {
             _defaultCase.SetType(typeof(TSpecific));
@@ -86,21 +86,20 @@ namespace CastIron.Sql.Mapping
 
         public Func<IDataRecord, T> Compile(IDataReader reader, IMapCompiler defaultCompiler)
         {
-            // The runner/context should provide a default compiler, but a custom ISqlRunner may not behave
-            // correctly. Make sure we have one.
-            var defaultCompilerInstance = defaultCompiler ?? MapCompilation.GetDefaultInstance();
+            Argument.NotNull(reader, nameof(reader));
+            Argument.NotNull(defaultCompiler, nameof(defaultCompiler));
 
             // 1. Compile a mapper for every possible subclass and creation options combo
             // The cache will prevent recompilation of same maps so we won't worry about .Distinct() here.
             var newSubclasses = new List<SubclassPredicate>();
             foreach (var subclass in _subclasses)
             {
-                var subclassCompiler = subclass.Compiler ?? _defaultCase.Compiler ?? defaultCompilerInstance;
+                var subclassCompiler = subclass.Compiler ?? _defaultCase.Compiler ?? defaultCompiler;
                 VerifyAndSetupSubclassPredicate(reader, subclassCompiler, subclass);
                 newSubclasses.Add(subclass);
             }
 
-            var defaultCaseCompiler = _defaultCase.Compiler ?? defaultCompilerInstance;
+            var defaultCaseCompiler = _defaultCase.Compiler ?? defaultCompiler;
             VerifyAndSetupSubclassPredicate(reader, defaultCaseCompiler, _defaultCase);
             newSubclasses.Add(_defaultCase);
 
@@ -108,7 +107,7 @@ namespace CastIron.Sql.Mapping
             return CreateThunkExpression(newSubclasses);
         }
 
-        public IMapCompilerBuilder<T> UseSubclass<TSubclass>(Func<IDataRecord, bool> predicate, Action<IMapCompilerBuilderBase<T>> setup = null) 
+        public IMapCompilerBuilder<T> UseSubclass<TSubclass>(Func<IDataRecord, bool> predicate, Action<IMapCompilerBuilderBase<T>> setup = null)
             where TSubclass : T
         {
             Argument.NotNull(predicate, nameof(predicate));

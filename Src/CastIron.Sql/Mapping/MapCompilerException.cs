@@ -30,6 +30,11 @@ namespace CastIron.Sql.Mapping
         {
         }
 
+        public static MapCompilerException NoScalarMapCompilers()
+        {
+            return new MapCompilerException("No scalar map compilers configured, there's no way to copy data from the result set into an object");
+        }
+
         public static MapCompilerException TypeCannotBeNull()
         {
             return new MapCompilerException("The type specified may not be null.");

@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using CastIron.Sql.Execution;
 using CastIron.Sql.Mapping;
+using CastIron.Sql.Mapping.ScalarCompilers;
 using CastIron.Sql.Utility;
+using ExecutionContext = CastIron.Sql.Execution.ExecutionContext;
 
 namespace CastIron.Sql
 {
@@ -16,29 +18,31 @@ namespace CastIron.Sql
         private readonly Action<IContextBuilder> _defaultBuilder;
         private readonly SqlRunnerCore _core;
         private readonly IDbConnectionFactory _connectionFactory;
-        private readonly List<IScalarMapCompiler> _customScalarMapCompilers;
-        private IMapCompiler _defaultCompiler;
+        private readonly MapCompilerSource _compilerBuilder;
 
-        public SqlRunner(SqlRunnerCore core, IDbConnectionFactory connectionFactory, Action<IContextBuilder> defaultBuilder)
+        public SqlRunner(SqlRunnerCore core, IDbConnectionFactory connectionFactory, Action<IContextBuilder> defaultBuilder, MapCompilerSource compilerBuilder)
         {
             Argument.NotNull(core, nameof(core));
             Argument.NotNull(connectionFactory, nameof(connectionFactory));
+            Argument.NotNull(compilerBuilder, nameof(compilerBuilder));
 
             _core = core;
             _connectionFactory = connectionFactory;
             _defaultBuilder = defaultBuilder;
-            _customScalarMapCompilers = new List<IScalarMapCompiler>();
+            _compilerBuilder = compilerBuilder;
         }
 
         public IDataInteractionFactory InteractionFactory => _core.InteractionFactory;
 
         public IProviderConfiguration Provider => _core.Provider;
 
+        public IMapCompilerSource MapCompiler => _compilerBuilder;
+
         public QueryObjectStringifier ObjectStringifier => _core.ObjectStringifier;
 
         public ExecutionContext CreateExecutionContext()
         {
-            var compiler = GetCompiler();
+            var compiler = _compilerBuilder.GetCompiler();
             var context = new ExecutionContext(_connectionFactory, Provider, _core.CommandStringifier, compiler);
             _defaultBuilder?.Invoke(context);
             return context;
@@ -72,34 +76,6 @@ namespace CastIron.Sql
         {
             using var context = CreateExecutionContext();
             await _core.ExecuteAsync(context, executor).ConfigureAwait(false);
-        }
-
-        public void AddCustomScalarMapCompiler(IScalarMapCompiler compiler)
-        {
-            _defaultCompiler = null;
-            _customScalarMapCompilers.Add(compiler);
-        }
-
-        public void ClearCustomScalarMapCompilers()
-        {
-            if (_customScalarMapCompilers.Count > 0)
-            {
-                _defaultCompiler = null;
-                _customScalarMapCompilers.Clear();
-            }
-        }
-
-        private IMapCompiler GetCompiler()
-        {
-            if (_defaultCompiler != null)
-                return _defaultCompiler;
-            if (_customScalarMapCompilers.Count == 0)
-                return MapCompiler.GetDefaultInstance();
-
-            var defaultScalarCompilers = MapCompilation.GetDefaultScalarMapCompilers();
-            var allScalarCompilers = _customScalarMapCompilers.Concat(defaultScalarCompilers);
-            _defaultCompiler = new MapCompiler(allScalarCompilers);
-            return _defaultCompiler;
         }
     }
 }

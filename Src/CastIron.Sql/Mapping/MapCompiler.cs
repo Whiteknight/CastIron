@@ -16,31 +16,16 @@ namespace CastIron.Sql.Mapping
     /// </summary>
     public class MapCompiler : IMapCompiler
     {
-        private static readonly Lazy<ICompiler> _defaultCompiler = new Lazy<ICompiler>(() => CreateCompiler(null));
-        private static readonly Lazy<IMapCompiler> _defaultInstance = new Lazy<IMapCompiler>(() => new MapCompiler());
         private readonly ICompiler _compiler;
-
-        public MapCompiler()
-        {
-            _compiler = _defaultCompiler.Value;
-        }
-
-        public MapCompiler(ICompiler compiler)
-        {
-            _compiler = compiler ?? _defaultCompiler.Value;
-        }
 
         public MapCompiler(IEnumerable<IScalarMapCompiler> scalarMapCompilers)
         {
+            Argument.NotNull(scalarMapCompilers, nameof(scalarMapCompilers));
             _compiler = CreateCompiler(scalarMapCompilers);
         }
 
-        public static IMapCompiler GetDefaultInstance() => _defaultInstance.Value;
-
         private static ICompiler CreateCompiler(IEnumerable<IScalarMapCompiler> scalarMapCompilers)
         {
-            scalarMapCompilers ??= MapCompilation.GetDefaultScalarMapCompilers();
-
             // Setup some deferrals to avoid circular references
             ICompiler _allTypes = null;
             ICompiler allTypes = new DeferredCompiler(() => _allTypes);
@@ -89,7 +74,7 @@ namespace CastIron.Sql.Mapping
             );
             ICompiler concreteCollections = new ConcreteCollectionCompiler(scalars, nonScalarCollectionContents);
             ICompiler abstractCollections = new AbstractCollectionCompiler(scalars, nonScalarCollectionContents);
-            
+
             // We instantiate arrays for array types and collections without a specified element type
             // (IEnumerable, ICollection, IList)
             _arrays = new ArrayCompiler(customObjects, scalars);
@@ -125,10 +110,10 @@ namespace CastIron.Sql.Mapping
 
             var lambdaExpression = Expression.Lambda<Func<IDataRecord, T>>(
                 Expression.Block(
-                    typeof(T), 
-                    expressions.Variables, 
+                    typeof(T),
+                    expressions.Variables,
                     statements
-                ), 
+                ),
                 operation.RecordParam
             );
             DumpCodeToDebugConsole(lambdaExpression);

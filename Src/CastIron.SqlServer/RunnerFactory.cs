@@ -20,7 +20,7 @@ namespace CastIron.SqlServer
         {
             // TODO: We can cache the connection factory by connection string.
             var connectionFactory = new SqlServerDbConnectionFactory(connectionString);
-            return new SqlRunner(_core, connectionFactory, defaultBuilder);
+            return new SqlRunner(_core, connectionFactory, defaultBuilder, new Sql.Mapping.MapCompilerSource(true));
         }
     }
 }

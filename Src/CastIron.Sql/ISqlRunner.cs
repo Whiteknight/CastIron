@@ -28,6 +28,8 @@ namespace CastIron.Sql
         /// </summary>
         IDataInteractionFactory InteractionFactory { get; }
 
+        IMapCompilerSource MapCompiler { get; }
+
         /// <summary>
         /// Create an execution context for a database connection. The context provides parameters
         /// and utilities to help manage the connection

@@ -18,6 +18,8 @@ namespace CastIron.Sql.Mapping.Compilers
         public ScalarCompiler(IEnumerable<IScalarMapCompiler> scalarCompilers)
         {
             _scalarCompilers = scalarCompilers.ToList();
+            if (_scalarCompilers.Count == 0)
+                throw MapCompilerException.NoScalarMapCompilers();
         }
 
         public ConstructedValueExpression Compile(MapContext context)
