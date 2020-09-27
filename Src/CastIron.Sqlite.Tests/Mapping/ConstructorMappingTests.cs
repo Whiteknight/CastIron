@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using CastIron.Sql;
@@ -37,7 +36,11 @@ namespace CastIron.Sqlite.Tests.Mapping
             public IEnumerable<TestObjectTwoConstructors> Read(IDataResults result)
             {
                 var constructor = typeof(TestObjectTwoConstructors).GetConstructor(new[] { typeof(int), typeof(string) });
-                return result.AsEnumerable<TestObjectTwoConstructors>(c => c.UseConstructor(constructor)).ToList();
+                return result
+                    .AsEnumerable<TestObjectTwoConstructors>(c => c
+                        .For<TestObjectTwoConstructors>(d => d.UseConstructor(constructor))
+                    )
+                    .ToList();
             }
         }
 

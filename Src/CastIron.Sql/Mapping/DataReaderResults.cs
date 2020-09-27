@@ -71,13 +71,15 @@ namespace CastIron.Sql.Mapping
             return _parameterCache;
         }
 
-        public IEnumerable<T> AsEnumerable<T>(Action<IMapCompilerSettings<T>> setup = null)
+        public IEnumerable<T> AsEnumerable<T>(Action<IMapCompilerSettings> setup = null)
         {
             PrepareToEnumerate();
             var defaultMapCompiler = Context.GetDefaultMapCompiler();
-            var compilerBuilder = new MapBuilder<T>(Provider);
+            var types = new TypeSettingsCollection();
+            var compilerBuilder = new MapBuilder(types);
             setup?.Invoke(compilerBuilder);
-            var map = compilerBuilder.Build(Reader.Reader, defaultMapCompiler);
+            var operation = new MapCompileOperation(Provider, Reader.Reader, typeof(T), types);
+            var map = Context.GetDefaultMapCompiler().CompileExpression<T>(operation, Reader.Reader);
             return new DataRecordMappingEnumerable<T>(Reader, Context, map);
         }
 
@@ -176,13 +178,15 @@ namespace CastIron.Sql.Mapping
 
 #if NETSTANDARD2_1
 
-        public IAsyncEnumerable<T> AsEnumerableAsync<T>(Action<IMapCompilerSettings<T>> setup = null)
+        public IAsyncEnumerable<T> AsEnumerableAsync<T>(Action<IMapCompilerSettings> setup = null)
         {
             PrepareToEnumerate();
             var defaultMapCompiler = Context.GetDefaultMapCompiler();
-            var compilerBuilder = new MapBuilder<T>(Provider);
+            var types = new TypeSettingsCollection();
+            var compilerBuilder = new MapBuilder(types);
             setup?.Invoke(compilerBuilder);
-            var map = compilerBuilder.Build(Reader.Reader, defaultMapCompiler);
+            var operation = new MapCompileOperation(Provider, Reader.Reader, typeof(T), types);
+            var map = Context.GetDefaultMapCompiler().CompileExpression<T>(operation, Reader.Reader);
             return new AsyncDataRecordMappingEnumerable<T>(Reader, Context, map);
         }
 

@@ -10,39 +10,38 @@ namespace CastIron.Sql.Mapping
     public class ObjectCreatePreferences
     {
         private readonly Dictionary<Type, SingleTypePreferences> _types;
-        private static readonly SingleTypePreferences _default = new SingleTypePreferences(typeof(object), null, null);
+        private static readonly SingleTypePreferences _default = new SingleTypePreferences(typeof(object), null, null, BestMatchConstructorFinder.GetDefaultInstance());
 
-        public IConstructorFinder ConstructorFinder { get; }
-
-        public ObjectCreatePreferences(IConstructorFinder constructorFinder)
+        public ObjectCreatePreferences()
         {
             _types = new Dictionary<Type, SingleTypePreferences>();
-            ConstructorFinder = constructorFinder;
         }
 
         public class SingleTypePreferences
         {
-            public SingleTypePreferences(Type type, Func<object> factory, ConstructorInfo preferredConstructor)
+            public SingleTypePreferences(Type type, Func<object> factory, ConstructorInfo preferredConstructor, IConstructorFinder constructorFinder)
             {
                 Type = type;
                 Factory = factory;
                 PreferredConstructor = preferredConstructor;
+                ConstructorFinder = constructorFinder;
             }
 
+            public IConstructorFinder ConstructorFinder { get; }
             public Type Type { get; set; }
             public Func<object> Factory { get; }
             public ConstructorInfo PreferredConstructor { get; }
         }
 
-        public void AddType(Type type, Func<object> factory, ConstructorInfo preferredConstructor)
+        public void AddType(Type type, Func<object> factory, ConstructorInfo preferredConstructor, IConstructorFinder constructorFinder)
         {
-            _types.Add(type, new SingleTypePreferences(type, factory, preferredConstructor));
+            _types.Add(type, new SingleTypePreferences(type, factory, preferredConstructor, constructorFinder));
         }
 
         public ConstructorInfo GetConstructor(IProviderConfiguration provider, IReadOnlyDictionary<string, int> columnNameCounts, Type type)
         {
             var specificType = _types.ContainsKey(type) ? _types[type] : _default;
-            var finder = ConstructorFinder ?? BestMatchConstructorFinder.GetDefaultInstance();
+            var finder = specificType.ConstructorFinder ?? BestMatchConstructorFinder.GetDefaultInstance();
             return finder.FindBestMatch(provider, specificType.PreferredConstructor, type, columnNameCounts);
         }
 

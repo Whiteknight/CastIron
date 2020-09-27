@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
-using System.Reflection;
 using CastIron.Sql.Debugging;
 using CastIron.Sql.Mapping;
 using CastIron.Sql.Utility;
@@ -31,7 +30,7 @@ namespace CastIron.Sql
         /// <typeparam name="T"></typeparam>
         /// <param name="setup">Setup the mapper or mapper compiler using a fluent interface</param>
         /// <returns></returns>
-        IEnumerable<T> AsEnumerable<T>(Action<IMapCompilerSettings<T>> setup = null);
+        IEnumerable<T> AsEnumerable<T>(Action<IMapCompilerSettings> setup = null);
 
         /// <summary>
         /// Advance to the result set in the reader by number, starting with the first result set as 1, 
@@ -91,7 +90,7 @@ namespace CastIron.Sql
         IDataReader AsRawReader();
 
 #if NETSTANDARD2_1
-        IAsyncEnumerable<T> AsEnumerableAsync<T>(Action<IMapCompilerSettings<T>> setup = null);
+        IAsyncEnumerable<T> AsEnumerableAsync<T>(Action<IMapCompilerSettings> setup = null);
 #endif
     }
 
@@ -101,60 +100,6 @@ namespace CastIron.Sql
     public static class DataResultsExtensions
     {
         /// <summary>
-        /// Map the current result set to an enumerable of objects, using a factory method to create 
-        /// instances.
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="results"></param>
-        /// <param name="factory"></param>
-        /// <returns></returns>
-        public static IEnumerable<T> AsEnumerable<T>(this IDataResultsBase results, Func<T> factory)
-        {
-            Argument.NotNull(results, nameof(results));
-            return results.AsEnumerable<T>(b => b.UseFactoryMethod(factory));
-        }
-
-        /// <summary>
-        /// Map the current result set to an enumerable of objects, using the specified constructor to
-        /// create the instance.
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="results"></param>
-        /// <param name="preferredConstructor"></param>
-        /// <returns></returns>
-        public static IEnumerable<T> AsEnumerable<T>(this IDataResultsBase results, ConstructorInfo preferredConstructor)
-        {
-            Argument.NotNull(results, nameof(results));
-            return results.AsEnumerable<T>(b => b.UseConstructor(preferredConstructor));
-        }
-
-        /// <summary>
-        /// Advance to the next result set and map it to an enumerable of objects using the given factory 
-        /// method.
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="results"></param>
-        /// <param name="factory"></param>
-        /// <returns></returns>
-        public static IEnumerable<T> GetNextEnumerable<T>(this IDataResultsBase results, Func<T> factory)
-        {
-            Argument.NotNull(factory, nameof(factory));
-            return GetNextEnumerable<T>(results, b => b.UseFactoryMethod(factory));
-        }
-
-        /// <summary>
-        /// Advance to the next result set and map it to an enumerable of objects using the given constructor
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="results"></param>
-        /// <param name="preferredConstructor"></param>
-        /// <returns></returns>
-        public static IEnumerable<T> GetNextEnumerable<T>(this IDataResultsBase results, ConstructorInfo preferredConstructor)
-        {
-            return GetNextEnumerable<T>(results, b => b.UseConstructor(preferredConstructor));
-        }
-
-        /// <summary>
         /// Advance to the next result set and map it to an enumerable of objects using the given mapping
         /// compiler and options.
         /// </summary>
@@ -162,7 +107,7 @@ namespace CastIron.Sql
         /// <param name="results"></param>
         /// <param name="setup"></param>
         /// <returns></returns>
-        public static IEnumerable<T> GetNextEnumerable<T>(this IDataResultsBase results, Action<IMapCompilerSettings<T>> setup = null)
+        public static IEnumerable<T> GetNextEnumerable<T>(this IDataResultsBase results, Action<IMapCompilerSettings> setup = null)
         {
             Argument.NotNull(results, nameof(results));
             return results.AdvanceToNextResultSet().AsEnumerable<T>(setup);
@@ -176,7 +121,7 @@ namespace CastIron.Sql
         /// <param name="results"></param>
         /// <param name="setup"></param>
         /// <returns></returns>
-        public static IEnumerable<T> AsEnumerableAll<T>(this IDataResultsBase results, Action<IMapCompilerSettings<T>> setup = null)
+        public static IEnumerable<T> AsEnumerableAll<T>(this IDataResultsBase results, Action<IMapCompilerSettings> setup = null)
         {
             return AsEnumerableNextSeveral<T>(results, int.MaxValue, setup);
         }
@@ -190,7 +135,7 @@ namespace CastIron.Sql
         /// <param name="numResultSets">The number of result sets to consume</param>
         /// <param name="setup"></param>
         /// <returns></returns>
-        public static IEnumerable<T> AsEnumerableNextSeveral<T>(this IDataResultsBase results, int numResultSets, Action<IMapCompilerSettings<T>> setup = null)
+        public static IEnumerable<T> AsEnumerableNextSeveral<T>(this IDataResultsBase results, int numResultSets, Action<IMapCompilerSettings> setup = null)
         {
             // TODO: Create an IEnumerable<T>/IEnumerator<T> object to hold this logic, so we can implement async variants
             // TODO: We need to mark the IDataResultsBase object as "locked" so we can't start another read operation or move-next operation while this is running

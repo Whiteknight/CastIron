@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Data;
-using System.Text;
 using CastIron.Sql.Utility;
 
 namespace CastIron.Sql.Mapping
@@ -22,51 +21,53 @@ namespace CastIron.Sql.Mapping
             _cache.Clear();
         }
 
+        // TODO: Have to figure out caching now
+
         public Func<IDataRecord, T> CompileExpression<T>(MapCompileOperation operation, IDataReader reader)
         {
             Argument.NotNull(operation, nameof(operation));
 
             // We cannot cache if a custom factory is provided. The internals of the factory can change
-            var factory = operation.GetFactoryMethod(operation.TopLevelTargetType);
-            if (factory != null)
-                return _inner.CompileExpression<T>(operation, reader);
+            //var factory = operation.GetFactoryMethod(operation.TopLevelTargetType);
+            //if (factory != null)
+            //    return _inner.CompileExpression<T>(operation, reader);
 
-            var key = CreateKey<T>(operation, reader);
-            if (_cache.TryGetValue(key, out var cached) && cached is Func<IDataRecord, T> func)
-                return func;
+            //var key = CreateKey<T>(operation, reader);
+            //if (_cache.TryGetValue(key, out var cached) && cached is Func<IDataRecord, T> func)
+            //    return func;
 
             var compiled = _inner.CompileExpression<T>(operation, reader);
-            _cache.TryAdd(key, compiled);
+            //_cache.TryAdd(key, compiled);
             return compiled;
         }
 
-        private static string CreateKey<T>(MapCompileOperation operation, IDataReader reader)
-        {
-            var sb = new StringBuilder();
-            sb.AppendLine("P:" + typeof(T).FullName);
-            sb.AppendLine("S:" + operation.TopLevelTargetType.FullName);
-            var preferredConstructor = operation.GetPreferredConstructor(operation.TopLevelTargetType);
-            if (preferredConstructor != null)
-            {
-                sb.Append("C:");
-                foreach (var param in preferredConstructor.GetParameters())
-                {
-                    sb.Append(param.Name);
-                    sb.Append(":");
-                    sb.Append(param.ParameterType.FullName);
-                    sb.Append(",");
-                }
+        //private static string CreateKey<T>(MapCompileOperation operation, IDataReader reader)
+        //{
+        //    var sb = new StringBuilder();
+        //    sb.AppendLine("P:" + typeof(T).FullName);
+        //    sb.AppendLine("S:" + operation.TopLevelTargetType.FullName);
+        //    var preferredConstructor = operation.GetPreferredConstructor(operation.TopLevelTargetType);
+        //    if (preferredConstructor != null)
+        //    {
+        //        sb.Append("C:");
+        //        foreach (var param in preferredConstructor.GetParameters())
+        //        {
+        //            sb.Append(param.Name);
+        //            sb.Append(":");
+        //            sb.Append(param.ParameterType.FullName);
+        //            sb.Append(",");
+        //        }
 
-                sb.AppendLine();
-            }
-            for (var i = 0; i < reader.FieldCount; i++)
-            {
-                sb.Append(i);
-                sb.Append(":");
-                sb.AppendLine(reader.GetFieldType(i).FullName);
-            }
-            
-            return sb.ToString();
-        }
+        //        sb.AppendLine();
+        //    }
+        //    for (var i = 0; i < reader.FieldCount; i++)
+        //    {
+        //        sb.Append(i);
+        //        sb.Append(":");
+        //        sb.AppendLine(reader.GetFieldType(i).FullName);
+        //    }
+
+        //    return sb.ToString();
+        //}
     }
 }

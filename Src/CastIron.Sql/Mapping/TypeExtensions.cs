@@ -12,13 +12,13 @@ namespace CastIron.Sql.Mapping
             => TypeFriendlyNameStringifier.Instance.GetFriendlyName(t);
 
 
-        public static bool IsConvertible(this Type t) 
+        public static bool IsConvertible(this Type t)
             => t != null && typeof(IConvertible).IsAssignableFrom(t);
 
-        public static Expression GetDefaultValueExpression(this Type t) 
+        public static Expression GetDefaultValueExpression(this Type t)
             => Expression.Convert(Expression.Constant(t.GetDefaultValue()), t);
 
-        public static Type GetTypeWithoutNullability(this Type t) 
+        public static Type GetTypeWithoutNullability(this Type t)
             => t.IsGenericType && t.GetGenericTypeDefinition() == typeof(Nullable<>) ? t.GenericTypeArguments[0] : t;
 
         private static readonly HashSet<Type> _tupleTypes = new HashSet<Type>
@@ -62,14 +62,14 @@ namespace CastIron.Sql.Mapping
             if (!t.IsGenericType && !t.IsInterface)
                 return false;
             var genericDef = t.GetGenericTypeDefinition();
-            return (genericDef == typeof(IDictionary<,>) || genericDef == typeof(IReadOnlyDictionary<,>)) 
+            return (genericDef == typeof(IDictionary<,>) || genericDef == typeof(IReadOnlyDictionary<,>))
                    && t.GenericTypeArguments[0] == typeof(string);
         }
 
-        public static bool IsConcreteCollectionType(this Type t) 
-            => 
-                !t.IsInterface 
-                && !t.IsAbstract 
+        public static bool IsConcreteCollectionType(this Type t)
+            =>
+                !t.IsInterface
+                && !t.IsAbstract
                 && t.GetInterfaces()
                     .Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(ICollection<>));
 
@@ -140,24 +140,24 @@ namespace CastIron.Sql.Mapping
 
         public static bool IsNumericType(this Type t) => _numericTypes.Contains(t);
 
-        public static bool IsMappableScalarType(this Type t) 
+        public static bool IsMappableScalarType(this Type t)
             => _primitiveTypes.Contains(t) || t == typeof(object);
 
-        public static bool IsUntypedEnumerableType(this Type t) 
+        public static bool IsUntypedEnumerableType(this Type t)
             => t == typeof(IEnumerable) || t == typeof(IList) || t == typeof(ICollection);
 
         public static bool IsMappableCustomObjectType(this Type t)
         {
             return t.IsClass
                    && !t.IsInterface
-                   && !t.IsAbstract
+                   //&& !t.IsAbstract
                    && !t.IsArray
                    && t != typeof(string)
                    && !(t.Namespace ?? string.Empty).StartsWith("System.Collections")
                    && t != typeof(object);
         }
 
-        public static object GetDefaultValue(this Type t) 
+        public static object GetDefaultValue(this Type t)
             => t.IsValueType ? Activator.CreateInstance(t) : null;
     }
 }

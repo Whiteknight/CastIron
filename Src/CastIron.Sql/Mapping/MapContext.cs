@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Data;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -33,26 +34,34 @@ namespace CastIron.Sql.Mapping
         public Type TargetType { get; }
         public Expression GetExisting { get; }
 
+        public IDataReader Reader => _operation.Reader;
+
         public ParameterExpression RecordParameter => _operation.RecordParam;
-        
+
         public string Separator => _operation.Separator;
 
-        public ParameterExpression CreateVariable<T>(string name) => _operation.CreateVariable<T>(name);
-        
-        public ParameterExpression CreateVariable(Type t, string name) => _operation.CreateVariable(t, name);
+        public TypeSettingsCollection TypeSettings => _operation.TypeSettings;
 
-        public ColumnInfo SingleColumn() 
+        public ParameterExpression CreateVariable<T>(string name)
+            => _operation.CreateVariable<T>(name);
+
+        public ParameterExpression CreateVariable(Type t, string name)
+            => _operation.CreateVariable(t, name);
+
+        public LabelExpression CreateLabel(string name) => _operation.CreateLabel(name);
+
+        public ColumnInfo SingleColumn()
             => AllUnmappedColumns.OrderBy(c => c.Index).FirstOrDefault();
 
         public IEnumerable<ColumnInfo> GetColumns() => AllUnmappedColumns.OrderBy(c => c.Index);
-        
+
         public IEnumerable<ColumnInfo> GetFirstIndexForEachColumnName()
             => _columnNames
                 .Select(kvp => kvp.Value.FirstOrDefault(c => !c.Mapped))
                 .Where(c => c != null);
 
-        public bool HasColumn(string name) 
-            =>  _columnNames.ContainsKey(name) && _columnNames[name].Any(c => !c.Mapped);
+        public bool HasColumn(string name)
+            => _columnNames.ContainsKey(name) && _columnNames[name].Any(c => !c.Mapped);
 
         public bool HasColumns() => AllUnmappedColumns.Any();
 
@@ -74,17 +83,19 @@ namespace CastIron.Sql.Mapping
             return new MapContext(context, columns, targetType, name, getExisting);
         }
 
-        public MapContext ChangeTargetType(Type targetType) => new MapContext(_operation, _columnNames, targetType, Name, GetExisting);
+        public MapContext ChangeTargetType(Type targetType)
+            => new MapContext(_operation, _columnNames, targetType, Name, GetExisting);
 
-        public Func<object> GetFactoryForCurrentObjectType() => _operation.GetFactoryMethod(TargetType);
-
-        public ConstructorInfo GetConstructorForCurrentObjectType()
+        public ConstructorInfo GetConstructor(ISpecificTypeSettings settings)
         {
-            var columnNameCounts = _columnNames.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.Count);
-            return _operation.GetConstructor(columnNameCounts, TargetType);
+            var columnNameCounts = _columnNames.ToDictionary(k => k.Key, k => k.Value.Count);
+            var type = settings.Type == typeof(object) || settings.Type == null ? TargetType : settings.Type;
+            return (settings.ConstructorFinder ?? BestMatchConstructorFinder.GetDefaultInstance())
+                .FindBestMatch(_operation.Provider, settings.Constructor, type, columnNameCounts);
         }
 
-        private IEnumerable<ColumnInfo> AllUnmappedColumns => _columnNames.SelectMany(kvp => kvp.Value).Where(c => !c.Mapped);
+        private IEnumerable<ColumnInfo> AllUnmappedColumns
+            => _columnNames.SelectMany(kvp => kvp.Value).Where(c => !c.Mapped);
 
         private bool HasColumnsPrefixed(string prefix)
         {

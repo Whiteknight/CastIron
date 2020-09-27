@@ -39,15 +39,60 @@ namespace CastIron.Sql.Mapping.Compilers
 
         private ConstructedValueExpression AddInstantiationExpressionForObjectInstance(MapContext context)
         {
-            var factory = context.GetFactoryForCurrentObjectType();
-            return factory != null ? AddFactoryMethodCallExpression(context, factory) : GetConstructorCallExpression(context);
+            var instanceVar = context.CreateVariable(context.TargetType, "instance");
+            var typeInfo = context.TypeSettings.GetTypeSettings(context.TargetType);
+            var defaultSubtypeInfo = typeInfo.GetDefault();
+            var defaultInstantiationExpression = AddInstantiationExpressionForSpecificType(context, defaultSubtypeInfo, instanceVar);
+            var subclasses = typeInfo.GetSpecificTypes().ToList();
+            if (subclasses.Count == 0)
+                return new ConstructedValueExpression(defaultInstantiationExpression.Expressions, instanceVar, defaultInstantiationExpression.Variables.Concat(new[] { instanceVar }));
+
+            var endLabel = context.CreateLabel("haveinstance");
+            var expressions = new List<Expression>();
+            foreach (var subclass in subclasses.Where(s => s.Predicate != null))
+            {
+                var instantiateExpressions = AddInstantiationExpressionForSpecificType(context, subclass, instanceVar);
+                expressions.Add(
+                    Expression.IfThen(
+                        Expression.Call(
+                            Expression.Constant(subclass.Predicate.Target),
+                            subclass.Predicate.Method,
+                            context.RecordParameter
+                        ),
+                        Expression.Block(
+                            instantiateExpressions.Variables,
+                            instantiateExpressions.Expressions.Concat(new[] {
+                                Expression.Goto(endLabel.Target)
+                            })
+                        )
+                    )
+                );
+            }
+            return new ConstructedValueExpression(
+                new[] {
+                    Expression.Block(
+                        defaultInstantiationExpression.Variables,
+                        expressions
+                            .Concat(defaultInstantiationExpression.Expressions)
+                            .Concat(new[] {
+                                endLabel
+                            })
+                    )
+                }, instanceVar, new[] { instanceVar });
+        }
+
+        private ConstructedValueExpression AddInstantiationExpressionForSpecificType(MapContext context, ISpecificTypeSettings specificType, ParameterExpression instanceVar)
+        {
+            var factory = specificType.GetFactory();
+            if (factory != null)
+                return AddFactoryMethodCallExpression(context, factory, instanceVar);
+            return GetConstructorCallExpression(context, specificType, instanceVar);
         }
 
         // var instance = cast(type, factory());
         // if (instance == null) throw DataMappingException.UserFactoryReturnedNull(type);
-        private static ConstructedValueExpression AddFactoryMethodCallExpression(MapContext context, Func<object> factory)
+        private static ConstructedValueExpression AddFactoryMethodCallExpression(MapContext context, Func<object> factory, ParameterExpression instanceVar)
         {
-            var instanceVar = context.CreateVariable(context.TargetType, "instance");
             var expressions = new Expression[]
             {
                 // instance = cast(type, factory());
@@ -76,18 +121,17 @@ namespace CastIron.Sql.Mapping.Compilers
                     )
                 )
             };
-            return new ConstructedValueExpression(expressions, instanceVar, new[] { instanceVar });
+            return new ConstructedValueExpression(expressions, instanceVar, null);
         }
 
         // var instance = new MyType(converted args)
-        private ConstructedValueExpression GetConstructorCallExpression(MapContext context)
+        private ConstructedValueExpression GetConstructorCallExpression(MapContext context, ISpecificTypeSettings specificTypeSettings, ParameterExpression instanceVar)
         {
             var expressions = new List<Expression>();
             var variables = new List<ParameterExpression>();
 
-            var instanceVar = context.CreateVariable(context.TargetType, "instance");
-            variables.Add(instanceVar);
-            var constructor = context.GetConstructorForCurrentObjectType();
+            var constructor = context.GetConstructor(specificTypeSettings);
+
             var parameters = constructor.GetParameters();
             var args = new Expression[parameters.Length];
 

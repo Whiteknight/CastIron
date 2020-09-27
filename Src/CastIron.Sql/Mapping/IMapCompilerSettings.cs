@@ -4,11 +4,15 @@ using System.Reflection;
 
 namespace CastIron.Sql.Mapping
 {
-    //public interface IMapCompilerSettings
-    //{
-    //    IMapCompilerSettings<T> For<T>();
-    //    // allSettings -> Type -> Subtype
-    //}
+    public interface IMapCompilerSettings
+    {
+        IMapCompilerSettings For<T>(Action<IMapCompilerSettings<T>> setup);
+        IMapCompilerSettings UseChildSeparator(string separator);
+
+        // allSettings -> Type[] -> Subtype -> options
+
+        // TODO: Set ignorePrefixes and separators here?
+    }
 
     public interface IMapCompilerSettingsBase<in T>
     {
@@ -18,13 +22,6 @@ namespace CastIron.Sql.Mapping
         /// <param name="map"></param>
         /// <returns></returns>
         IMapCompilerSettingsBase<T> UseMap(Func<IDataRecord, T> map);
-
-        /// <summary>
-        /// Use the given compiler to create the mapping function
-        /// </summary>
-        /// <param name="compiler"></param>
-        /// <returns></returns>
-        IMapCompilerSettingsBase<T> UseCompiler(IMapCompiler compiler);
 
         /// <summary>
         /// Use the specified constructor to create the object
@@ -46,7 +43,7 @@ namespace CastIron.Sql.Mapping
         /// </summary>
         /// <param name="finder"></param>
         /// <returns></returns>
-        IMapCompilerSettingsBase<T> UseConstructorFinder(IConstructorFinder finder);
+        IMapCompilerSettings<T> UseConstructorFinder(IConstructorFinder finder);
 
         /// <summary>
         /// Use a factory method to create the object
@@ -54,14 +51,6 @@ namespace CastIron.Sql.Mapping
         /// <param name="factory"></param>
         /// <returns></returns>
         IMapCompilerSettingsBase<T> UseFactoryMethod(Func<T> factory);
-
-        /// <summary>
-        /// Use the given separator to separate the parent name from the child name in a column
-        /// name. The default is '_'
-        /// </summary>
-        /// <param name="separator"></param>
-        /// <returns></returns>
-        IMapCompilerSettingsBase<T> UseChildSeparator(string separator);
 
     }
 
@@ -90,13 +79,5 @@ namespace CastIron.Sql.Mapping
         /// <returns></returns>
         IMapCompilerSettings<T> UseSubclass<TSubclass>(Func<IDataRecord, bool> predicate, Action<IMapCompilerSettingsBase<T>> setup = null)
             where TSubclass : T;
-
-        /// <summary>
-        /// Specify a list of column name prefixes that will be ignored. If the column name begins
-        /// with a prefix, the prefix will be removed before attempting to map the column name
-        /// </summary>
-        /// <param name="prefixes"></param>
-        /// <returns></returns>
-        IMapCompilerSettings<T> IgnorePrefixes(params string[] prefixes);
     }
 }

@@ -22,9 +22,9 @@ namespace CastIron.Sql.Statements
     public class SqlQuerySimpleFromString<TRow> : ISqlQuerySimple<IReadOnlyList<TRow>>
     {
         private readonly string _sql;
-        private readonly Action<IMapCompilerSettings<TRow>> _setupCompiler;
+        private readonly Action<IMapCompilerSettings> _setupCompiler;
 
-        public SqlQuerySimpleFromString(string sql, Action<IMapCompilerSettings<TRow>> setupCompiler = null)
+        public SqlQuerySimpleFromString(string sql, Action<IMapCompilerSettings> setupCompiler = null)
         {
             Argument.NotNullOrEmpty(sql, nameof(sql));
             _sql = sql;
@@ -34,6 +34,6 @@ namespace CastIron.Sql.Statements
         public string GetSql() => _sql;
 
         public IReadOnlyList<TRow> Read(IDataResults result)
-            => result.AsEnumerable(_setupCompiler).ToList();
+            => result.AsEnumerable<TRow>(_setupCompiler).ToList();
     }
 }

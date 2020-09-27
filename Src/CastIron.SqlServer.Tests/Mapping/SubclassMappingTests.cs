@@ -35,9 +35,12 @@ namespace CastIron.SqlServer.Tests.Mapping
             public IReadOnlyList<TestNumber> Read(IDataResults result)
             {
                 return result
-                    .AsEnumerable<TestNumber>(c => c
-                        .UseClass<TestSmallNumber>()
-                        .UseSubclass<TestBigNumber>(r => r.GetInt32(0) > 3))
+                    .AsEnumerable<TestNumber>(b => b
+                        .For<TestNumber>(c => c
+                            .UseClass<TestSmallNumber>()
+                            .UseSubclass<TestBigNumber>(r => r.GetInt32(0) > 3)
+                        )
+                    )
                     .ToList();
             }
         }

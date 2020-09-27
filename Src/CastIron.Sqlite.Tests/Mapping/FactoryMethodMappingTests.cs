@@ -24,7 +24,11 @@ namespace CastIron.Sqlite.Tests.Mapping
 
             public ResultRecord Read(IDataResults reader)
             {
-                return reader.AsEnumerable<ResultRecord>(b => b.UseFactoryMethod(() => null)).FirstOrDefault();
+                return reader
+                    .AsEnumerable<ResultRecord>(b => b
+                        .For<ResultRecord>(c => c.UseFactoryMethod(() => null))
+                    )
+                    .FirstOrDefault();
             }
         }
 
@@ -48,7 +52,13 @@ namespace CastIron.Sqlite.Tests.Mapping
 
             public ResultRecord Read(IDataResults reader)
             {
-                return reader.AsEnumerable<ResultRecord>(b => b.UseFactoryMethod(() => new ResultRecord())).FirstOrDefault();
+                return reader
+                    .AsEnumerable<ResultRecord>(b => b
+                        .For<ResultRecord>(c => c
+                            .UseFactoryMethod(() => new ResultRecord())
+                        )
+                    )
+                    .FirstOrDefault();
             }
         }
 

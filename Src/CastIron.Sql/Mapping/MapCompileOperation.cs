@@ -1,10 +1,9 @@
-﻿using CastIron.Sql.Utility;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Reflection;
+using CastIron.Sql.Utility;
 
 namespace CastIron.Sql.Mapping
 {
@@ -16,16 +15,19 @@ namespace CastIron.Sql.Mapping
     {
         private readonly VariableNumberSource _variableNumbers;
 
-        public MapCompileOperation(IProviderConfiguration provider, Type topLevelTargetType, ObjectCreatePreferences create, string separator, ICollection<string> ignorePrefixes)
+        public MapCompileOperation(IProviderConfiguration provider, IDataReader reader, Type topLevelTargetType, TypeSettingsCollection typeSettings)
         {
             Argument.NotNull(provider, nameof(provider));
+            Argument.NotNull(reader, nameof(reader));
             Argument.NotNull(topLevelTargetType, nameof(topLevelTargetType));
-            Argument.NotNull(create, nameof(create));
+            Argument.NotNull(typeSettings, nameof(typeSettings));
 
             TopLevelTargetType = topLevelTargetType;
-            CreatePreferences = create;
-            IgnorePrefixes = ignorePrefixes ?? new List<string>();
-            Separator = (separator ?? "_").ToLowerInvariant();
+            TypeSettings = typeSettings;
+
+            // TODO: Fill these in
+            IgnorePrefixes = new List<string>();
+            Separator = (typeSettings.Separator ?? "_").ToLowerInvariant();
 
             RecordParam = Expression.Parameter(typeof(IDataRecord), "record");
 
@@ -34,20 +36,14 @@ namespace CastIron.Sql.Mapping
             _variableNumbers = new VariableNumberSource();
         }
 
+        public TypeSettingsCollection TypeSettings { get; }
+
         public string Separator { get; }
         public IProviderConfiguration Provider { get; }
+        public IDataReader Reader { get; }
         public ParameterExpression RecordParam { get; }
         public Type TopLevelTargetType { get; }
-        public ObjectCreatePreferences CreatePreferences { get; }
         public ICollection<string> IgnorePrefixes { get; }
-
-        public ConstructorInfo GetConstructor(IReadOnlyDictionary<string, int> columnNameCounts, Type type)
-            => CreatePreferences.GetConstructor(Provider, columnNameCounts, type);
-
-        public ConstructorInfo GetPreferredConstructor(Type type)
-            => CreatePreferences.GetPreferredConstructor(type);
-
-        public Func<object> GetFactoryMethod(Type type) => CreatePreferences.GetFactory(type);
 
         public ParameterExpression CreateVariable<T>(string name) => CreateVariable(typeof(T), name);
 
@@ -56,6 +52,14 @@ namespace CastIron.Sql.Mapping
             name = name + "_" + _variableNumbers.GetNext();
             var variable = Expression.Variable(t, name);
             return variable;
+        }
+
+        public LabelExpression CreateLabel(string name)
+        {
+            name = name + "_" + _variableNumbers.GetNext();
+            var target = Expression.Label(name);
+            var label = Expression.Label(target);
+            return label;
         }
 
         public MapContext CreateContextFromDataReader(IDataReader reader)
