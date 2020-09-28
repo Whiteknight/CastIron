@@ -16,13 +16,13 @@ namespace CastIron.Sql.Mapping
         private readonly int? _rowsAffected;
         private ParameterCache _parameterCache;
 
-        protected DataReaderResultsBase(IProviderConfiguration provider, IDbCommandAsync command, IExecutionContext context, IDataReaderAsync reader, int? rowsAffected)
+        protected DataReaderResultsBase(IDbCommandAsync command, IExecutionContext context, IDataReaderAsync reader, int? rowsAffected)
         {
             Command = command;
             Context = context;
             Reader = reader;
             CurrentSet = 0;
-            Provider = provider;
+            Provider = context.Provider;
             _rowsAffected = rowsAffected;
 
             StateMachine = new StringKeyedStateMachine();
@@ -150,8 +150,8 @@ namespace CastIron.Sql.Mapping
     /// </summary>
     public class DataReaderResults : DataReaderResultsBase, IDataResults
     {
-        public DataReaderResults(IProviderConfiguration provider, IDbCommandAsync command, IExecutionContext context, IDataReaderAsync reader, int? rowsAffected = null)
-            : base(provider, command, context, reader, rowsAffected)
+        public DataReaderResults(IDbCommandAsync command, IExecutionContext context, IDataReaderAsync reader, int? rowsAffected = null)
+            : base(command, context, reader, rowsAffected)
         {
         }
     }
@@ -160,8 +160,8 @@ namespace CastIron.Sql.Mapping
     {
         private const string StateDisposed = "Disposed";
 
-        public DataReaderResultsStream(IProviderConfiguration provider, IDbCommandAsync command, IExecutionContext context, IDataReaderAsync reader)
-            : base(provider, command, context, reader, null)
+        public DataReaderResultsStream(IDbCommandAsync command, IExecutionContext context, IDataReaderAsync reader)
+            : base(command, context, reader, null)
         {
             StateMachine.AddState(StateDisposed)
                 .TransitionOnEvent(StateRawReaderConsumed, null, ThrowDisposedException)

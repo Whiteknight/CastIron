@@ -21,7 +21,7 @@ namespace CastIron.Sql
             Argument.NotNull(reader, nameof(reader));
             var wrappedReader = new GenericDataReaderAsync(reader);
             IDbCommandAsync wrappedCommand = command == null ? null : new GenericDbCommandAsync(command);
-            return new DataReaderResultsStream(runner.Provider, wrappedCommand, null, wrappedReader);
+            return new DataReaderResultsStream(wrappedCommand, null, wrappedReader);
         }
 
         /// <summary>
@@ -37,7 +37,7 @@ namespace CastIron.Sql
             Argument.NotNull(table, nameof(table));
             var reader = table.CreateDataReader();
             var wrappedReader = new GenericDataReaderAsync(reader);
-            return new DataReaderResultsStream(runner.Provider, null, null, wrappedReader);
+            return new DataReaderResultsStream(null, null, wrappedReader);
         }
     }
 }

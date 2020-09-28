@@ -13,7 +13,7 @@ namespace CastIron.Sqlite
         public static ISqlRunner Create(string connectionString, Action<IContextBuilder> defaultBuilder = null)
         {
             var connectionFactory = new SqliteDbConnectionFactory(connectionString);
-            return new SqlRunner(_core, connectionFactory, defaultBuilder, new Sql.Mapping.MapCompilerSource(true));
+            return new SqlRunner(_core, connectionFactory, defaultBuilder, new Sql.Mapping.MapCompilerSource());
         }
     }
 }

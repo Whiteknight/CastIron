@@ -1,7 +1,7 @@
-﻿using CastIron.Sql.Mapping;
-using System;
+﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
+using CastIron.Sql.Mapping;
 
 namespace CastIron.Sql.Execution
 {
@@ -58,7 +58,7 @@ namespace CastIron.Sql.Execution
                 int rowsAffected = dbCommand.Command.ExecuteNonQuery();
 
                 context.StartMapResults(index);
-                var resultSet = new DataReaderResults(context.Provider, dbCommand, context, null, rowsAffected);
+                var resultSet = new DataReaderResults(dbCommand, context, null, rowsAffected);
                 return command.ReadOutputs(resultSet);
             }
             catch (SqlQueryException)
@@ -119,7 +119,7 @@ namespace CastIron.Sql.Execution
                 var rowsAffected = await dbCommand.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
 
                 context.StartMapResults(index);
-                var resultSet = new DataReaderResults(context.Provider, dbCommand, context, null, rowsAffected);
+                var resultSet = new DataReaderResults(dbCommand, context, null, rowsAffected);
                 return command.ReadOutputs(resultSet);
             }
             catch (SqlQueryException)

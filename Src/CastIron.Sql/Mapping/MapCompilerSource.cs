@@ -19,14 +19,12 @@ namespace CastIron.Sql.Mapping
         };
 
         private readonly List<IScalarMapCompiler> _scalarMapCompilers;
-        private readonly bool _useCaching;
 
         private IMapCompiler _defaultCompiler;
 
-        public MapCompilerSource(bool useCaching)
+        public MapCompilerSource()
         {
             _scalarMapCompilers = new List<IScalarMapCompiler>(_defaultScalarMapCompilers);
-            _useCaching = useCaching;
             _defaultCompiler = null;
         }
 
@@ -48,8 +46,6 @@ namespace CastIron.Sql.Mapping
 
             // TODO: Cache this instance until we modify the list of scalar map compilers
             IMapCompiler compiler = new MapCompiler(_scalarMapCompilers);
-            if (_useCaching)
-                compiler = new CachingMapCompiler(compiler);
             return compiler;
         }
 
