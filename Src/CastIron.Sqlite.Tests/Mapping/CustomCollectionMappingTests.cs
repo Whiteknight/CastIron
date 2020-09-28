@@ -80,7 +80,6 @@ namespace CastIron.Sqlite.Tests.Mapping
             r[2].Should().Be("C");
         }
 
-
         [Test]
         public void CustomCollection_IEnumerable()
         {
