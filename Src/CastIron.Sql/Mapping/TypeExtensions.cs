@@ -150,6 +150,9 @@ namespace CastIron.Sql.Mapping
         {
             return t.IsClass
                    && !t.IsInterface
+                   // We allow abstract types here, because they might be configured to use a
+                   // concrete subtype. We'll check later when we actually try to instantiate
+                   // the object
                    //&& !t.IsAbstract
                    && !t.IsArray
                    && t != typeof(string)

@@ -22,7 +22,7 @@ namespace CastIron.Sqlite.Tests.Mapping
         {
         }
 
-        public class MSSQLTestNumberQuery : ISqlQuerySimple<IReadOnlyList<TestNumber>>
+        public class TestNumberQuery : ISqlQuerySimple<IReadOnlyList<TestNumber>>
         {
             public string GetSql()
             {
@@ -49,7 +49,7 @@ namespace CastIron.Sqlite.Tests.Mapping
         public void CanInstantiateSubclasses_Test()
         {
             var runner = RunnerFactory.Create();
-            var result = runner.Query(new MSSQLTestNumberQuery());
+            var result = runner.Query(new TestNumberQuery());
 
             result.Count.Should().Be(5);
             result[0].Should().BeOfType<TestSmallNumber>();

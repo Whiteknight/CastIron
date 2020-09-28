@@ -121,6 +121,7 @@ namespace CastIron.Sql.Mapping
         }
 
         // Helper method to get a reasonably complete code listing, to help with debugging
+        // If you want to see the generated code from the compiler, set a breakpoint here
         [Conditional("DEBUG")]
         private static void DumpCodeToDebugConsole(Expression expr)
         {

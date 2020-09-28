@@ -111,5 +111,13 @@ namespace CastIron.Sql.Mapping
                 "This is not allowed. You may only specify one or the other. Please set a map function if you have " +
                 "one prepared, otherwise specify a map compiler to build one for you.");
         }
+
+        public static MapCompilerException UnconstructableAbstractType(Type targetType)
+        {
+            return new MapCompilerException(
+                $"The type {targetType.GetFriendlyName()} is abstract or an interface, and a suitable constructor cannot be found. " +
+                "Make sure you configure objects of this type to map to a concrete type with a public constructor"
+            );
+        }
     }
 }

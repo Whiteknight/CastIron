@@ -76,7 +76,7 @@ namespace CastIron.Sql.Mapping
             PrepareToEnumerate();
             var defaultMapCompiler = Context.GetDefaultMapCompiler();
             var types = new TypeSettingsCollection();
-            var compilerBuilder = new MapBuilder(types);
+            var compilerBuilder = new MapCompilerSettings(types);
             setup?.Invoke(compilerBuilder);
             var operation = new MapCompileOperation(Provider, Reader.Reader, typeof(T), types);
             var map = Context.GetDefaultMapCompiler().CompileExpression<T>(operation, Reader.Reader);
@@ -183,7 +183,7 @@ namespace CastIron.Sql.Mapping
             PrepareToEnumerate();
             var defaultMapCompiler = Context.GetDefaultMapCompiler();
             var types = new TypeSettingsCollection();
-            var compilerBuilder = new MapBuilder(types);
+            var compilerBuilder = new MapCompilerSettings(types);
             setup?.Invoke(compilerBuilder);
             var operation = new MapCompileOperation(Provider, Reader.Reader, typeof(T), types);
             var map = Context.GetDefaultMapCompiler().CompileExpression<T>(operation, Reader.Reader);

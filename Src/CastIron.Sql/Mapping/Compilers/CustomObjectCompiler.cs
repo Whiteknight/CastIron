@@ -26,10 +26,13 @@ namespace CastIron.Sql.Mapping.Compilers
         {
             var expressions = new List<Expression>();
             var variables = new List<ParameterExpression>();
+
+            // Instantiate the object, using a factory or constructor
             var initExpr = AddInstantiationExpressionForObjectInstance(context);
             expressions.AddRange(initExpr.Expressions);
             variables.AddRange(initExpr.Variables);
 
+            // Assign public writeable property values 
             var addPropertyStmts = AddPropertyAssignmentExpressions(context, initExpr.FinalValue);
             expressions.AddRange(addPropertyStmts.Expressions);
             variables.AddRange(addPropertyStmts.Variables);
@@ -44,14 +47,23 @@ namespace CastIron.Sql.Mapping.Compilers
             var defaultSubtypeInfo = typeInfo.GetDefault();
             var defaultInstantiationExpression = AddInstantiationExpressionForSpecificType(context, defaultSubtypeInfo, instanceVar);
             var subclasses = typeInfo.GetSpecificTypes().ToList();
+
+            // If we have no configured subclass predicates, instantiate the target type directly
             if (subclasses.Count == 0)
                 return new ConstructedValueExpression(defaultInstantiationExpression.Expressions, instanceVar, defaultInstantiationExpression.Variables.Concat(new[] { instanceVar }));
 
+            // If we have configured subclass predicates, unroll the loop and write expressions for
+            // all cases. The default case will be executed if no subclass predicates match.
             var endLabel = context.CreateLabel("haveinstance");
             var expressions = new List<Expression>();
             foreach (var subclass in subclasses.Where(s => s.Predicate != null))
             {
                 var instantiateExpressions = AddInstantiationExpressionForSpecificType(context, subclass, instanceVar);
+                // if (predicate(reader))
+                // {
+                //      ...expressions...
+                //      goto endLabel;
+                // }
                 expressions.Add(
                     Expression.IfThen(
                         Expression.Call(
@@ -68,6 +80,9 @@ namespace CastIron.Sql.Mapping.Compilers
                     )
                 );
             }
+            // <subclassPredicates> (each of which jumps to the end label on success)
+            // <default instantiation>
+            // endLabel:
             return new ConstructedValueExpression(
                 new[] {
                     Expression.Block(
@@ -83,6 +98,8 @@ namespace CastIron.Sql.Mapping.Compilers
 
         private ConstructedValueExpression AddInstantiationExpressionForSpecificType(MapContext context, ISpecificTypeSettings specificType, ParameterExpression instanceVar)
         {
+            // If we have a factory method, invoke that to get the instance, otherwise fall back 
+            // to finding and calling a suitable constructor
             var factory = specificType.GetFactory();
             if (factory != null)
                 return AddFactoryMethodCallExpression(context, factory, instanceVar);
@@ -151,6 +168,7 @@ namespace CastIron.Sql.Mapping.Compilers
                 variables.AddRange(expr.Variables);
             }
 
+            // instance = new TargetType(...args...)
             expressions.Add(
                 Expression.Assign(instanceVar,
                     Expression.New(constructor, args)

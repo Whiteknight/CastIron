@@ -6,12 +6,24 @@ namespace CastIron.Sql.Mapping
 {
     public interface IMapCompilerSettings
     {
+        /// <summary>
+        /// Configure a single type. Whenever the compiler sees this exact type, it will use these
+        /// configured options.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="setup"></param>
+        /// <returns></returns>
         IMapCompilerSettings For<T>(Action<IMapCompilerSettings<T>> setup);
+
+        /// <summary>
+        /// Use a specific separator string to separate parent property names from child propery
+        /// names. By default "_" is used
+        /// </summary>
+        /// <param name="separator"></param>
+        /// <returns></returns>
         IMapCompilerSettings UseChildSeparator(string separator);
 
-        // allSettings -> Type[] -> Subtype -> options
-
-        // TODO: Set ignorePrefixes and separators here?
+        // TODO: Set ignorePrefixes
     }
 
     public interface IMapCompilerSettingsBase<in T>

@@ -89,7 +89,12 @@ namespace CastIron.Sql.Mapping
         public ConstructorInfo GetConstructor(ISpecificTypeSettings settings)
         {
             var columnNameCounts = _columnNames.ToDictionary(k => k.Key, k => k.Value.Count);
+            // If there are no settings configured, the settings.Type may default to typeof(object)
+            // which is clearly not what we want. If we detect that situation, fall back to
+            // TargetType
             var type = settings.Type == typeof(object) || settings.Type == null ? TargetType : settings.Type;
+            if (type.IsAbstract || type.IsInterface)
+                throw MapCompilerException.UnconstructableAbstractType(type);
             return (settings.ConstructorFinder ?? BestMatchConstructorFinder.GetDefaultInstance())
                 .FindBestMatch(_operation.Provider, settings.Constructor, type, columnNameCounts);
         }

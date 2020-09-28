@@ -8,8 +8,8 @@ using CastIron.Sql.Utility;
 namespace CastIron.Sql.Mapping
 {
     /// <summary>
-    /// Holds information about the overall map compilation progress. During compilation, MapContext objects
-    /// are used at each level to compile individual expressions
+    /// Holds information about the overall map compilation progress. During compilation, 
+    /// MapContext flyweight objects are used at each level to compile individual expressions.
     /// </summary>
     public class MapCompileOperation
     {
