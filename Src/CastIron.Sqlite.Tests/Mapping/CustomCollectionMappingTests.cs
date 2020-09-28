@@ -11,7 +11,7 @@ namespace CastIron.Sqlite.Tests.Mapping
     [TestFixture]
     public class CustomCollectionMappingTests
     {
-        private class TestCollectionType : ICollection<string>
+        private class TestCollectionType : IList<string>
         {
             private readonly List<string> _list;
 
@@ -40,8 +40,14 @@ namespace CastIron.Sqlite.Tests.Mapping
                 throw new NotImplementedException();
             }
 
+            public int IndexOf(string item) => throw new NotImplementedException();
+            public void Insert(int index, string item) => throw new NotImplementedException();
+            public void RemoveAt(int index) => throw new NotImplementedException();
+
             public int Count => _list.Count;
             public bool IsReadOnly => false;
+
+            public string this[int index] { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
         }
 
         [Test]
@@ -55,7 +61,7 @@ namespace CastIron.Sqlite.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery_CustomCollectionType_Configured()
+        public void CustomCollection_ICollection()
         {
             var target = RunnerFactory.Create();
             var result = target
@@ -63,6 +69,48 @@ namespace CastIron.Sqlite.Tests.Mapping
                     "SELECT 'A', 'B', 'C'",
                     b => b
                         .For<ICollection<string>>(c => c
+                            .UseClass<TestCollectionType>()
+                        )
+                    )
+                .First();
+            result.Should().BeOfType<TestCollectionType>();
+            var r = result.ToList();
+            r[0].Should().Be("A");
+            r[1].Should().Be("B");
+            r[2].Should().Be("C");
+        }
+
+
+        [Test]
+        public void CustomCollection_IEnumerable()
+        {
+            var target = RunnerFactory.Create();
+            var result = target
+                .Query<IEnumerable<string>>(
+                    "SELECT 'A', 'B', 'C'",
+                    b => b
+                        .For<IEnumerable<string>>(c => c
+                            .UseClass<TestCollectionType>()
+                        )
+                    )
+                .First();
+            result.Should().BeOfType<TestCollectionType>();
+            var r = result.ToList();
+            r[0].Should().Be("A");
+            r[1].Should().Be("B");
+            r[2].Should().Be("C");
+        }
+
+
+        [Test]
+        public void CustomCollection_IList()
+        {
+            var target = RunnerFactory.Create();
+            var result = target
+                .Query<IList<string>>(
+                    "SELECT 'A', 'B', 'C'",
+                    b => b
+                        .For<IList<string>>(c => c
                             .UseClass<TestCollectionType>()
                         )
                     )
