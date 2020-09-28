@@ -52,9 +52,11 @@ namespace CastIron.Sql.Mapping
         public IEnumerable<ColumnInfo> GetColumns() => AllUnmappedColumns.OrderBy(c => c.Index);
 
         public IEnumerable<ColumnInfo> GetFirstIndexForEachColumnName()
-            => _columnNames
+        {
+            return _columnNames
                 .Select(kvp => kvp.Value.FirstOrDefault(c => !c.Mapped))
                 .Where(c => c != null);
+        }
 
         public bool HasColumn(string name)
             => _columnNames.ContainsKey(name) && _columnNames[name].Any(c => !c.Mapped);

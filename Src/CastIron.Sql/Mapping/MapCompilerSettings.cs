@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Data;
+using System.Linq;
 using System.Reflection;
 using CastIron.Sql.Utility;
 
@@ -8,10 +10,8 @@ namespace CastIron.Sql.Mapping
     /// <summary>
     /// Facade object to build up TypeSettingsCollection
     /// </summary>
-    public class MapCompilerSettings
-        : IMapCompilerSettings
+    public class MapCompilerSettings : IMapCompilerSettings
     {
-
         private readonly TypeSettingsCollection _types;
 
         public MapCompilerSettings(TypeSettingsCollection types)
@@ -23,6 +23,13 @@ namespace CastIron.Sql.Mapping
         {
             var builder = new MapCompilerSettings<T>(_types);
             setup?.Invoke(builder);
+            return this;
+        }
+
+        public IMapCompilerSettings IgnorePrefixes(IEnumerable<string> prefixes)
+        {
+            var prefixLookup = new HashSet<string>(prefixes.Distinct());
+            _types.SetIgnorePrefixes(prefixLookup);
             return this;
         }
 

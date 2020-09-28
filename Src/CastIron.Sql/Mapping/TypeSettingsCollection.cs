@@ -37,5 +37,10 @@ namespace CastIron.Sql.Mapping
         {
             Separator = separator ?? "_";
         }
+
+        public void SetIgnorePrefixes(ICollection<string> ignorePrefixes)
+        {
+            IgnorePrefixes = ignorePrefixes;
+        }
     }
 }

@@ -24,8 +24,7 @@ namespace CastIron.Sql.Mapping
             TopLevelTargetType = topLevelTargetType;
             TypeSettings = typeSettings;
 
-            // TODO: Fill these in
-            IgnorePrefixes = new List<string>();
+            IgnorePrefixes = typeSettings.IgnorePrefixes ?? new List<string>();
             Separator = (typeSettings.Separator ?? "_").ToLowerInvariant();
 
             RecordParam = Expression.Parameter(typeof(IDataRecord), "record");
@@ -62,9 +61,9 @@ namespace CastIron.Sql.Mapping
             var columnNames = new Dictionary<string, List<ColumnInfo>>();
             for (var i = 0; i < reader.FieldCount; i++)
             {
-                // TODO: Specify list of prefixes to ignore. If the column starts with a prefix, remove those chars from the front
-                // e.g. "Table_ID" with prefix "Table_" becomes "ID"
                 var name = (reader.GetName(i) ?? "");
+                // TODO: If two prefixes overlap, such as "A_" and "A_B_", it won't search for
+                // the longest one. Order is undefined.
                 var prefix = IgnorePrefixes.FirstOrDefault(p => name.StartsWith(p));
                 if (prefix != null)
                     name = name.Substring(prefix.Length);

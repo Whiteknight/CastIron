@@ -21,7 +21,7 @@ namespace CastIron.Postgres.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery_ObjectWithChild()
+        public void ObjectWithChild()
         {
             var target = RunnerFactory.Create();
             var result = target.Query<TestObject_WithChild>("SELECT 5 AS Id, 'TEST' AS Child_Name;").First();
@@ -31,7 +31,7 @@ namespace CastIron.Postgres.Tests.Mapping
 
 
         [Test]
-        public void TestQuery_ObjectWithChildCustomSeparator()
+        public void ObjectWithChild_CustomSeparator()
         {
             var target = RunnerFactory.Create();
             var query = SqlQuery.FromString<TestObject_WithChild>("SELECT 5 AS Id, 'TEST' AS ChildXName;", c => c.UseChildSeparator("X"));
@@ -46,8 +46,8 @@ namespace CastIron.Postgres.Tests.Mapping
             public object Value { get; set; }
         }
 
-        [Test] 
-        public void TestQuery_ObjectPropertySingleValue()
+        [Test]
+        public void ObjectProperty_SingleValue()
         {
             var target = RunnerFactory.Create();
             var result = target.Query<TestObject_WithChildObject>("SELECT 6 AS Id, 'A' AS Value").First();
@@ -57,7 +57,7 @@ namespace CastIron.Postgres.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery_ObjectPropertyMultipleValues()
+        public void ObjectProperty_MultipleValues()
         {
             var target = RunnerFactory.Create();
             var result = target.Query<TestObject_WithChildObject>("SELECT 6 AS Id, 'A' AS Value, 'B' AS Value, 'C' AS value").First();
@@ -70,7 +70,7 @@ namespace CastIron.Postgres.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery_ObjectWithChildNull()
+        public void ObjectWithChild_Null()
         {
             var target = RunnerFactory.Create();
             var result = target.Query<TestObject_WithChildObject>("SELECT 5 AS Id;").First();
@@ -82,7 +82,7 @@ namespace CastIron.Postgres.Tests.Mapping
         {
             public class ChildB
             {
-                public string Value { get; set;}
+                public string Value { get; set; }
             }
 
             public class ChildA
@@ -94,7 +94,7 @@ namespace CastIron.Postgres.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery_NestedChildren()
+        public void NestedChildren()
         {
             var target = RunnerFactory.Create();
             var result = target.Query<TestObject_WithNestedChildren>("SELECT 'TEST' AS A_B_Value").Single();
@@ -102,7 +102,7 @@ namespace CastIron.Postgres.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery_NestedChildrenCustomSeparator()
+        public void NestedChildren_CustomSeparator()
         {
             var target = RunnerFactory.Create();
             var query = SqlQuery.FromString<TestObject_WithNestedChildren>("SELECT 'TEST' AS AXBXValue", c => c.UseChildSeparator("X"));

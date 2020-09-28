@@ -68,7 +68,7 @@ namespace CastIron.Sqlite.Tests.Mapping
             result[4].NumberValue.Should().Be(5);
         }
 
-        public class SQLiteTestNumberQuery : ISqlQuerySimple<IReadOnlyList<TestNumber>>
+        public class TestNumberQuery2 : ISqlQuerySimple<IReadOnlyList<TestNumber>>
         {
             public string GetSql()
             {
@@ -96,7 +96,7 @@ namespace CastIron.Sqlite.Tests.Mapping
         public void CanInstantiateSubclasses_Test_Sqlite()
         {
             var runner = RunnerFactory.Create();
-            var result = runner.Query(new SQLiteTestNumberQuery());
+            var result = runner.Query(new TestNumberQuery2());
 
             result.Count.Should().Be(5);
             result[0].Should().BeOfType<TestSmallNumber>();

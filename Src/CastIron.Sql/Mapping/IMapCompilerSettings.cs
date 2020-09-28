@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Reflection;
+using CastIron.Sql.Utility;
 
 namespace CastIron.Sql.Mapping
 {
@@ -23,7 +25,31 @@ namespace CastIron.Sql.Mapping
         /// <returns></returns>
         IMapCompilerSettings UseChildSeparator(string separator);
 
-        // TODO: Set ignorePrefixes
+        /// <summary>
+        /// Set a list of prefixes to ignore when matching column names to property names. If the
+        /// column name starts with one of these prefixes, the prefix is removed before matching.
+        /// A name 'Table_ID' with ignored prefix 'Table_' becomes 'ID'
+        /// </summary>
+        /// <param name="prefixes"></param>
+        /// <returns></returns>
+        IMapCompilerSettings IgnorePrefixes(IEnumerable<string> prefixes);
+    }
+
+    public static class MapCompilerExtensions
+    {
+        /// <summary>
+        /// Set a list of prefixes to ignore when matching column names to property names. If the
+        /// column name starts with one of these prefixes, the prefix is removed before matching.
+        /// A name 'Table_ID' with ignored prefix 'Table_' becomes 'ID'
+        /// </summary>
+        /// <param name="settings"></param>
+        /// <param name="prefixes"></param>
+        /// <returns></returns>
+        public static IMapCompilerSettings IgnorePrefixes(this IMapCompilerSettings settings, params string[] prefixes)
+        {
+            Argument.NotNull(settings, nameof(settings));
+            return settings.IgnorePrefixes(prefixes);
+        }
     }
 
     public interface IMapCompilerSettingsBase<in T>
