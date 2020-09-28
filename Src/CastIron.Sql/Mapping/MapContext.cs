@@ -1,150 +1,100 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations.Schema;
 using System.Data;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Reflection;
 using CastIron.Sql.Utility;
 
 namespace CastIron.Sql.Mapping
 {
     /// <summary>
-    /// Holds information about the current state of the map compilation, including the current target type
-    /// to construct and a list of columns available at this point. This type is a flyweight, delegating to
-    /// the MapCompileContext for all shared data and logic
+    /// Holds information about the overall map compilation progress. During compilation, 
+    /// MapTypeContext flyweight objects are used at each level to compile individual expressions.
     /// </summary>
-    public struct MapContext
-    {
-        private readonly MapCompileOperation _operation;
-        private readonly Dictionary<string, List<ColumnInfo>> _columnNames;
+    public class MapContext
 
-        public MapContext(MapCompileOperation operation, Dictionary<string, List<ColumnInfo>> columnNames, Type targetType, string name, Expression getExisting)
+    {
+        private readonly VariableNumberSource _variableNumbers;
+
+        public MapContext(IProviderConfiguration provider, IDataReader reader, Type topLevelTargetType, TypeSettingsCollection typeSettings)
         {
-            // TODO: We should probably also store columns in an ordered list, so we don't have to 
-            // serialize/order for some of the options below.
-            _operation = operation;
-            _columnNames = columnNames;
-            TargetType = targetType;
-            Name = name;
-            GetExisting = getExisting;
+            Argument.NotNull(provider, nameof(provider));
+            Argument.NotNull(reader, nameof(reader));
+            Argument.NotNull(topLevelTargetType, nameof(topLevelTargetType));
+            Argument.NotNull(typeSettings, nameof(typeSettings));
+
+            TopLevelTargetType = topLevelTargetType;
+            TypeSettings = typeSettings;
+
+            // TODO: Fill these in
+            IgnorePrefixes = new List<string>();
+            Separator = (typeSettings.Separator ?? "_").ToLowerInvariant();
+
+            RecordParam = Expression.Parameter(typeof(IDataRecord), "record");
+
+            Provider = provider;
+
+            _variableNumbers = new VariableNumberSource();
         }
 
-        public string Name { get; }
-        public Type TargetType { get; }
-        public Expression GetExisting { get; }
+        public TypeSettingsCollection TypeSettings { get; }
 
-        public IDataReader Reader => _operation.Reader;
+        public string Separator { get; }
+        public IProviderConfiguration Provider { get; }
+        public IDataReader Reader { get; }
+        public ParameterExpression RecordParam { get; }
+        public Type TopLevelTargetType { get; }
+        public ICollection<string> IgnorePrefixes { get; }
 
-        public ParameterExpression RecordParameter => _operation.RecordParam;
-
-        public string Separator => _operation.Separator;
-
-        public TypeSettingsCollection TypeSettings => _operation.TypeSettings;
-
-        public ParameterExpression CreateVariable<T>(string name)
-            => _operation.CreateVariable<T>(name);
+        public ParameterExpression CreateVariable<T>(string name) => CreateVariable(typeof(T), name);
 
         public ParameterExpression CreateVariable(Type t, string name)
-            => _operation.CreateVariable(t, name);
-
-        public LabelExpression CreateLabel(string name) => _operation.CreateLabel(name);
-
-        public ColumnInfo SingleColumn()
-            => AllUnmappedColumns.OrderBy(c => c.Index).FirstOrDefault();
-
-        public IEnumerable<ColumnInfo> GetColumns() => AllUnmappedColumns.OrderBy(c => c.Index);
-
-        public IEnumerable<ColumnInfo> GetFirstIndexForEachColumnName()
-            => _columnNames
-                .Select(kvp => kvp.Value.FirstOrDefault(c => !c.Mapped))
-                .Where(c => c != null);
-
-        public bool HasColumn(string name)
-            => _columnNames.ContainsKey(name) && _columnNames[name].Any(c => !c.Mapped);
-
-        public bool HasColumns() => AllUnmappedColumns.Any();
-
-        public int NumberOfColumns() => AllUnmappedColumns.Count();
-
-        public MapContext GetSubstateForColumn(ColumnInfo column, Type targetType, string name)
         {
-            var columnNames = new Dictionary<string, List<ColumnInfo>>
+            name = name + "_" + _variableNumbers.GetNext();
+            var variable = Expression.Variable(t, name);
+            return variable;
+        }
+
+        public LabelExpression CreateLabel(string name)
+        {
+            name = name + "_" + _variableNumbers.GetNext();
+            var target = Expression.Label(name);
+            var label = Expression.Label(target);
+            return label;
+        }
+
+        public MapTypeContext CreateContextFromDataReader(IDataReader reader)
+        {
+            var columnNames = new Dictionary<string, List<ColumnInfo>>();
+            for (var i = 0; i < reader.FieldCount; i++)
             {
-                { name?.ToLowerInvariant() ?? column.CanonicalName, new List<ColumnInfo> { column } }
-            };
-            return new MapContext(_operation, columnNames, targetType, name, null);
-        }
-
-        public MapContext GetSubstateForProperty(string name, ICustomAttributeProvider attrs, Type targetType, Expression getExisting = null)
-        {
-            var context = _operation;
-            var columns = GetColumnsForProperty(name, attrs);
-            return new MapContext(context, columns, targetType, name, getExisting);
-        }
-
-        public MapContext ChangeTargetType(Type targetType)
-            => new MapContext(_operation, _columnNames, targetType, Name, GetExisting);
-
-        public ConstructorInfo GetConstructor(ISpecificTypeSettings settings)
-        {
-            var columnNameCounts = _columnNames.ToDictionary(k => k.Key, k => k.Value.Count);
-            // If there are no settings configured, the settings.Type may default to typeof(object)
-            // which is clearly not what we want. If we detect that situation, fall back to
-            // TargetType
-            var type = settings.Type == typeof(object) || settings.Type == null ? TargetType : settings.Type;
-            if (type.IsAbstract || type.IsInterface)
-                throw MapCompilerException.UnconstructableAbstractType(type);
-            return (settings.ConstructorFinder ?? BestMatchConstructorFinder.GetDefaultInstance())
-                .FindBestMatch(_operation.Provider, settings.Constructor, type, columnNameCounts);
-        }
-
-        private IEnumerable<ColumnInfo> AllUnmappedColumns
-            => _columnNames.SelectMany(kvp => kvp.Value).Where(c => !c.Mapped);
-
-        private bool HasColumnsPrefixed(string prefix)
-        {
-            prefix += _operation.Separator;
-            return _columnNames.Any(kvp => kvp.Key.StartsWith(prefix) && kvp.Value.Any(c => !c.Mapped));
-        }
-
-        private Dictionary<string, List<ColumnInfo>> GetColumnsPrefixed(string prefix)
-        {
-            prefix += _operation.Separator;
-            return _columnNames
-                .Where(kvp => kvp.Key.StartsWith(prefix))
-                .ToDictionary(columns => columns.Key.Substring(prefix.Length), columns => columns.Value);
-        }
-
-        private Dictionary<string, List<ColumnInfo>> GetColumnsForProperty(string name, ICustomAttributeProvider attrs)
-        {
-            if (name == null)
-                return _columnNames;
-
-            var propertyName = name.ToLowerInvariant();
-            if (HasColumn(propertyName))
-                return new Dictionary<string, List<ColumnInfo>> { { propertyName, _columnNames[propertyName] } };
-            if (HasColumnsPrefixed(propertyName))
-                return GetColumnsPrefixed(propertyName);
-
-            if (attrs == null)
-                return new Dictionary<string, List<ColumnInfo>>();
-
-            var columnName = attrs.GetTypedAttributes<ColumnAttribute>()
-                .Select(c => c.Name.ToLowerInvariant())
-                .FirstOrDefault();
-            if (columnName != null && HasColumn(columnName))
-                return new Dictionary<string, List<ColumnInfo>> { { columnName, _columnNames[columnName] } };
-
-            var acceptsUnnamed = attrs.GetTypedAttributes<UnnamedColumnsAttribute>().Any();
-            if (acceptsUnnamed && _operation.Provider.UnnamedColumnName != null)
-            {
-                var unnamedName = _operation.Provider.UnnamedColumnName.ToLowerInvariant();
-                if (HasColumn(unnamedName))
-                    return new Dictionary<string, List<ColumnInfo>> { { unnamedName, _columnNames[unnamedName] } };
+                // TODO: Specify list of prefixes to ignore. If the column starts with a prefix, remove those chars from the front
+                // e.g. "Table_ID" with prefix "Table_" becomes "ID"
+                var name = (reader.GetName(i) ?? "");
+                var prefix = IgnorePrefixes.FirstOrDefault(p => name.StartsWith(p));
+                if (prefix != null)
+                    name = name.Substring(prefix.Length);
+                var typeName = reader.GetDataTypeName(i);
+                var columnType = reader.GetFieldType(i);
+                var info = new ColumnInfo(i, name, columnType, typeName);
+                if (!columnNames.ContainsKey(info.CanonicalName))
+                    columnNames.Add(info.CanonicalName, new List<ColumnInfo>());
+                columnNames[info.CanonicalName].Add(info);
             }
 
-            return new Dictionary<string, List<ColumnInfo>>();
+            return new MapTypeContext(this, columnNames, TopLevelTargetType, null, null);
+        }
+
+        public class VariableNumberSource
+        {
+            private int _varNumber;
+
+            public VariableNumberSource()
+            {
+                _varNumber = 0;
+            }
+
+            public int GetNext() => _varNumber++;
         }
     }
 }

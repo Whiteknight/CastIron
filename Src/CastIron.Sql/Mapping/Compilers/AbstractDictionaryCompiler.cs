@@ -19,7 +19,7 @@ namespace CastIron.Sql.Mapping.Compilers
             _valueCompiler = valueCompiler;
         }
 
-        public ConstructedValueExpression Compile(MapContext context)
+        public ConstructedValueExpression Compile(MapTypeContext context)
         {
             var elementType = context.TargetType.GetGenericArguments()[1];
             var dictType = GetMatchingDictionaryType(context, elementType);
@@ -37,7 +37,7 @@ namespace CastIron.Sql.Mapping.Compilers
                 dictVar.Variables.Concat(addStmts.Variables));
         }
 
-        private static MethodInfo GetDictionaryAddMethod(MapContext context, Type dictType)
+        private static MethodInfo GetDictionaryAddMethod(MapTypeContext context, Type dictType)
         {
             return dictType.GetMethod(nameof(Dictionary<string, object>.Add)) ?? throw MapCompilerException.DictionaryTypeMissingAddMethod(context.TargetType);
         }
@@ -49,7 +49,7 @@ namespace CastIron.Sql.Mapping.Compilers
             return dictType.GetConstructor(Type.EmptyTypes) ?? throw MapCompilerException.MissingParameterlessConstructor(dictType);
         }
 
-        private static Type GetMatchingDictionaryType(MapContext context, Type elementType)
+        private static Type GetMatchingDictionaryType(MapTypeContext context, Type elementType)
         {
             var dictType = typeof(Dictionary<,>).MakeGenericType(typeof(string), elementType);
             if (!context.TargetType.IsAssignableFrom(dictType))
@@ -60,7 +60,7 @@ namespace CastIron.Sql.Mapping.Compilers
         // var dict = new DictType();
         // OR
         // var dict = getExisting() == null ? new DictType() : getExisting() as DictType
-        private static ConstructedValueExpression GetMaybeInstantiateDictionaryExpression(MapContext context, ConstructorInfo constructor)
+        private static ConstructedValueExpression GetMaybeInstantiateDictionaryExpression(MapTypeContext context, ConstructorInfo constructor)
         {
             var newInstance = context.CreateVariable(context.TargetType, "dict");
             if (context.GetExisting == null)
@@ -94,7 +94,7 @@ namespace CastIron.Sql.Mapping.Compilers
             return new ConstructedValueExpression(new [] { tryGetExistingExpression }, newInstance, new[] { newInstance });
         }
 
-        private ConstructedValueExpression AddDictionaryPopulateStatements(MapContext context, Type elementType, Expression dictVar, MethodInfo addMethod)
+        private ConstructedValueExpression AddDictionaryPopulateStatements(MapTypeContext context, Type elementType, Expression dictVar, MethodInfo addMethod)
         {
             var expressions = new List<Expression>();
             var variables = new List<ParameterExpression>();

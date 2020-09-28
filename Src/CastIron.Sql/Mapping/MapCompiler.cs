@@ -99,7 +99,7 @@ namespace CastIron.Sql.Mapping
         }
 
         // TODO: Ability to take the IDataRecord in the factory and consume some columns for constructor params so they aren't used later for properties?
-        public Func<IDataRecord, T> CompileExpression<T>(MapCompileOperation operation, IDataReader reader)
+        public Func<IDataRecord, T> CompileExpression<T>(MapContext operation, IDataReader reader)
         {
             Argument.NotNull(operation, nameof(operation));
 

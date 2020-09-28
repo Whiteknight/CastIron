@@ -15,7 +15,7 @@ namespace CastIron.Sql.Mapping.Compilers
             _compilers = compilers;
         }
 
-        public ConstructedValueExpression Compile(MapContext context)
+        public ConstructedValueExpression Compile(MapTypeContext context)
         {
             for (int i = 0; i < _compilers.Count; i++)
             {

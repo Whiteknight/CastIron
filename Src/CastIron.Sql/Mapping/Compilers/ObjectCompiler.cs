@@ -22,7 +22,7 @@ namespace CastIron.Sql.Mapping.Compilers
             _arrays = arrays;
         }
 
-        public ConstructedValueExpression Compile(MapContext context)
+        public ConstructedValueExpression Compile(MapTypeContext context)
         {
             // At the top-level (name==null) we convert to dictionary to preserve column name information
             if (context.Name == null)

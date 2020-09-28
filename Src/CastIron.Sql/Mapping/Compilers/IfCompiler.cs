@@ -7,16 +7,16 @@ namespace CastIron.Sql.Mapping.Compilers
     /// </summary>
     public class IfCompiler : ICompiler
     {
-        private readonly Func<MapContext, bool> _predicate;
+        private readonly Func<MapTypeContext, bool> _predicate;
         private readonly ICompiler _compiler;
 
-        public IfCompiler(Func<MapContext, bool> predicate, ICompiler compiler)
+        public IfCompiler(Func<MapTypeContext, bool> predicate, ICompiler compiler)
         {
             _predicate = predicate;
             _compiler = compiler;
         }
 
-        public ConstructedValueExpression Compile(MapContext context)
+        public ConstructedValueExpression Compile(MapTypeContext context)
         {
             if (_predicate(context))
                 return _compiler.Compile(context);

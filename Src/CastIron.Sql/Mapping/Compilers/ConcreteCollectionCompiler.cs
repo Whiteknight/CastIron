@@ -20,7 +20,7 @@ namespace CastIron.Sql.Mapping.Compilers
             _nonScalars = nonScalars;
         }
 
-        public ConstructedValueExpression Compile(MapContext context)
+        public ConstructedValueExpression Compile(MapTypeContext context)
         {
             var iCollectionType = GetICollectionInterfaceType(context);
             var elementType = iCollectionType.GenericTypeArguments[0];
@@ -34,17 +34,17 @@ namespace CastIron.Sql.Mapping.Compilers
             return new ConstructedValueExpression(listVar.Expressions.Concat(addStmts.Expressions), listVar.FinalValue, listVar.Variables.Concat(addStmts.Variables));
         }
 
-        private static MethodInfo GetAddMethod(MapContext context, Type icollectionType, Type elementType)
+        private static MethodInfo GetAddMethod(MapTypeContext context, Type icollectionType, Type elementType)
         {
             return icollectionType.GetMethod(nameof(ICollection<object>.Add)) ?? throw MapCompilerException.MissingMethod(context.TargetType, nameof(ICollection<object>.Add), elementType);
         }
 
-        private static ConstructorInfo GetConstructor(MapContext context)
+        private static ConstructorInfo GetConstructor(MapTypeContext context)
         {
             return context.TargetType.GetConstructor(Type.EmptyTypes) ?? throw MapCompilerException.MissingParameterlessConstructor(context.TargetType);
         }
 
-        private static Type GetICollectionInterfaceType(MapContext context)
+        private static Type GetICollectionInterfaceType(MapTypeContext context)
         {
             var icollectionType = context.TargetType
                 .GetInterfaces()
@@ -55,7 +55,7 @@ namespace CastIron.Sql.Mapping.Compilers
             return icollectionType;
         }
 
-        private ConstructedValueExpression GetMaybeInstantiateCollectionExpression(MapContext context, ConstructorInfo constructor)
+        private ConstructedValueExpression GetMaybeInstantiateCollectionExpression(MapTypeContext context, ConstructorInfo constructor)
         {
             var newInstance = context.CreateVariable(context.TargetType, "list");
             if (context.GetExisting == null)
@@ -83,7 +83,7 @@ namespace CastIron.Sql.Mapping.Compilers
             return new ConstructedValueExpression(new[] { getExistingExpr}, newInstance, new[] { newInstance });
         }
 
-        private ConstructedValueExpression GetCollectionPopulateStatements(MapContext context, Type elementType, Expression listVar, MethodInfo addMethod)
+        private ConstructedValueExpression GetCollectionPopulateStatements(MapTypeContext context, Type elementType, Expression listVar, MethodInfo addMethod)
         {
             if (!context.HasColumns())
                 return new ConstructedValueExpression(null);

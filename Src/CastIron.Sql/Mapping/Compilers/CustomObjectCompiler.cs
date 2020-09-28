@@ -22,7 +22,7 @@ namespace CastIron.Sql.Mapping.Compilers
             _scalars = scalars;
         }
 
-        public ConstructedValueExpression Compile(MapContext context)
+        public ConstructedValueExpression Compile(MapTypeContext context)
         {
             var expressions = new List<Expression>();
             var variables = new List<ParameterExpression>();
@@ -40,7 +40,7 @@ namespace CastIron.Sql.Mapping.Compilers
             return new ConstructedValueExpression(expressions, Expression.Convert(initExpr.FinalValue, context.TargetType), variables);
         }
 
-        private ConstructedValueExpression AddInstantiationExpressionForObjectInstance(MapContext context)
+        private ConstructedValueExpression AddInstantiationExpressionForObjectInstance(MapTypeContext context)
         {
             var instanceVar = context.CreateVariable(context.TargetType, "instance");
             var typeInfo = context.TypeSettings.GetTypeSettings(context.TargetType);
@@ -96,7 +96,7 @@ namespace CastIron.Sql.Mapping.Compilers
                 }, instanceVar, new[] { instanceVar });
         }
 
-        private ConstructedValueExpression AddInstantiationExpressionForSpecificType(MapContext context, ISpecificTypeSettings specificType, ParameterExpression instanceVar)
+        private ConstructedValueExpression AddInstantiationExpressionForSpecificType(MapTypeContext context, ISpecificTypeSettings specificType, ParameterExpression instanceVar)
         {
             // If we have a factory method, invoke that to get the instance, otherwise fall back 
             // to finding and calling a suitable constructor
@@ -108,7 +108,7 @@ namespace CastIron.Sql.Mapping.Compilers
 
         // var instance = cast(type, factory());
         // if (instance == null) throw DataMappingException.UserFactoryReturnedNull(type);
-        private static ConstructedValueExpression AddFactoryMethodCallExpression(MapContext context, Func<object> factory, ParameterExpression instanceVar)
+        private static ConstructedValueExpression AddFactoryMethodCallExpression(MapTypeContext context, Func<object> factory, ParameterExpression instanceVar)
         {
             var expressions = new Expression[]
             {
@@ -142,7 +142,7 @@ namespace CastIron.Sql.Mapping.Compilers
         }
 
         // var instance = new MyType(converted args)
-        private ConstructedValueExpression GetConstructorCallExpression(MapContext context, ISpecificTypeSettings specificTypeSettings, ParameterExpression instanceVar)
+        private ConstructedValueExpression GetConstructorCallExpression(MapTypeContext context, ISpecificTypeSettings specificTypeSettings, ParameterExpression instanceVar)
         {
             var expressions = new List<Expression>();
             var variables = new List<ParameterExpression>();
@@ -178,7 +178,7 @@ namespace CastIron.Sql.Mapping.Compilers
         }
 
         // property = convert(column)
-        private ConstructedValueExpression AddPropertyAssignmentExpressions(MapContext context, Expression instance)
+        private ConstructedValueExpression AddPropertyAssignmentExpressions(MapTypeContext context, Expression instance)
         {
             var expressions = new List<Expression>();
             var variables = new List<ParameterExpression>();
@@ -228,7 +228,7 @@ namespace CastIron.Sql.Mapping.Compilers
             return new ConstructedValueExpression(expressions, null, variables);
         }
 
-        private void MapSupportedPrimitiveType(MapContext context, Expression instance, PropertyInfo property, string name, List<Expression> expressions, List<ParameterExpression> variables)
+        private void MapSupportedPrimitiveType(MapTypeContext context, Expression instance, PropertyInfo property, string name, List<Expression> expressions, List<ParameterExpression> variables)
         {
             if (!property.IsSettable())
                 return;

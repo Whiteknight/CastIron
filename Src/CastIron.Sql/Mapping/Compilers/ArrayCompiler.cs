@@ -22,7 +22,7 @@ namespace CastIron.Sql.Mapping.Compilers
             _scalars = scalars;
         }
 
-        public ConstructedValueExpression Compile(MapContext context)
+        public ConstructedValueExpression Compile(MapTypeContext context)
         {
             if (context.TargetType.IsUntypedEnumerableType())
                 context = context.ChangeTargetType(typeof(object[]));
@@ -46,7 +46,7 @@ namespace CastIron.Sql.Mapping.Compilers
             return ConstructedValueExpression.Nothing;
         }
 
-        private ConstructedValueExpression CompileArrayOfScalar(MapContext context, ConstructorInfo constructor, List<ColumnInfo> columns, Type elementType)
+        private ConstructedValueExpression CompileArrayOfScalar(MapTypeContext context, ConstructorInfo constructor, List<ColumnInfo> columns, Type elementType)
         {
             var arrayVar = context.CreateVariable(context.TargetType, "array");
             var expressions = new List<Expression>();
@@ -81,7 +81,7 @@ namespace CastIron.Sql.Mapping.Compilers
             return new ConstructedValueExpression(expressions, arrayVar, variables);
         }
 
-        private ConstructedValueExpression CompileArrayOfCustomObject(MapContext context, Type elementType, ConstructorInfo constructor)
+        private ConstructedValueExpression CompileArrayOfCustomObject(MapTypeContext context, Type elementType, ConstructorInfo constructor)
         {
             var expressions = new List<Expression>();
             var variables = new List<ParameterExpression>();

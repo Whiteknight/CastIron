@@ -23,7 +23,7 @@ namespace CastIron.Sql.Mapping
 
         // TODO: Have to figure out caching now
 
-        public Func<IDataRecord, T> CompileExpression<T>(MapCompileOperation operation, IDataReader reader)
+        public Func<IDataRecord, T> CompileExpression<T>(MapContext operation, IDataReader reader)
         {
             Argument.NotNull(operation, nameof(operation));
 
@@ -41,7 +41,7 @@ namespace CastIron.Sql.Mapping
             return compiled;
         }
 
-        //private static string CreateKey<T>(MapCompileOperation operation, IDataReader reader)
+        //private static string CreateKey<T>(MapContext operation, IDataReader reader)
         //{
         //    var sb = new StringBuilder();
         //    sb.AppendLine("P:" + typeof(T).FullName);

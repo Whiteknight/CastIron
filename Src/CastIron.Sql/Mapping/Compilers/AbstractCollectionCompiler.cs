@@ -20,7 +20,7 @@ namespace CastIron.Sql.Mapping.Compilers
             _nonScalars = nonScalars;
         }
 
-        public ConstructedValueExpression Compile(MapContext context)
+        public ConstructedValueExpression Compile(MapTypeContext context)
         {
             var elementType = GetElementType(context);
             var listType = GetConcreteListType(context.TargetType, elementType);
@@ -40,7 +40,7 @@ namespace CastIron.Sql.Mapping.Compilers
             );
         }
 
-        private static Type GetElementType(MapContext context)
+        private static Type GetElementType(MapTypeContext context)
         {
             if (context.TargetType.GenericTypeArguments.Length != 1)
                 throw MapCompilerException.InvalidInterfaceType(context.TargetType);
@@ -69,7 +69,7 @@ namespace CastIron.Sql.Mapping.Compilers
             return listType;
         }
 
-        private static ConstructedValueExpression GetMaybeInstantiateCollectionExpression(MapContext context, ConstructorInfo constructor)
+        private static ConstructedValueExpression GetMaybeInstantiateCollectionExpression(MapTypeContext context, ConstructorInfo constructor)
         {
             var newInstance = context.CreateVariable(context.TargetType, "list");
             if (context.GetExisting == null)
@@ -100,7 +100,7 @@ namespace CastIron.Sql.Mapping.Compilers
             return new ConstructedValueExpression(new[] { getExistingExpr }, newInstance, new [] { newInstance });
         }
 
-        private ConstructedValueExpression GetCollectionPopulateStatements(MapContext context, Type elementType, Expression listVar, MethodInfo addMethod)
+        private ConstructedValueExpression GetCollectionPopulateStatements(MapTypeContext context, Type elementType, Expression listVar, MethodInfo addMethod)
         {
             if (!context.HasColumns())
                 return new ConstructedValueExpression(null);

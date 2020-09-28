@@ -20,14 +20,14 @@ namespace CastIron.Sql.Mapping.Compilers
         }
 
         // value = Tuple.Create(converted columns)
-        public ConstructedValueExpression Compile(MapContext context)
+        public ConstructedValueExpression Compile(MapTypeContext context)
         {
             var typeParams = GetTupleTypeParameters(context);
             var factoryMethod = GetTupleFactoryMethod(context, typeParams);
             return MapTupleParameters(context, factoryMethod, typeParams);
         }
 
-        private ConstructedValueExpression MapTupleParameters(MapContext context, MethodInfo factoryMethod, Type[] typeParams)
+        private ConstructedValueExpression MapTupleParameters(MapTypeContext context, MethodInfo factoryMethod, Type[] typeParams)
         {
             var expressions = new List<Expression>();
             var variables = new List<ParameterExpression>();
@@ -60,7 +60,7 @@ namespace CastIron.Sql.Mapping.Compilers
             return new ConstructedValueExpression(expressions, Expression.Call(null, factoryMethod, args), variables);
         }
 
-        private static Type[] GetTupleTypeParameters(MapContext context)
+        private static Type[] GetTupleTypeParameters(MapTypeContext context)
         {
             var typeParams = context.TargetType.GenericTypeArguments;
             if (typeParams.Length == 0 || typeParams.Length > 7)
@@ -68,7 +68,7 @@ namespace CastIron.Sql.Mapping.Compilers
             return typeParams;
         }
 
-        private static MethodInfo GetTupleFactoryMethod(MapContext context, Type[] typeParams)
+        private static MethodInfo GetTupleFactoryMethod(MapTypeContext context, Type[] typeParams)
         {
             var factoryMethod = typeof(Tuple).GetMethods(BindingFlags.Public | BindingFlags.Static)
                 .Where(m => m.Name == nameof(Tuple.Create) && m.GetParameters().Length == typeParams.Length)

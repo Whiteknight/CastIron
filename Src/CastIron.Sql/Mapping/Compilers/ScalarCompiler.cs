@@ -22,7 +22,7 @@ namespace CastIron.Sql.Mapping.Compilers
                 throw MapCompilerException.NoScalarMapCompilers();
         }
 
-        public ConstructedValueExpression Compile(MapContext context)
+        public ConstructedValueExpression Compile(MapTypeContext context)
         {
             var column = context.SingleColumn();
             if (column == null)

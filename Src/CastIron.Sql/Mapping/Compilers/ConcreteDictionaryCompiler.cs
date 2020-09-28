@@ -18,7 +18,7 @@ namespace CastIron.Sql.Mapping.Compilers
             _valueCompiler = valueCompiler;
         }
 
-        public ConstructedValueExpression Compile(MapContext context)
+        public ConstructedValueExpression Compile(MapTypeContext context)
         {
             var idictType = GetIDictionaryType(context);
             var elementType = idictType.GetGenericArguments()[1];
@@ -45,7 +45,7 @@ namespace CastIron.Sql.Mapping.Compilers
             return targetType.GetConstructor(Type.EmptyTypes) ?? throw MapCompilerException.InvalidDictionaryTargetType(targetType);
         }
 
-        private static Type GetIDictionaryType(MapContext context)
+        private static Type GetIDictionaryType(MapTypeContext context)
         {
             return context.TargetType.GetInterfaces()
                 .Where(i => i.IsGenericType)
@@ -56,7 +56,7 @@ namespace CastIron.Sql.Mapping.Compilers
         // var dict = new DictType();
         // OR
         // var dict = getExisting() == null ? new DictType() : getExisting() as DictType
-        private static ConstructedValueExpression GetMaybeInstantiateDictionaryExpression(MapContext context, ConstructorInfo constructor)
+        private static ConstructedValueExpression GetMaybeInstantiateDictionaryExpression(MapTypeContext context, ConstructorInfo constructor)
         {
             var newInstance = context.CreateVariable(context.TargetType, "dict");
             if (context.GetExisting == null)
@@ -90,7 +90,7 @@ namespace CastIron.Sql.Mapping.Compilers
             return new ConstructedValueExpression(new[] { tryGetExistingInstanceExpr }, newInstance, new[] { newInstance });
         }
 
-        private ConstructedValueExpression AddDictionaryPopulateStatements(MapContext context, Type elementType, Expression dictVar, MethodInfo addMethod)
+        private ConstructedValueExpression AddDictionaryPopulateStatements(MapTypeContext context, Type elementType, Expression dictVar, MethodInfo addMethod)
         {
             var expressions = new List<Expression>();
             var variables = new List<ParameterExpression>();
