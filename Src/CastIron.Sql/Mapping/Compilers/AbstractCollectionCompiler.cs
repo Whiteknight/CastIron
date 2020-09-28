@@ -62,7 +62,7 @@ namespace CastIron.Sql.Mapping.Compilers
         private static Type GetConcreteListType(MapTypeContext context, Type targetType, Type elementType)
         {
             // If we have a configured type, use that. Otherwise fall back to List<T>
-            var typeSettings = context.TypeSettings.GetTypeSettings(targetType);
+            var typeSettings = context.Settings.GetTypeSettings(targetType);
             if (typeSettings.BaseType != typeof(object))
             {
                 var customType = typeSettings.GetDefault().Type;

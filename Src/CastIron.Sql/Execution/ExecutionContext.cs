@@ -9,7 +9,6 @@ namespace CastIron.Sql.Execution
 {
     public sealed class ExecutionContext : IExecutionContext, IContextBuilder
     {
-        private readonly IMapCompiler _defaultCompiler;
         private IsolationLevel? _isolationLevel;
         private bool _aborted;
         private int _completed;
@@ -18,9 +17,9 @@ namespace CastIron.Sql.Execution
         private PerformanceMonitor _monitor;
         private Action<string> _onCommandText;
 
-        public ExecutionContext(IDbConnectionFactory factory, IProviderConfiguration provider, IDbCommandStringifier stringifier, IMapCompiler defaultCompiler)
+        public ExecutionContext(IDbConnectionFactory factory, IProviderConfiguration provider, IDbCommandStringifier stringifier, IMapCompiler compiler)
         {
-            _defaultCompiler = defaultCompiler;
+            MapCompiler = compiler;
             Stringifier = stringifier;
             Provider = provider;
             _completed = 0;
@@ -32,6 +31,7 @@ namespace CastIron.Sql.Execution
         public IProviderConfiguration Provider { get; }
         public IDbConnectionAsync Connection { get; }
         public IDbTransaction Transaction { get; private set; }
+        public IMapCompiler MapCompiler { get; }
         public bool IsCompleted => Interlocked.CompareExchange(ref _completed, 0, 0) != 0;
         public bool IsOpen => Interlocked.CompareExchange(ref _opened, 0, 0) != 0;
 
@@ -151,8 +151,6 @@ namespace CastIron.Sql.Execution
         {
             _aborted = true;
         }
-
-        public IMapCompiler GetDefaultMapCompiler() => _defaultCompiler;
 
         public void Dispose()
         {

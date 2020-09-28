@@ -43,7 +43,7 @@ namespace CastIron.Sql.Mapping.Compilers
         private ConstructedValueExpression AddInstantiationExpressionForObjectInstance(MapTypeContext context)
         {
             var instanceVar = context.CreateVariable(context.TargetType, "instance");
-            var typeInfo = context.TypeSettings.GetTypeSettings(context.TargetType);
+            var typeInfo = context.Settings.GetTypeSettings(context.TargetType);
             var defaultSubtypeInfo = typeInfo.GetDefault();
             var defaultInstantiationExpression = AddInstantiationExpressionForSpecificType(context, defaultSubtypeInfo, instanceVar);
             var subclasses = typeInfo.GetSpecificTypes().ToList();

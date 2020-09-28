@@ -27,7 +27,5 @@ namespace CastIron.Sql.Mapping
 
         public Expression FinalValue { get; }
         public IEnumerable<ParameterExpression> Variables { get; }
-
-        // TODO: Method to merge one of these into another
     }
 }

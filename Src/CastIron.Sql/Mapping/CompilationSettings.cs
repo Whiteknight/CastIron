@@ -7,7 +7,8 @@ namespace CastIron.Sql.Mapping
     /// Holds configuration settings for all types. These are used during compilation to control
     /// how objects are instantiated and mapped
     /// </summary>
-    public class TypeSettingsCollection
+    public class CompilationSettings
+
     {
         private readonly Dictionary<Type, ITypeSettings> _types;
         private readonly ITypeSettings _default;
@@ -16,7 +17,7 @@ namespace CastIron.Sql.Mapping
         public ICollection<string> IgnorePrefixes { get; private set; }
         public IMapCompiler DefaultCompiler { get; private set; }
 
-        public TypeSettingsCollection()
+        public CompilationSettings()
         {
             _types = new Dictionary<Type, ITypeSettings>();
             _default = new TypeSettings<object>();

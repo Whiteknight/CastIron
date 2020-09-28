@@ -15,14 +15,14 @@ namespace CastIron.Sql.Mapping
     {
         private readonly VariableNumberSource _variableNumbers;
 
-        public MapContext(IProviderConfiguration provider, Type topLevelTargetType, TypeSettingsCollection typeSettings)
+        public MapContext(IProviderConfiguration provider, Type topLevelTargetType, CompilationSettings typeSettings)
         {
             Argument.NotNull(provider, nameof(provider));
             Argument.NotNull(topLevelTargetType, nameof(topLevelTargetType));
             Argument.NotNull(typeSettings, nameof(typeSettings));
 
             TopLevelTargetType = topLevelTargetType;
-            TypeSettings = typeSettings;
+            Settings = typeSettings;
 
             IgnorePrefixes = typeSettings.IgnorePrefixes ?? new List<string>();
             Separator = (typeSettings.Separator ?? "_").ToLowerInvariant();
@@ -34,7 +34,7 @@ namespace CastIron.Sql.Mapping
             _variableNumbers = new VariableNumberSource();
         }
 
-        public TypeSettingsCollection TypeSettings { get; }
+        public CompilationSettings Settings { get; }
         public string Separator { get; }
         public IProviderConfiguration Provider { get; }
         public ParameterExpression RecordParam { get; }

@@ -25,6 +25,6 @@ namespace CastIron.Sql.Execution
         void MarkAborted();
         bool IsCompleted { get; }
 
-        IMapCompiler GetDefaultMapCompiler();
+        IMapCompiler MapCompiler { get; }
     }
 }

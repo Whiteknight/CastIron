@@ -51,7 +51,7 @@ namespace CastIron.Sql.Mapping.Compilers
 
         private static Type GetConcreteDictionaryType(MapTypeContext context, Type elementType)
         {
-            var typeSettings = context.TypeSettings.GetTypeSettings(context.TargetType);
+            var typeSettings = context.Settings.GetTypeSettings(context.TargetType);
             if (typeSettings.BaseType != typeof(object))
             {
                 var customType = typeSettings.GetDefault().Type;

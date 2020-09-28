@@ -39,7 +39,7 @@ namespace CastIron.Sql.Mapping
 
         public string Separator => _context.Separator;
 
-        public TypeSettingsCollection TypeSettings => _context.TypeSettings;
+        public CompilationSettings Settings => _context.Settings;
 
         public ParameterExpression CreateVariable(Type t, string name)
             => _context.CreateVariable(t, name);

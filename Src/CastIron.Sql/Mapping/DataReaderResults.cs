@@ -75,11 +75,11 @@ namespace CastIron.Sql.Mapping
         public IEnumerable<T> AsEnumerable<T>(Action<IMapCompilerSettings> setup = null)
         {
             PrepareToEnumerate();
-            var types = new TypeSettingsCollection();
-            var compilerBuilder = new MapCompilerSettings(types);
+            var settings = new CompilationSettings();
+            var compilerBuilder = new MapCompilerSettings(settings);
             setup?.Invoke(compilerBuilder);
-            var operation = new MapContext(Provider, typeof(T), types);
-            var map = Context.GetDefaultMapCompiler().Compile<T>(operation, Reader.Reader);
+            var operation = new MapContext(Provider, typeof(T), settings);
+            var map = Context.MapCompiler.Compile<T>(operation, Reader.Reader);
             return new DataRecordMappingEnumerable<T>(Reader, Context, map);
         }
 
@@ -181,11 +181,11 @@ namespace CastIron.Sql.Mapping
         public IAsyncEnumerable<T> AsEnumerableAsync<T>(Action<IMapCompilerSettings> setup = null)
         {
             PrepareToEnumerate();
-            var types = new TypeSettingsCollection();
-            var compilerBuilder = new MapCompilerSettings(types);
+            var settings = new CompilationSettings();
+            var compilerBuilder = new MapCompilerSettings(settings);
             setup?.Invoke(compilerBuilder);
-            var operation = new MapContext(Provider, typeof(T), types);
-            var map = Context.GetDefaultMapCompiler().Compile<T>(operation, Reader.Reader);
+            var operation = new MapContext(Provider, typeof(T), settings);
+            var map = Context.MapCompiler.Compile<T>(operation, Reader.Reader);
             return new AsyncDataRecordMappingEnumerable<T>(Reader, Context, map);
         }
 

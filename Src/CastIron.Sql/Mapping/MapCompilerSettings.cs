@@ -12,9 +12,9 @@ namespace CastIron.Sql.Mapping
     /// </summary>
     public class MapCompilerSettings : IMapCompilerSettings
     {
-        private readonly TypeSettingsCollection _types;
+        private readonly CompilationSettings _types;
 
-        public MapCompilerSettings(TypeSettingsCollection types)
+        public MapCompilerSettings(CompilationSettings types)
         {
             _types = types;
         }
@@ -47,10 +47,10 @@ namespace CastIron.Sql.Mapping
     public class MapCompilerSettings<T> : IMapCompilerSettings<T>
     {
         private readonly ISpecificTypeSettings<T> _specific;
-        private readonly TypeSettingsCollection _types;
+        private readonly CompilationSettings _types;
         private readonly TypeSettings<T> _currentType;
 
-        public MapCompilerSettings(TypeSettingsCollection types)
+        public MapCompilerSettings(CompilationSettings types)
         {
             _types = types;
             _currentType = new TypeSettings<T>();
@@ -58,7 +58,7 @@ namespace CastIron.Sql.Mapping
             _specific = _currentType.Default;
         }
 
-        private MapCompilerSettings(TypeSettingsCollection types, TypeSettings<T> type, ISpecificTypeSettings<T> specific)
+        private MapCompilerSettings(CompilationSettings types, TypeSettings<T> type, ISpecificTypeSettings<T> specific)
         {
             _types = types;
             _currentType = type;
