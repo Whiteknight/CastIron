@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 
-namespace CastIron.Sql.Mapping
+namespace CastIron.Sql.Mapping.Constructors
 {
     public class BestMatchConstructorFinder : IConstructorFinder
     {

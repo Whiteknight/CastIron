@@ -1,12 +1,12 @@
-﻿using CastIron.Sql.Execution;
-using CastIron.Sql.Utility;
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Data;
 using System.Threading;
+using CastIron.Sql.Execution;
+using CastIron.Sql.Utility;
 
-namespace CastIron.Sql.Mapping
+namespace CastIron.Sql.Mapping.Enumerables
 {
     /// <summary>
     /// IEnumerable implementation to apply a map function to every row in an IDataReader

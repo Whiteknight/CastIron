@@ -40,6 +40,14 @@ namespace CastIron.Sql.Mapping
             return new MapCompilerException("The type specified may not be null.");
         }
 
+        public static MapCompilerException InvalidListType(Type provided)
+        {
+            return new MapCompilerException(
+                $"The provided type {provided.GetFriendlyName()} is not a suitable collection type. " +
+                $"It must implement {nameof(IList)}.{nameof(IList<object>.Add)} to be used for mapping"
+            );
+        }
+
         public static MapCompilerException InvalidInterfaceType(Type provided)
         {
             return new MapCompilerException(

@@ -53,5 +53,25 @@ namespace CastIron.Sqlite.Tests.Mapping
             result[1].Should().Be("B");
             result[2].Should().Be("C");
         }
+
+        [Test]
+        public void TestQuery_CustomCollectionType_Configured()
+        {
+            var target = RunnerFactory.Create();
+            var result = target
+                .Query<ICollection<string>>(
+                    "SELECT 'A', 'B', 'C'",
+                    b => b
+                        .For<ICollection<string>>(c => c
+                            .UseClass<TestCollectionType>()
+                        )
+                    )
+                .First();
+            result.Should().BeOfType<TestCollectionType>();
+            var r = result.ToList();
+            r[0].Should().Be("A");
+            r[1].Should().Be("B");
+            r[2].Should().Be("C");
+        }
     }
 }

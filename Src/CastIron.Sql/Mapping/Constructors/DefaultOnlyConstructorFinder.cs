@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using CastIron.Sql.Utility;
 
-namespace CastIron.Sql.Mapping
+namespace CastIron.Sql.Mapping.Constructors
 {
     /// <summary>
     /// IConstructorFinder implementation which forces only the use of the default parameterless constructor

@@ -23,7 +23,7 @@ namespace CastIron.Sql.Mapping.Compilers
         public ConstructedValueExpression Compile(MapTypeContext context)
         {
             var elementType = GetElementType(context);
-            var listType = GetConcreteListType(context.TargetType, elementType);
+            var listType = GetConcreteListType(context, context.TargetType, elementType);
 
             var constructor = GetListConstructor(listType);
             var addMethod = GetListAddMethod(context.TargetType, listType, elementType);
@@ -34,8 +34,8 @@ namespace CastIron.Sql.Mapping.Compilers
             var addStmts = GetCollectionPopulateStatements(context, elementType, listVar.FinalValue, addMethod);
 
             return new ConstructedValueExpression(
-                listVar.Expressions.Concat(addStmts.Expressions), 
-                Expression.Convert(listVar.FinalValue, originalTargetType), 
+                listVar.Expressions.Concat(addStmts.Expressions),
+                Expression.Convert(listVar.FinalValue, originalTargetType),
                 listVar.Variables.Concat(addStmts.Variables)
             );
         }
@@ -51,18 +51,26 @@ namespace CastIron.Sql.Mapping.Compilers
 
         private static MethodInfo GetListAddMethod(Type targetType, Type listType, Type elementType)
         {
-            return listType.GetMethod(nameof(List<object>.Add)) ?? throw MapCompilerException.MissingMethod(targetType, nameof(List<object>.Add), elementType);
+            return listType.GetMethod(nameof(ICollection<object>.Add)) ?? throw MapCompilerException.MissingMethod(targetType, nameof(ICollection<object>.Add), elementType);
         }
 
         private static ConstructorInfo GetListConstructor(Type listType)
         {
-            // TODO: If it's a custom type, we should be able to call IConstructorFinder and try to get a 
-            // mappable constructor
             return listType.GetConstructor(new Type[0]) ?? throw MapCompilerException.MissingParameterlessConstructor(listType);
         }
 
-        private static Type GetConcreteListType(Type targetType, Type elementType)
+        private static Type GetConcreteListType(MapTypeContext context, Type targetType, Type elementType)
         {
+            // If we have a configured type, use that. Otherwise fall back to List<T>
+            var typeSettings = context.TypeSettings.GetTypeSettings(targetType);
+            if (typeSettings.BaseType != typeof(object))
+            {
+                var customType = typeSettings.GetDefault().Type;
+                if (!typeof(ICollection<>).MakeGenericType(elementType).IsAssignableFrom(customType))
+                    throw MapCompilerException.InvalidListType(customType);
+                return customType;
+            }
+
             var listType = typeof(List<>).MakeGenericType(elementType);
             if (!targetType.IsAssignableFrom(listType))
                 throw MapCompilerException.CannotConvertType(targetType, listType);
@@ -76,10 +84,10 @@ namespace CastIron.Sql.Mapping.Compilers
             {
                 // var newInstance = new TargetType()
                 var createNewExpr = Expression.Assign(
-                    newInstance, 
+                    newInstance,
                     Expression.New(constructor)
                 );
-                return new ConstructedValueExpression(new [] { createNewExpr }, newInstance, new [] { newInstance });
+                return new ConstructedValueExpression(new[] { createNewExpr }, newInstance, new[] { newInstance });
             }
 
             // var newInstance = getExisting() == null ? new TargetType() : getExisting()
@@ -97,7 +105,7 @@ namespace CastIron.Sql.Mapping.Compilers
                     Expression.Convert(context.GetExisting, context.TargetType)
                 )
             );
-            return new ConstructedValueExpression(new[] { getExistingExpr }, newInstance, new [] { newInstance });
+            return new ConstructedValueExpression(new[] { getExistingExpr }, newInstance, new[] { newInstance });
         }
 
         private ConstructedValueExpression GetCollectionPopulateStatements(MapTypeContext context, Type elementType, Expression listVar, MethodInfo addMethod)

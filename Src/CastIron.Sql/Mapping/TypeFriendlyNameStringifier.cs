@@ -17,7 +17,6 @@ namespace CastIron.Sql.Mapping
             return sb.ToString();
         }
 
-        // TODO: Move these stringification methods into a separate class
         private static void GetFriendlyName(Type t, StringBuilder sb)
         {
             if (t.IsArray)

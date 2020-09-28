@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using CastIron.Sql.Execution;
 using CastIron.Sql.Utility;
 
-namespace CastIron.Sql.Mapping
+namespace CastIron.Sql.Mapping.Enumerables
 {
     public class AsyncDataRecordMappingEnumerable<T> : IAsyncEnumerable<T>
     {

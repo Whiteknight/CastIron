@@ -11,7 +11,6 @@ namespace CastIron.Sql.Mapping
         public static string GetFriendlyName(this Type t)
             => TypeFriendlyNameStringifier.Instance.GetFriendlyName(t);
 
-
         public static bool IsConvertible(this Type t)
             => t != null && typeof(IConvertible).IsAssignableFrom(t);
 

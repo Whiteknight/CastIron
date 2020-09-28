@@ -12,7 +12,6 @@ namespace CastIron.Sql.Mapping
     /// MapTypeContext flyweight objects are used at each level to compile individual expressions.
     /// </summary>
     public class MapContext
-
     {
         private readonly VariableNumberSource _variableNumbers;
 

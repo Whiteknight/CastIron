@@ -8,6 +8,6 @@ namespace CastIron.Sql.Mapping
     /// </summary>
     public interface IMapCompiler
     {
-        Func<IDataRecord, T> CompileExpression<T>(MapContext operation, IDataReader reader);
+        Func<IDataRecord, T> Compile<T>(MapContext operation, IDataReader reader);
     }
 }

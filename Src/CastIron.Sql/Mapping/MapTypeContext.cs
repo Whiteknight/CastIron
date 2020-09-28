@@ -5,6 +5,7 @@ using System.Data;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using CastIron.Sql.Mapping.Constructors;
 using CastIron.Sql.Utility;
 
 namespace CastIron.Sql.Mapping

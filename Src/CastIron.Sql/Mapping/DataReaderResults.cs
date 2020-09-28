@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data;
 using CastIron.Sql.Execution;
+using CastIron.Sql.Mapping.Enumerables;
 using CastIron.Sql.Utility;
 
 namespace CastIron.Sql.Mapping
@@ -79,7 +80,7 @@ namespace CastIron.Sql.Mapping
             var compilerBuilder = new MapCompilerSettings(types);
             setup?.Invoke(compilerBuilder);
             var operation = new MapContext(Provider, Reader.Reader, typeof(T), types);
-            var map = Context.GetDefaultMapCompiler().CompileExpression<T>(operation, Reader.Reader);
+            var map = Context.GetDefaultMapCompiler().Compile<T>(operation, Reader.Reader);
             return new DataRecordMappingEnumerable<T>(Reader, Context, map);
         }
 
@@ -186,7 +187,7 @@ namespace CastIron.Sql.Mapping
             var compilerBuilder = new MapCompilerSettings(types);
             setup?.Invoke(compilerBuilder);
             var operation = new MapContext(Provider, Reader.Reader, typeof(T), types);
-            var map = Context.GetDefaultMapCompiler().CompileExpression<T>(operation, Reader.Reader);
+            var map = Context.GetDefaultMapCompiler().Compile<T>(operation, Reader.Reader);
             return new AsyncDataRecordMappingEnumerable<T>(Reader, Context, map);
         }
 

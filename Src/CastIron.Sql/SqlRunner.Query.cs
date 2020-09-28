@@ -1,4 +1,5 @@
 ﻿using CastIron.Sql.Execution;
+using CastIron.Sql.Mapping;
 using CastIron.Sql.Statements;
 using CastIron.Sql.Utility;
 using System;
@@ -18,11 +19,11 @@ namespace CastIron.Sql
         /// <param name="runner"></param>
         /// <param name="sql"></param>
         /// <returns></returns>
-        public static IReadOnlyList<T> Query<T>(this ISqlRunner runner, string sql)
+        public static IReadOnlyList<T> Query<T>(this ISqlRunner runner, string sql, Action<IMapCompilerSettings> setupCompiler = null)
         {
             Argument.NotNull(runner, nameof(runner));
             Argument.NotNullOrEmpty(sql, nameof(sql));
-            return runner.Query(SqlQuery.FromString<T>(sql));
+            return runner.Query(SqlQuery.FromString<T>(sql, setupCompiler));
         }
 
         /// <summary>
@@ -109,11 +110,11 @@ namespace CastIron.Sql
         /// <param name="runner"></param>
         /// <param name="sql"></param>
         /// <returns></returns>
-        public static Task<IReadOnlyList<T>> QueryAsync<T>(this ISqlRunner runner, string sql)
+        public static Task<IReadOnlyList<T>> QueryAsync<T>(this ISqlRunner runner, string sql, Action<IMapCompilerSettings> setupCompiler = null)
         {
             Argument.NotNull(runner, nameof(runner));
             Argument.NotNullOrEmpty(sql, nameof(sql));
-            return runner.QueryAsync(SqlQuery.FromString<T>(sql));
+            return runner.QueryAsync(SqlQuery.FromString<T>(sql, setupCompiler));
         }
 
         /// <summary>

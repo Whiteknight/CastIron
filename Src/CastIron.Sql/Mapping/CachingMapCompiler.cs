@@ -23,7 +23,7 @@ namespace CastIron.Sql.Mapping
 
         // TODO: Have to figure out caching now
 
-        public Func<IDataRecord, T> CompileExpression<T>(MapContext operation, IDataReader reader)
+        public Func<IDataRecord, T> Compile<T>(MapContext operation, IDataReader reader)
         {
             Argument.NotNull(operation, nameof(operation));
 
@@ -36,7 +36,7 @@ namespace CastIron.Sql.Mapping
             //if (_cache.TryGetValue(key, out var cached) && cached is Func<IDataRecord, T> func)
             //    return func;
 
-            var compiled = _inner.CompileExpression<T>(operation, reader);
+            var compiled = _inner.Compile<T>(operation, reader);
             //_cache.TryAdd(key, compiled);
             return compiled;
         }
