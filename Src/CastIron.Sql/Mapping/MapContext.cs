@@ -15,10 +15,9 @@ namespace CastIron.Sql.Mapping
     {
         private readonly VariableNumberSource _variableNumbers;
 
-        public MapContext(IProviderConfiguration provider, IDataReader reader, Type topLevelTargetType, TypeSettingsCollection typeSettings)
+        public MapContext(IProviderConfiguration provider, Type topLevelTargetType, TypeSettingsCollection typeSettings)
         {
             Argument.NotNull(provider, nameof(provider));
-            Argument.NotNull(reader, nameof(reader));
             Argument.NotNull(topLevelTargetType, nameof(topLevelTargetType));
             Argument.NotNull(typeSettings, nameof(typeSettings));
 
@@ -37,15 +36,11 @@ namespace CastIron.Sql.Mapping
         }
 
         public TypeSettingsCollection TypeSettings { get; }
-
         public string Separator { get; }
         public IProviderConfiguration Provider { get; }
-        public IDataReader Reader { get; }
         public ParameterExpression RecordParam { get; }
         public Type TopLevelTargetType { get; }
         public ICollection<string> IgnorePrefixes { get; }
-
-        public ParameterExpression CreateVariable<T>(string name) => CreateVariable(typeof(T), name);
 
         public ParameterExpression CreateVariable(Type t, string name)
         {
@@ -84,7 +79,7 @@ namespace CastIron.Sql.Mapping
             return new MapTypeContext(this, columnNames, TopLevelTargetType, null, null);
         }
 
-        public class VariableNumberSource
+        private class VariableNumberSource
         {
             private int _varNumber;
 

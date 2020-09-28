@@ -29,7 +29,7 @@ namespace CastIron.Sql.Mapping.Compilers
                 return ConstructedValueExpression.Nothing;
 
             // Pull the value out of the reader into the rawVar
-            var rawVar = context.CreateVariable<object>("raw");
+            var rawVar = context.CreateVariable(typeof(object), "raw");
             var getRawStmt = Expression.Assign(
                 rawVar,
                 Expression.Call(

@@ -16,16 +16,15 @@ namespace CastIron.Sql.Mapping
     /// the MapCompileContext for all shared data and logic
     /// </summary>
     public struct MapTypeContext
-
     {
-        private readonly MapContext _operation;
+        private readonly MapContext _context;
         private readonly Dictionary<string, List<ColumnInfo>> _columnNames;
 
-        public MapTypeContext(MapContext operation, Dictionary<string, List<ColumnInfo>> columnNames, Type targetType, string name, Expression getExisting)
+        public MapTypeContext(MapContext context, Dictionary<string, List<ColumnInfo>> columnNames, Type targetType, string name, Expression getExisting)
         {
             // TODO: We should probably also store columns in an ordered list, so we don't have to 
             // serialize/order for some of the options below.
-            _operation = operation;
+            _context = context;
             _columnNames = columnNames;
             TargetType = targetType;
             Name = name;
@@ -36,21 +35,16 @@ namespace CastIron.Sql.Mapping
         public Type TargetType { get; }
         public Expression GetExisting { get; }
 
-        public IDataReader Reader => _operation.Reader;
+        public ParameterExpression RecordParameter => _context.RecordParam;
 
-        public ParameterExpression RecordParameter => _operation.RecordParam;
+        public string Separator => _context.Separator;
 
-        public string Separator => _operation.Separator;
-
-        public TypeSettingsCollection TypeSettings => _operation.TypeSettings;
-
-        public ParameterExpression CreateVariable<T>(string name)
-            => _operation.CreateVariable<T>(name);
+        public TypeSettingsCollection TypeSettings => _context.TypeSettings;
 
         public ParameterExpression CreateVariable(Type t, string name)
-            => _operation.CreateVariable(t, name);
+            => _context.CreateVariable(t, name);
 
-        public LabelExpression CreateLabel(string name) => _operation.CreateLabel(name);
+        public LabelExpression CreateLabel(string name) => _context.CreateLabel(name);
 
         public ColumnInfo SingleColumn()
             => AllUnmappedColumns.OrderBy(c => c.Index).FirstOrDefault();
@@ -75,18 +69,18 @@ namespace CastIron.Sql.Mapping
             {
                 { name?.ToLowerInvariant() ?? column.CanonicalName, new List<ColumnInfo> { column } }
             };
-            return new MapTypeContext(_operation, columnNames, targetType, name, null);
+            return new MapTypeContext(_context, columnNames, targetType, name, null);
         }
 
         public MapTypeContext GetSubstateForProperty(string name, ICustomAttributeProvider attrs, Type targetType, Expression getExisting = null)
         {
-            var context = _operation;
+            var context = _context;
             var columns = GetColumnsForProperty(name, attrs);
             return new MapTypeContext(context, columns, targetType, name, getExisting);
         }
 
         public MapTypeContext ChangeTargetType(Type targetType)
-            => new MapTypeContext(_operation, _columnNames, targetType, Name, GetExisting);
+            => new MapTypeContext(_context, _columnNames, targetType, Name, GetExisting);
 
         public ConstructorInfo GetConstructor(ISpecificTypeSettings settings)
         {
@@ -98,7 +92,7 @@ namespace CastIron.Sql.Mapping
             if (type.IsAbstract || type.IsInterface)
                 throw MapCompilerException.UnconstructableAbstractType(type);
             return (settings.ConstructorFinder ?? BestMatchConstructorFinder.GetDefaultInstance())
-                .FindBestMatch(_operation.Provider, settings.Constructor, type, columnNameCounts);
+                .FindBestMatch(_context.Provider, settings.Constructor, type, columnNameCounts);
         }
 
         private IEnumerable<ColumnInfo> AllUnmappedColumns
@@ -106,13 +100,13 @@ namespace CastIron.Sql.Mapping
 
         private bool HasColumnsPrefixed(string prefix)
         {
-            prefix += _operation.Separator;
+            prefix += _context.Separator;
             return _columnNames.Any(kvp => kvp.Key.StartsWith(prefix) && kvp.Value.Any(c => !c.Mapped));
         }
 
         private Dictionary<string, List<ColumnInfo>> GetColumnsPrefixed(string prefix)
         {
-            prefix += _operation.Separator;
+            prefix += _context.Separator;
             return _columnNames
                 .Where(kvp => kvp.Key.StartsWith(prefix))
                 .ToDictionary(columns => columns.Key.Substring(prefix.Length), columns => columns.Value);
@@ -139,9 +133,9 @@ namespace CastIron.Sql.Mapping
                 return new Dictionary<string, List<ColumnInfo>> { { columnName, _columnNames[columnName] } };
 
             var acceptsUnnamed = attrs.GetTypedAttributes<UnnamedColumnsAttribute>().Any();
-            if (acceptsUnnamed && _operation.Provider.UnnamedColumnName != null)
+            if (acceptsUnnamed && _context.Provider.UnnamedColumnName != null)
             {
-                var unnamedName = _operation.Provider.UnnamedColumnName.ToLowerInvariant();
+                var unnamedName = _context.Provider.UnnamedColumnName.ToLowerInvariant();
                 if (HasColumn(unnamedName))
                     return new Dictionary<string, List<ColumnInfo>> { { unnamedName, _columnNames[unnamedName] } };
             }

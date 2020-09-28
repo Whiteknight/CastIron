@@ -35,14 +35,6 @@ namespace CastIron.Sql.Mapping
             var value = _parameterCache[parameterName];
             return value == null || value == DBNull.Value ? null : value;
         }
-        public object GetValueOrThrow(string name)
-        {
-            var parameterName = CanonicalizeParameterName(name);
-            if (!_parameterCache.ContainsKey(parameterName))
-                throw DataReaderException.NamedParameterNotFound(name);
-            var value = _parameterCache[parameterName];
-            return value == null || value == DBNull.Value ? null : value;
-        }
 
         public T GetValue<T>(string name)
         {
@@ -57,6 +49,15 @@ namespace CastIron.Sql.Mapping
                 return (T)Convert.ChangeType(value, typeof(T));
 
             return default;
+        }
+
+        public object GetValueOrThrow(string name)
+        {
+            var parameterName = CanonicalizeParameterName(name);
+            if (!_parameterCache.ContainsKey(parameterName))
+                throw DataReaderException.NamedParameterNotFound(name);
+            var value = _parameterCache[parameterName];
+            return value == null || value == DBNull.Value ? null : value;
         }
 
         public T GetOutputParameterOrThrow<T>(string name)

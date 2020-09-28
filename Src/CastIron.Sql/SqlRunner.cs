@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Threading;
 using System.Threading.Tasks;
 using CastIron.Sql.Execution;
 using CastIron.Sql.Mapping;
-using CastIron.Sql.Mapping.ScalarCompilers;
 using CastIron.Sql.Utility;
 using ExecutionContext = CastIron.Sql.Execution.ExecutionContext;
 

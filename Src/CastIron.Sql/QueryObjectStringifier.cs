@@ -118,7 +118,7 @@ namespace CastIron.Sql
             public void RemoveAt(int index) => throw new NotImplementedException();
         }
 
-        private class DummyDbCommand : IDbCommand
+        private sealed class DummyDbCommand : IDbCommand
         {
             public string CommandText { get; set; }
             public int CommandTimeout { get; set; }
@@ -132,12 +132,14 @@ namespace CastIron.Sql
 
             public void Cancel()
             {
+                // No work needs to be done here, we never execute this so we never cancel it
             }
 
             public IDbDataParameter CreateParameter() => new DummyDbDataParameter();
 
             public void Dispose()
             {
+                // No state to dispose here
             }
 
             public int ExecuteNonQuery() => throw new System.NotImplementedException();
