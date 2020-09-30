@@ -45,46 +45,12 @@ namespace CastIron.Sqlite
                 return;
 
             foreach (var t in command.Parameters)
-            {
-                if (!(t is SqlParameter param))
-                    continue;
-                sb.Append("--DECLARE ");
-                sb.Append(param.ParameterName);
-                sb.Append(" ");
-                sb.Append(param.SqlDbType);
-                if (param.Size > 0)
-                {
-                    sb.Append("(");
-                    sb.Append(param.Size);
-                    sb.Append(")");
-                }
-
-                if (param.Direction == ParameterDirection.Input || param.Direction == ParameterDirection.InputOutput)
-                {
-                    sb.Append(" = ");
-                    var value = param.SqlValue;
-                    if (_quotedDbTypes.Contains(param.DbType))
-                        value = "'" + value.ToString().Replace("'", "''") + "'";
-                    sb.Append(value);
-                }
-
-                sb.AppendLine(";");
-            }
+                StringifyParameter(t, sb);
 
             switch (command.CommandType)
             {
                 case CommandType.StoredProcedure:
-                    sb.Append("EXECUTE ");
-                    sb.Append(command.CommandText);
-                    for (var i = 0; i < command.Parameters.Count; i++)
-                    {
-                        if (!(command.Parameters[i] is SqlParameter param))
-                            continue;
-                        sb.Append(param.ParameterName);
-                        if (param.Direction == ParameterDirection.Output || param.Direction == ParameterDirection.InputOutput)
-                            sb.Append(" OUTPUT");
-                        sb.Append(i == command.Parameters.Count - 1 ? ";" : ", ");
-                    }
+                    StringifyStoredProc(command, sb);
                     break;
                 case CommandType.Text:
                     sb.AppendLine(command.CommandText);
@@ -94,5 +60,48 @@ namespace CastIron.Sqlite
                     break;
             }
         }
+
+        private void StringifyParameter(object t, StringBuilder sb)
+        {
+            if (!(t is SqlParameter param))
+                return;
+            sb.Append("--DECLARE ");
+            sb.Append(param.ParameterName);
+            sb.Append(" ");
+            sb.Append(param.SqlDbType);
+            if (param.Size > 0)
+            {
+                sb.Append("(");
+                sb.Append(param.Size);
+                sb.Append(")");
+            }
+
+            if (param.Direction == ParameterDirection.Input || param.Direction == ParameterDirection.InputOutput)
+            {
+                sb.Append(" = ");
+                var value = param.SqlValue;
+                if (_quotedDbTypes.Contains(param.DbType))
+                    value = "'" + value.ToString().Replace("'", "''") + "'";
+                sb.Append(value);
+            }
+
+            sb.AppendLine(";");
+        }
+
+        private void StringifyStoredProc(IDbCommand command, StringBuilder sb)
+        {
+            sb.Append("EXECUTE ");
+            sb.Append(command.CommandText);
+            for (var i = 0; i < command.Parameters.Count; i++)
+            {
+                if (!(command.Parameters[i] is SqlParameter param))
+                    continue;
+                sb.Append(param.ParameterName);
+                if (param.Direction == ParameterDirection.Output || param.Direction == ParameterDirection.InputOutput)
+                    sb.Append(" OUTPUT");
+                sb.Append(i == command.Parameters.Count - 1 ? ";" : ", ");
+            }
+        }
+
     }
 }

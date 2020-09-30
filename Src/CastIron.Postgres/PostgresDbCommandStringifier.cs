@@ -45,46 +45,12 @@ namespace CastIron.Postgres
                 return;
 
             foreach (var t in command.Parameters)
-            {
-                if (!(t is NpgsqlParameter param))
-                    continue;
-                sb.Append("--DECLARE ");
-                sb.Append(param.ParameterName);
-                sb.Append(" ");
-                sb.Append(param.NpgsqlDbType);
-                if (param.Size > 0)
-                {
-                    sb.Append("(");
-                    sb.Append(param.Size);
-                    sb.Append(")");
-                }
-
-                if (param.Direction == ParameterDirection.Input || param.Direction == ParameterDirection.InputOutput)
-                {
-                    sb.Append(" = ");
-                    var value = param.NpgsqlValue;
-                    if (_quotedDbTypes.Contains(param.DbType))
-                        value = "'" + value.ToString().Replace("'", "''") + "'";
-                    sb.Append(value);
-                }
-
-                sb.AppendLine(";");
-            }
+                StringifyParameter(t, sb);
 
             switch (command.CommandType)
             {
                 case CommandType.StoredProcedure:
-                    sb.Append("EXECUTE ");
-                    sb.Append(command.CommandText);
-                    for (var i = 0; i < command.Parameters.Count; i++)
-                    {
-                        if (!(command.Parameters[i] is NpgsqlParameter param))
-                            continue;
-                        sb.Append(param.ParameterName);
-                        if (param.Direction == ParameterDirection.Output || param.Direction == ParameterDirection.InputOutput)
-                            sb.Append(" OUTPUT");
-                        sb.Append(i == command.Parameters.Count - 1 ? ";" : ", ");
-                    }
+                    StringifyStoredProcCall(command, sb);
                     break;
                 case CommandType.Text:
                     sb.AppendLine(command.CommandText);
@@ -92,6 +58,48 @@ namespace CastIron.Postgres
                 case CommandType.TableDirect:
                     // This case is so rare we probably don't need anything here
                     break;
+            }
+        }
+
+        private void StringifyParameter(object t, StringBuilder sb)
+        {
+            if (!(t is NpgsqlParameter param))
+                return;
+            sb.Append("--DECLARE ");
+            sb.Append(param.ParameterName);
+            sb.Append(" ");
+            sb.Append(param.NpgsqlDbType);
+            if (param.Size > 0)
+            {
+                sb.Append("(");
+                sb.Append(param.Size);
+                sb.Append(")");
+            }
+
+            if (param.Direction == ParameterDirection.Input || param.Direction == ParameterDirection.InputOutput)
+            {
+                sb.Append(" = ");
+                var value = param.NpgsqlValue;
+                if (_quotedDbTypes.Contains(param.DbType))
+                    value = "'" + value.ToString().Replace("'", "''") + "'";
+                sb.Append(value);
+            }
+
+            sb.AppendLine(";");
+        }
+
+        private void StringifyStoredProcCall(IDbCommand command, StringBuilder sb)
+        {
+            sb.Append("EXECUTE ");
+            sb.Append(command.CommandText);
+            for (var i = 0; i < command.Parameters.Count; i++)
+            {
+                if (!(command.Parameters[i] is NpgsqlParameter param))
+                    continue;
+                sb.Append(param.ParameterName);
+                if (param.Direction == ParameterDirection.Output || param.Direction == ParameterDirection.InputOutput)
+                    sb.Append(" OUTPUT");
+                sb.Append(i == command.Parameters.Count - 1 ? ";" : ", ");
             }
         }
     }
