@@ -104,7 +104,6 @@ namespace CastIron.Sql.Mapping
 
         private static readonly HashSet<Type> _primitiveTypes = new HashSet<Type>
         {
-            // TODO: Are there any other types we can map from the DB?
             typeof(bool),
             typeof(bool?),
             typeof(byte),

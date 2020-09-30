@@ -8,7 +8,6 @@ using CastIron.Sql.Execution;
 namespace CastIron.SqlServer
 {
     // TODO: Unit testing and more use-cases
-    // TODO: Is this general-purpose or do we need to have one per provider?
     /// <summary>
     /// Serialize an IDbCommand to a string.
     /// This class is intended for internal debugging and auditing purposes. The generated SQL
@@ -99,7 +98,7 @@ namespace CastIron.SqlServer
                     sb.AppendLine(command.CommandText);
                     break;
                 case CommandType.TableDirect:
-                    // TODO: This
+                    // This won't happen often so we won't worry about it for now.
                     break;
             }
         }

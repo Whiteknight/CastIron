@@ -8,7 +8,6 @@ namespace CastIron.Sql.Mapping
     /// how objects are instantiated and mapped
     /// </summary>
     public class CompilationSettings
-
     {
         private readonly Dictionary<Type, ITypeSettings> _types;
         private readonly ITypeSettings _default;

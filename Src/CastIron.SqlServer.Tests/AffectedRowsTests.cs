@@ -23,8 +23,6 @@ namespace CastIron.SqlServer.Tests
             }
         }
 
-        // TODO: Postgres uses TEMPORARY TABLE instead of table variables like this
-
         [Test]
         public void Query_RowsAffected()
         {

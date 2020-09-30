@@ -90,7 +90,7 @@ namespace CastIron.Sqlite
                     sb.AppendLine(command.CommandText);
                     break;
                 case CommandType.TableDirect:
-                    // TODO: This
+                    // This won't happen often so we aren't worrying about it
                     break;
             }
         }

@@ -156,7 +156,6 @@ SELECT
             }
         }
 
-        // TODO SQLite doesn't use the same syntax for temp tables.
         [Test]
         public void TfIdf_Test()
         {

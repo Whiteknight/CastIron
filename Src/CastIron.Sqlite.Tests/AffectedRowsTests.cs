@@ -6,7 +6,7 @@ namespace CastIron.Sqlite.Tests
 {
     [TestFixture]
     public class AffectedRowsTests
-    { 
+    {
 
         public class Query : ISqlQuerySimple<int>
         {
@@ -22,8 +22,6 @@ namespace CastIron.Sqlite.Tests
                 return result.RowsAffected;
             }
         }
-
-        // TODO: Postgres uses TEMPORARY TABLE instead of table variables like this
 
         [Test]
         public void Query_RowsAffected()

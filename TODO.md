@@ -5,7 +5,3 @@
 * Reorg the test suite for more readability/discoverability of features
 * Make sure tests have good coverage of different mapping combinations
 * More simple object mapping tests
-
-## Mapping TODO Items
-
-* Refactor MapCompilerBuilder to be cleaner and more usable

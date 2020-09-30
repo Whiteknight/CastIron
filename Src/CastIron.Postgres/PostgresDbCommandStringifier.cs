@@ -90,7 +90,7 @@ namespace CastIron.Postgres
                     sb.AppendLine(command.CommandText);
                     break;
                 case CommandType.TableDirect:
-                    // TODO: This
+                    // This case is so rare we probably don't need anything here
                     break;
             }
         }

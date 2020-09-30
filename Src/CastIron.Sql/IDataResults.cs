@@ -128,7 +128,8 @@ namespace CastIron.Sql
 
         /// <summary>
         /// Iterate through all remaining rows in the next N result sets, mapping all rows to objects
-        /// of the given type.
+        /// of the given type. Useful only if the next N result sets all represent the same type 
+        /// of object
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="results"></param>
@@ -137,7 +138,6 @@ namespace CastIron.Sql
         /// <returns></returns>
         public static IEnumerable<T> AsEnumerableNextSeveral<T>(this IDataResultsBase results, int numResultSets, Action<IMapCompilerSettings> setup = null)
         {
-            // TODO: Create an IEnumerable<T>/IEnumerator<T> object to hold this logic, so we can implement async variants
             // TODO: We need to mark the IDataResultsBase object as "locked" so we can't start another read operation or move-next operation while this is running
             Argument.NotNull(results, nameof(results));
             if (numResultSets <= 0)

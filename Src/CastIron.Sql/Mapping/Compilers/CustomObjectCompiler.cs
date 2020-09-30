@@ -208,7 +208,7 @@ namespace CastIron.Sql.Mapping.Compilers
 
                 expressions.AddRange(expression.Expressions);
                 variables.AddRange(expression.Variables);
-                // TODO: If the property value is null but there is no setter, we may still populate an object 
+                // If the property value is null but there is no setter, we may still populate an object 
                 // but just ignore it. That seems rare but still sub-optimal.
                 if (!property.IsSettable())
                     continue;

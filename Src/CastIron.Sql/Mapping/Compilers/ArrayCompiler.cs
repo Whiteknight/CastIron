@@ -86,7 +86,7 @@ namespace CastIron.Sql.Mapping.Compilers
             var expressions = new List<Expression>();
             var variables = new List<ParameterExpression>();
 
-            // TODO: We don't loop here because we need to know how many items we have in the array and we
+            // We don't loop here because we need to know how many items we have in the array and we
             // can't calculate that because the custom object might consume any number of columns. We don't 
             // know until after each iteration has returned how many columns are left. We could map to
             // a List and then .ToArray() to get the array, but that seems wasteful.

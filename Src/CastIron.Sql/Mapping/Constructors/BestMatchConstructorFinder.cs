@@ -1,8 +1,8 @@
-﻿using CastIron.Sql.Utility;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using CastIron.Sql.Utility;
 
 namespace CastIron.Sql.Mapping.Constructors
 {
@@ -74,7 +74,7 @@ namespace CastIron.Sql.Mapping.Constructors
                     }
                     return -1;
 
-                    // TODO: If the constructor param has the same name as a property, and that property has [Column("")] should we use that?
+                    // If the constructor param has the same name as a property, and that property has [Column("")] should we use that?
 
                     // TODO: check that the types are compatible. Add a big delta where the match is easy, smaller delta where the match requires conversion
                     // TODO: Return -1 where the types cannot be converted

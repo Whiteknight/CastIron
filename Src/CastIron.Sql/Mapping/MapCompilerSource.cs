@@ -44,9 +44,7 @@ namespace CastIron.Sql.Mapping
             if (_scalarMapCompilers.Count == 0)
                 throw MapCompilerException.NoScalarMapCompilers();
 
-            // TODO: Cache this instance until we modify the list of scalar map compilers
-            IMapCompiler compiler = new MapCompiler(_scalarMapCompilers);
-            return compiler;
+            return new MapCompiler(_scalarMapCompilers);
         }
 
         public void Add(IScalarMapCompiler compiler)

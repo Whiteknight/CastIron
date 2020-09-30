@@ -8,7 +8,6 @@ using CastIron.Sql.Utility;
 
 namespace CastIron.Sql
 {
-    // TODO: Do we need an ISqlBatch abstraction or is this general-purpose enough?
     /// <summary>
     /// Batch of statements to all be executed together on a single open connection.
     /// </summary>

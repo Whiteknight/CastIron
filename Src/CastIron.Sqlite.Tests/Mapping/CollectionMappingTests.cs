@@ -31,7 +31,6 @@ namespace CastIron.Sqlite.Tests.Mapping
             result.Length.Should().Be(3);
             result[0].Should().Be("5");
             result[1].Should().Be("TEST");
-            // TODO: Can we (and should we) try to force BIT->Boolean?
             result[2].Should().Be("1");
         }
 
