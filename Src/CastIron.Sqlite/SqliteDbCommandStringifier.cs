@@ -1,9 +1,9 @@
 ﻿using System.Collections.Generic;
 using System.Data;
-using System.Data.SqlClient;
 using System.Text;
 using CastIron.Sql;
 using CastIron.Sql.Execution;
+using Microsoft.Data.Sqlite;
 
 namespace CastIron.Sqlite
 {
@@ -63,12 +63,12 @@ namespace CastIron.Sqlite
 
         private void StringifyParameter(object t, StringBuilder sb)
         {
-            if (!(t is SqlParameter param))
+            if (!(t is SqliteParameter param))
                 return;
             sb.Append("--DECLARE ");
             sb.Append(param.ParameterName);
             sb.Append(" ");
-            sb.Append(param.SqlDbType);
+            sb.Append(param.DbType);
             if (param.Size > 0)
             {
                 sb.Append("(");
@@ -79,7 +79,7 @@ namespace CastIron.Sqlite
             if (param.Direction == ParameterDirection.Input || param.Direction == ParameterDirection.InputOutput)
             {
                 sb.Append(" = ");
-                var value = param.SqlValue;
+                var value = param.Value;
                 if (_quotedDbTypes.Contains(param.DbType))
                     value = "'" + value.ToString().Replace("'", "''") + "'";
                 sb.Append(value);
@@ -94,7 +94,7 @@ namespace CastIron.Sqlite
             sb.Append(command.CommandText);
             for (var i = 0; i < command.Parameters.Count; i++)
             {
-                if (!(command.Parameters[i] is SqlParameter param))
+                if (!(command.Parameters[i] is SqliteParameter param))
                     continue;
                 sb.Append(param.ParameterName);
                 if (param.Direction == ParameterDirection.Output || param.Direction == ParameterDirection.InputOutput)
