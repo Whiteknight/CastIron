@@ -41,7 +41,7 @@ namespace CastIron.Sql.Mapping
         private static void ThrowMappingAlreadyConfiguredException()
         {
             throw new InvalidOperationException(
-                $"A Mapping has already been configured and a second mapping may not be configured for the same type {typeof(T).Name}. " +
+                $"A Mapping has already been configured and a second mapping may not be configured for the same type {typeof(TSpecific).Name}. " +
                 $"Method {nameof(SetMap)} may not be called in conjunction with any of {nameof(SetConstructor)}, {nameof(SetConstructorFinder)} and {nameof(SetFactoryMethod)}). " +
                 $"Methods {nameof(SetConstructor)}, {nameof(SetConstructorFinder)} and {nameof(SetFactoryMethod)} are exclusive and at most one of these may be called once."
             );
@@ -60,7 +60,7 @@ namespace CastIron.Sql.Mapping
         {
             if (Mapper != null || Constructor != null || Factory != null)
                 ThrowMappingAlreadyConfiguredException();
-            var type = Type ?? typeof(T);
+            var type = Type ?? typeof(TSpecific);
             if (!type.IsAssignableFrom(constructor.DeclaringType))
             {
                 throw new InvalidOperationException(

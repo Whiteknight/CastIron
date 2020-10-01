@@ -76,8 +76,9 @@ namespace CastIron.Sql.Mapping.Constructors
 
                     // If the constructor param has the same name as a property, and that property has [Column("")] should we use that?
 
-                    // TODO: check that the types are compatible. Add a big delta where the match is easy, smaller delta where the match requires conversion
-                    // TODO: Return -1 where the types cannot be converted
+                    // TODO: check that the types are compatible. Add a big delta where the match 
+                    // is easy, smaller delta where the match requires conversion. Return -1 where
+                    // the types cannot be converted
                 }
 
                 return score;
