@@ -1,4 +1,5 @@
-﻿using System;
+﻿#if NETSTANDARD
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -10,19 +11,20 @@ namespace CastIron.Sql.Mapping.Compilers
     /// Compiler to map columns to a tuple. Because tuple item names are not kept at runtime, the columns
     /// of the result set are mapped to the items of the tuple in order. Name matching is not used.
     /// </summary>
-    public class TupleCompiler : ICompiler
+    public class ValueTupleCompiler : ICompiler
     {
         private readonly ICompiler _values;
 
-        public TupleCompiler(ICompiler values)
+        public ValueTupleCompiler(ICompiler values)
         {
             _values = values;
         }
 
+        // value = Tuple.Create(converted columns)
         public ConstructedValueExpression Compile(MapTypeContext context)
         {
             var typeParams = GetTupleTypeParameters(context);
-            var factoryMethod = GetTupleFactoryMethod(context, typeParams);
+            var factoryMethod = GetValueTupleFactoryMethod(context, typeParams);
             return MapTupleParameters(context, factoryMethod, typeParams);
         }
 
@@ -67,13 +69,14 @@ namespace CastIron.Sql.Mapping.Compilers
             return typeParams;
         }
 
-        private static MethodInfo GetTupleFactoryMethod(MapTypeContext context, Type[] typeParams)
+        private static MethodInfo GetValueTupleFactoryMethod(MapTypeContext context, Type[] typeParams)
         {
-            var factoryMethod = typeof(Tuple).GetMethods(BindingFlags.Public | BindingFlags.Static)
-                .Where(m => m.Name == nameof(Tuple.Create) && m.GetParameters().Length == typeParams.Length)
+            var factoryMethod = typeof(ValueTuple).GetMethods(BindingFlags.Public | BindingFlags.Static)
+                .Where(m => m.Name == nameof(ValueTuple.Create) && m.GetParameters().Length == typeParams.Length)
                 .Select(m => m.MakeGenericMethod(typeParams))
                 .FirstOrDefault();
             return factoryMethod ?? throw MapCompilerException.InvalidTupleMap(typeParams.Length, context.TargetType);
         }
     }
 }
+#endif

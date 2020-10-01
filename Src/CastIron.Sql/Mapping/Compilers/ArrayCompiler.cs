@@ -97,7 +97,7 @@ namespace CastIron.Sql.Mapping.Compilers
             var result = _customObjects.Compile(elementState);
             expressions.AddRange(result.Expressions);
 
-            // var array = new T[1];
+            // Create a new array with a length of 1
             expressions.Add(
                 Expression.Assign(
                     arrayVar,
@@ -108,7 +108,7 @@ namespace CastIron.Sql.Mapping.Compilers
                 )
             );
 
-            // array[0] = obj;
+            // Set the value to the first slot in the array
             expressions.Add(
                 Expression.Assign(
                     Expression.ArrayAccess(

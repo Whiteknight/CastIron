@@ -39,6 +39,29 @@ namespace CastIron.Sql.Mapping
             return _tupleTypes.Contains(genericTypeDef);
         }
 
+#if NETSTANDARD
+
+        private static readonly HashSet<Type> _valueTupleTypes = new HashSet<Type>
+        {
+            typeof(ValueTuple<>),
+            typeof(ValueTuple<,>),
+            typeof(ValueTuple<,,>),
+            typeof(ValueTuple<,,,>),
+            typeof(ValueTuple<,,,,>),
+            typeof(ValueTuple<,,,,,>),
+            typeof(ValueTuple<,,,,,,>)
+        };
+
+        public static bool IsValueTupleType(this Type parentType)
+        {
+            if (!parentType.IsGenericType || !parentType.IsConstructedGenericType)
+                return false;
+            var genericTypeDef = parentType.GetGenericTypeDefinition();
+            return _valueTupleTypes.Contains(genericTypeDef);
+        }
+
+#endif
+
         // It is Dictionary<string,X> or is concrete and inherits from IDictionary<string,X>
         public static bool IsConcreteDictionaryType(this Type t)
         {

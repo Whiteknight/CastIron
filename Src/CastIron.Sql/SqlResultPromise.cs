@@ -45,20 +45,11 @@ namespace CastIron.Sql
             _waitHandle?.Dispose();
         }
 
-        public bool WaitForComplete()
-        {
-            return _isComplete || _waitHandle.WaitOne();
-        }
+        public bool WaitForComplete() => _isComplete || _waitHandle.WaitOne();
 
-        public bool WaitForComplete(TimeSpan wait)
-        {
-            return _isComplete || _waitHandle.WaitOne(wait);
-        }
+        public bool WaitForComplete(TimeSpan wait) => _isComplete || _waitHandle.WaitOne(wait);
 
-        public bool WaitForComplete(int waitMs)
-        {
-            return _isComplete || _waitHandle.WaitOne(waitMs);
-        }
+        public bool WaitForComplete(int waitMs) => _isComplete || _waitHandle.WaitOne(waitMs);
     }
 
     public sealed class SqlResultPromise<T> : ISqlResultPromise<T>
@@ -112,19 +103,10 @@ namespace CastIron.Sql
             _waitHandle?.Dispose();
         }
 
-        public bool WaitForComplete()
-        {
-            return _isComplete || _waitHandle.WaitOne();
-        }
+        public bool WaitForComplete() => _isComplete || _waitHandle.WaitOne();
 
-        public bool WaitForComplete(TimeSpan wait)
-        {
-            return _isComplete || _waitHandle.WaitOne(wait);
-        }
+        public bool WaitForComplete(TimeSpan wait) => _isComplete || _waitHandle.WaitOne(wait);
 
-        public bool WaitForComplete(int waitMs)
-        {
-            return _isComplete || _waitHandle.WaitOne(waitMs);
-        }
+        public bool WaitForComplete(int waitMs) => _isComplete || _waitHandle.WaitOne(waitMs);
     }
 }

@@ -51,8 +51,14 @@ namespace CastIron.Sql.Mapping
                 maybeScalars,
                 maybeCustomObjects
             );
-            ICompiler tuples = new TupleCompiler(tupleContents);
-            ICompiler maybeTuples = new IfCompiler(s => s.TargetType.IsTupleType(), tuples);
+            ICompiler maybeTuples = new IfCompiler(s => s.TargetType.IsTupleType(),
+                new TupleCompiler(tupleContents)
+            );
+#if NETSTANDARD
+            ICompiler maybeValueTuples = new IfCompiler(s => s.TargetType.IsValueTupleType(),
+                new ValueTupleCompiler(tupleContents)
+            );
+#endif
 
             // Dictionaries consume contents greedily and fill in as much as possible by column name
             ICompiler dictionaryContents = allTypes;
@@ -68,6 +74,9 @@ namespace CastIron.Sql.Mapping
             // arrays and collections can contain scalars which don't consume greedily
             ICompiler nonScalarCollectionContents = new FirstCompiler(
                 maybeTuples,
+#if NETSTANDARD
+                maybeValueTuples,
+#endif
                 maybeConcreteDictionaries,
                 maybeAbstractDictionaries,
                 maybeCustomObjects
@@ -93,6 +102,9 @@ namespace CastIron.Sql.Mapping
                 new IfCompiler(s => s.TargetType.IsAbstractCollectionType(), abstractCollections),
                 new IfCompiler(s => s.TargetType.IsConcreteCollectionType(), concreteCollections),
                 maybeTuples,
+#if NETSTANDARD
+                maybeValueTuples,
+#endif
                 maybeCustomObjects
             );
             return _allTypes;
