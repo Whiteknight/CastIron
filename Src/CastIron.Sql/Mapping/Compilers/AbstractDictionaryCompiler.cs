@@ -65,15 +65,13 @@ namespace CastIron.Sql.Mapping.Compilers
             return dictType;
         }
 
-        // var dict = new DictType();
-        // OR
-        // var dict = getExisting() == null ? new DictType() : getExisting() as DictType
         private static ConstructedValueExpression GetMaybeInstantiateDictionaryExpression(MapTypeContext context, ConstructorInfo constructor)
         {
-            var newInstance = context.CreateVariable(context.TargetType, "dict");
+            var newInstance = context.CreateVariable(context.TargetType, "dictionary");
             if (context.GetExisting == null)
             {
-                // var newInstance = new TargetType()
+                // If we don't have a way to get an existing dictionary, just create new with the
+                // default parameterless constructor
                 var getNewExpr = Expression.Assign(
                     newInstance,
                     Expression.New(constructor)
@@ -81,7 +79,8 @@ namespace CastIron.Sql.Mapping.Compilers
                 return new ConstructedValueExpression(new[] { getNewExpr }, newInstance, new[] { newInstance });
             }
 
-            // var newInstance = getExisting() == null ? new TargetType() : getExisting()
+            // Try to get an existing value. If we have it, return that directly. Otherwise create
+            // a new one with the default parameterless constructor
             var tryGetExistingExpression = Expression.Assign(
                 newInstance,
                 Expression.Condition(
@@ -90,10 +89,7 @@ namespace CastIron.Sql.Mapping.Compilers
                         Expression.Constant(null)
                     ),
                     Expression.Convert(
-                        Expression.Assign(
-                            newInstance,
-                            Expression.New(constructor)
-                        ),
+                        Expression.New(constructor),
                         context.TargetType
                     ),
                     Expression.Convert(context.GetExisting, context.TargetType)

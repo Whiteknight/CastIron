@@ -60,12 +60,12 @@ namespace CastIron.Sql.Mapping.Compilers
             var newInstance = context.CreateVariable(context.TargetType, "list");
             if (context.GetExisting == null)
             {
-                // var newInstance = new TargetType()
+                // call constructor because we don't have an accessor: var newInstance = new TargetType()
                 var createNewExpr = Expression.Assign(newInstance, Expression.New(constructor));
-                return new ConstructedValueExpression(new [] { createNewExpr }, newInstance, new [] { newInstance });
+                return new ConstructedValueExpression(new[] { createNewExpr }, newInstance, new[] { newInstance });
             }
 
-            // var newInstance = getExisting() == null ? new TargetType() : getExisting()
+            // create new if we don't have an existing value to fill in
             var getExistingExpr = Expression.Assign(
                 newInstance,
                 Expression.Condition(
@@ -80,7 +80,7 @@ namespace CastIron.Sql.Mapping.Compilers
                     Expression.Convert(context.GetExisting, context.TargetType)
                 )
             );
-            return new ConstructedValueExpression(new[] { getExistingExpr}, newInstance, new[] { newInstance });
+            return new ConstructedValueExpression(new[] { getExistingExpr }, newInstance, new[] { newInstance });
         }
 
         private ConstructedValueExpression GetCollectionPopulateStatements(MapTypeContext context, Type elementType, Expression listVar, MethodInfo addMethod)
@@ -103,8 +103,8 @@ namespace CastIron.Sql.Mapping.Compilers
                     expressions.AddRange(result.Expressions);
                     expressions.Add(
                         Expression.Call(
-                            listVar, 
-                            addMethod, 
+                            listVar,
+                            addMethod,
                             result.FinalValue
                         )
                     );

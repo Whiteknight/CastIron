@@ -26,12 +26,12 @@ namespace CastIron.Sql.Mapping.Compilers
             var constructor = GetDictionaryConstructor(context.TargetType);
             var addMethod = GetIDictionaryAddMethod(context.TargetType, idictType);
 
-            var dictVar = GetMaybeInstantiateDictionaryExpression(context,  constructor);
+            var dictVar = GetMaybeInstantiateDictionaryExpression(context, constructor);
             var addStmts = AddDictionaryPopulateStatements(context, elementType, dictVar.FinalValue, addMethod);
 
             return new ConstructedValueExpression(
-                dictVar.Expressions.Concat(addStmts.Expressions), 
-                Expression.Convert(dictVar.FinalValue, context.TargetType), 
+                dictVar.Expressions.Concat(addStmts.Expressions),
+                Expression.Convert(dictVar.FinalValue, context.TargetType),
                 dictVar.Variables.Concat(addStmts.Variables));
         }
 
@@ -53,23 +53,21 @@ namespace CastIron.Sql.Mapping.Compilers
                 ?? throw MapCompilerException.InvalidDictionaryTargetType(context.TargetType);
         }
 
-        // var dict = new DictType();
-        // OR
-        // var dict = getExisting() == null ? new DictType() : getExisting() as DictType
         private static ConstructedValueExpression GetMaybeInstantiateDictionaryExpression(MapTypeContext context, ConstructorInfo constructor)
         {
-            var newInstance = context.CreateVariable(context.TargetType, "dict");
+            var newInstance = context.CreateVariable(context.TargetType, "dictionary");
             if (context.GetExisting == null)
             {
-                // var newInstance = new TargetType()
+                // There's no way to get an existing value, so call the parameterless constructor
                 var getNewInstanceExpr = Expression.Assign(
                     newInstance,
                     Expression.New(constructor)
                 );
-                return new ConstructedValueExpression(new [] { getNewInstanceExpr }, newInstance, new [] { newInstance });
+                return new ConstructedValueExpression(new[] { getNewInstanceExpr }, newInstance, new[] { newInstance });
             }
 
-            // var newInstance = getExisting() == null ? new TargetType() : getExisting()
+            // Try to get the existing value. If we have it return it. Otherwise call the default
+            // parameterless constructor
             var tryGetExistingInstanceExpr = Expression.Assign(
                 newInstance,
                 Expression.Condition(
@@ -78,10 +76,7 @@ namespace CastIron.Sql.Mapping.Compilers
                         Expression.Constant(null)
                     ),
                     Expression.Convert(
-                        Expression.Assign(
-                            newInstance,
-                            Expression.New(constructor)
-                        ),
+                        Expression.New(constructor),
                         context.TargetType
                     ),
                     Expression.Convert(context.GetExisting, context.TargetType)

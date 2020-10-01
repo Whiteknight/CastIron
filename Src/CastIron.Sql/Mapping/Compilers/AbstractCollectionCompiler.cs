@@ -7,7 +7,8 @@ using System.Reflection;
 namespace CastIron.Sql.Mapping.Compilers
 {
     /// <summary>
-    /// Attempt to instantiate a List to fill a slot of type IList, IReadOnlyList, ICollection, IEnumerable, etc
+    /// Attempt to instantiate a collection to fill a slot of type IList, IReadOnlyList, 
+    /// ICollection, IEnumerable, etc
     /// </summary>
     public class AbstractCollectionCompiler : ICompiler
     {
@@ -82,7 +83,8 @@ namespace CastIron.Sql.Mapping.Compilers
             var newInstance = context.CreateVariable(context.TargetType, "list");
             if (context.GetExisting == null)
             {
-                // var newInstance = new TargetType()
+                // if we don't have an expression to get an existing slot, just create new by
+                // calling the default parameterless constructor on the collection type
                 var createNewExpr = Expression.Assign(
                     newInstance,
                     Expression.New(constructor)
@@ -90,7 +92,8 @@ namespace CastIron.Sql.Mapping.Compilers
                 return new ConstructedValueExpression(new[] { createNewExpr }, newInstance, new[] { newInstance });
             }
 
-            // var newInstance = getExisting() == null ? new TargetType() : getExisting()
+            // Try to get the existing value. If it's null, just create new with the default
+            // parameterless constructor. If it's not null we can return it.
             var getExistingExpr = Expression.Assign(
                 newInstance,
                 Expression.Condition(
@@ -150,7 +153,9 @@ namespace CastIron.Sql.Mapping.Compilers
                 if (newNumberOfColumns == numberOfColumns)
                     break;
                 expressions.AddRange(result.Expressions);
-                expressions.Add(Expression.Call(listVar, addMethod, result.FinalValue));
+                expressions.Add(
+                    Expression.Call(listVar, addMethod, result.FinalValue)
+                );
                 variables.AddRange(result.Variables);
                 numberOfColumns = newNumberOfColumns;
             }

@@ -59,11 +59,9 @@ namespace CastIron.Sql.Mapping.Compilers
             foreach (var subclass in subclasses.Where(s => s.Predicate != null))
             {
                 var instantiateExpressions = AddInstantiationExpressionForSpecificType(context, subclass, instanceVar);
-                // if (predicate(reader))
-                // {
-                //      ...expressions...
-                //      goto endLabel;
-                // }
+                // Check the subclass predicate. If it matches, we enter into a block where we 
+                // create the subclass instance and then jump to the end label. Otherwise we
+                // fall through to the next subclass.
                 expressions.Add(
                     Expression.IfThen(
                         Expression.Call(
@@ -80,20 +78,18 @@ namespace CastIron.Sql.Mapping.Compilers
                     )
                 );
             }
-            // <subclassPredicates> (each of which jumps to the end label on success)
-            // <default instantiation>
-            // endLabel:
-            return new ConstructedValueExpression(
-                new[] {
-                    Expression.Block(
-                        defaultInstantiationExpression.Variables,
-                        expressions
-                            .Concat(defaultInstantiationExpression.Expressions)
-                            .Concat(new[] {
-                                endLabel
-                            })
-                    )
-                }, instanceVar, new[] { instanceVar });
+            // A block where we fall back to the default instantiation rules for the type, and then
+            // fall through to the endLabel. The block here allows us to scope variables a little
+            // more tightly
+            expressions.Add(
+                Expression.Block(
+                    defaultInstantiationExpression.Variables,
+                    defaultInstantiationExpression.Expressions
+                )
+            );
+            expressions.Add(endLabel);
+
+            return new ConstructedValueExpression(expressions, instanceVar, new[] { instanceVar });
         }
 
         private ConstructedValueExpression AddInstantiationExpressionForSpecificType(MapTypeContext context, ISpecificTypeSettings specificType, ParameterExpression instanceVar)
@@ -106,13 +102,11 @@ namespace CastIron.Sql.Mapping.Compilers
             return GetConstructorCallExpression(context, specificType, instanceVar);
         }
 
-        // var instance = cast(type, factory());
-        // if (instance == null) throw DataMappingException.UserFactoryReturnedNull(type);
         private static ConstructedValueExpression AddFactoryMethodCallExpression(MapTypeContext context, Func<object> factory, ParameterExpression instanceVar)
         {
             var expressions = new Expression[]
             {
-                // instance = cast(type, factory());
+                // Call the factory method and assign the result to the instance variable
                 Expression.Assign(
                     instanceVar,
                     Expression.Convert(
@@ -124,7 +118,9 @@ namespace CastIron.Sql.Mapping.Compilers
                     )
                 ),
 
-                // if (instance == null) throw DataMappingException.UserFactoryReturnedNull(type);
+                // check the instance variable value here to make sure it's not null. If it is null
+                // we will throw an exception which is (slightly) more helpful than the default
+                // NullReferenceException
                 Expression.IfThen(
                     Expression.Equal(
                         instanceVar,
@@ -141,7 +137,6 @@ namespace CastIron.Sql.Mapping.Compilers
             return new ConstructedValueExpression(expressions, instanceVar, null);
         }
 
-        // var instance = new MyType(converted args)
         private ConstructedValueExpression GetConstructorCallExpression(MapTypeContext context, ISpecificTypeSettings specificTypeSettings, ParameterExpression instanceVar)
         {
             var expressions = new List<Expression>();
@@ -157,6 +152,11 @@ namespace CastIron.Sql.Mapping.Compilers
                 var parameter = parameters[i];
                 var name = parameter.Name.ToLowerInvariant();
                 var substate = context.GetSubstateForProperty(name, parameter, parameter.ParameterType);
+
+                // Compile an expression to get a value for this argument. If we don't have, it,
+                // get a default expression for this type. We should have it in theory, because the
+                // constructor finder shouldn't have given us a constructor which contains 
+                // parameters we don't have values for.
                 var expr = _values.Compile(substate);
                 if (expr.FinalValue == null || expr.IsNothing)
                 {
@@ -168,7 +168,7 @@ namespace CastIron.Sql.Mapping.Compilers
                 variables.AddRange(expr.Variables);
             }
 
-            // instance = new TargetType(...args...)
+            // Call the constructor with the given args list
             expressions.Add(
                 Expression.Assign(instanceVar,
                     Expression.New(constructor, args)
@@ -177,12 +177,12 @@ namespace CastIron.Sql.Mapping.Compilers
             return new ConstructedValueExpression(expressions, instanceVar, variables);
         }
 
-        // property = convert(column)
         private ConstructedValueExpression AddPropertyAssignmentExpressions(MapTypeContext context, Expression instance)
         {
             var expressions = new List<Expression>();
             var variables = new List<ParameterExpression>();
 
+            // Get the list of public, writeable properties
             var properties = context.TargetType.GetProperties(BindingFlags.Public | BindingFlags.Instance)
                 .Where(p => p.GetMethod != null)
                 .Where(p => p.CanRead)
@@ -194,11 +194,16 @@ namespace CastIron.Sql.Mapping.Compilers
                 // Primitive types cannot be updated in place, they must have a public setter
                 if (property.PropertyType.IsSupportedPrimitiveType())
                 {
+                    if (!property.IsSettable())
+                        continue;
                     MapSupportedPrimitiveType(context, instance, property, name, expressions, variables);
                     continue;
                 }
 
-                // Non-primitive types may have an existing value which can be updated in-place
+                // Non-primitive types may have an existing value which can be updated in-place 
+                // by reference. We pass this getPropExpr expression to the substate as the 
+                // getExisting expression. If this exists, all the generated expressions will
+                // update the existing value in-place.
                 var getPropExpr = Expression.Property(instance, property);
 
                 var substate = context.GetSubstateForProperty(name, property, property.PropertyType, getPropExpr);
@@ -213,6 +218,7 @@ namespace CastIron.Sql.Mapping.Compilers
                 if (!property.IsSettable())
                     continue;
 
+                // Set the value, if it has a setter
                 expressions.Add(
                     Expression.Call(
                         instance,
@@ -230,8 +236,6 @@ namespace CastIron.Sql.Mapping.Compilers
 
         private void MapSupportedPrimitiveType(MapTypeContext context, Expression instance, PropertyInfo property, string name, List<Expression> expressions, List<ParameterExpression> variables)
         {
-            if (!property.IsSettable())
-                return;
             var propertyState = context.GetSubstateForProperty(name, property, property.PropertyType);
             var primitiveValueExpression = _scalars.Compile(propertyState);
             if (primitiveValueExpression.FinalValue == null)
