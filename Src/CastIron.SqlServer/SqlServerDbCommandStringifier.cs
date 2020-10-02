@@ -14,7 +14,6 @@ namespace CastIron.SqlServer
     /// may not be valid and complete, but should be sufficient for debugging and auditing
     /// purposes. 
     /// </summary>
-
     public class SqlServerDbCommandStringifier : IDbCommandStringifier
     {
         private static readonly SqlServerDbCommandStringifier _instance = new SqlServerDbCommandStringifier();

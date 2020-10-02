@@ -124,48 +124,5 @@ namespace CastIron.Postgres.Tests
             list.Count.Should().Be(1);
             list[0].Should().Be("TEST");
         }
-
-        public class CreateTempStoredProcCommand : ISqlCommandSimple
-        {
-            public string GetSql()
-            {
-                return @"
-                -- Create local temp procedure
-                CREATE FUNCTION pg_temp.TestProcedure()
-                LANGUAGE plpgsql   
-                AS $$
-                BEGIN 
-                    RETURN QUERY SELECT 'TEST';
-                END $$";
-            }
-        }
-
-        public class ExecuteStoredProcQuery : ISqlQuerySimple<string>
-        {
-            public string GetSql()
-            {
-                return "CALL pg_temp.TestProcedure();";
-            }
-
-            public string Read(IDataResults result)
-            {
-                return result.AsEnumerable<string>().Single();
-            }
-        }
-
-        [Test]
-        public void CreateAndQueryStoredProc_Test()
-        {
-            // TODO: this
-            Assert.Inconclusive("Cannot figure out how to get this working in postgres");
-            var runner = RunnerFactory.Create();
-            var batch = runner.CreateBatch();
-            batch.Add(new CreateTempStoredProcCommand());
-            var result = batch.Add(new ExecuteStoredProcQuery());
-            runner.Execute(batch);
-
-            result.IsComplete.Should().BeTrue();
-            result.GetValue().Should().Be("TEST");
-        }
     }
 }

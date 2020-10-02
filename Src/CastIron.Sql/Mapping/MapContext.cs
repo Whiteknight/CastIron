@@ -62,9 +62,10 @@ namespace CastIron.Sql.Mapping
             for (var i = 0; i < reader.FieldCount; i++)
             {
                 var name = (reader.GetName(i) ?? "");
-                // TODO: If two prefixes overlap, such as "A_" and "A_B_", it won't search for
-                // the longest one. Order is undefined.
-                var prefix = IgnorePrefixes.FirstOrDefault(p => name.StartsWith(p));
+                var prefix = IgnorePrefixes
+                    .Where(p => name.StartsWith(p))
+                    .OrderByDescending(s => s.Length)
+                    .FirstOrDefault();
                 if (prefix != null)
                     name = name.Substring(prefix.Length);
                 var typeName = reader.GetDataTypeName(i);

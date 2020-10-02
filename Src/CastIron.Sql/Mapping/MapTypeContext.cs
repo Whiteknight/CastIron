@@ -21,8 +21,6 @@ namespace CastIron.Sql.Mapping
 
         public MapTypeContext(MapContext context, Dictionary<string, List<ColumnInfo>> columnNames, Type targetType, string name, string currentPrefix, Expression getExisting)
         {
-            // TODO: We should probably also store columns in an ordered list, so we don't have to 
-            // serialize/order for some of the options below.
             _context = context;
             _columnNames = columnNames;
             TargetType = targetType;

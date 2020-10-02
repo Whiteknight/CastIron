@@ -39,8 +39,6 @@ namespace CastIron.Sql.Mapping.Compilers
             // In an array, object is always treated as a scalar type
             if (elementType.IsSupportedPrimitiveType() || elementType == typeof(object))
                 return CompileArrayOfScalar(context, constructor, columns, elementType);
-            // TODO: We should be able to support Tuples here, because we can divide number of available
-            // columns by Tuple arity to get number of elements
 
             // It's not a type we know how to support, so do nothing
             return ConstructedValueExpression.Nothing;
