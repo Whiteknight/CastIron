@@ -127,10 +127,8 @@ namespace CastIron.Sql.Mapping.Compilers
             var columns = context.GetFirstIndexForEachColumnName();
             foreach (var column in columns)
             {
-                // TODO: This Substring is going to be wrong if we are more than 2 levels deep
-                // Pass the column to the State to get the short versions of Original and Canonical names.
-                var keyName = column.OriginalName.Substring(context.Name.Length + context.Separator.Length);
-                var childName = column.CanonicalName.Substring(context.Name.Length + context.Separator.Length);
+                var keyName = column.OriginalName.Substring(context.CurrentPrefix.Length);
+                var childName = column.CanonicalName.Substring(context.CurrentPrefix.Length);
                 var columnSubstate = context.GetSubstateForColumn(column, elementType, childName);
                 var getScalarExpression = _valueCompiler.Compile(columnSubstate);
                 expressions.AddRange(getScalarExpression.Expressions);

@@ -75,7 +75,7 @@ namespace CastIron.Sql.Mapping
                 columnNames[info.CanonicalName].Add(info);
             }
 
-            return new MapTypeContext(this, columnNames, TopLevelTargetType, null, null);
+            return new MapTypeContext(this, columnNames, TopLevelTargetType, null, "", null);
         }
 
         private class VariableNumberSource

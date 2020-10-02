@@ -19,7 +19,7 @@ namespace CastIron.Sql.Mapping
         private readonly MapContext _context;
         private readonly Dictionary<string, List<ColumnInfo>> _columnNames;
 
-        public MapTypeContext(MapContext context, Dictionary<string, List<ColumnInfo>> columnNames, Type targetType, string name, Expression getExisting)
+        public MapTypeContext(MapContext context, Dictionary<string, List<ColumnInfo>> columnNames, Type targetType, string name, string currentPrefix, Expression getExisting)
         {
             // TODO: We should probably also store columns in an ordered list, so we don't have to 
             // serialize/order for some of the options below.
@@ -28,9 +28,11 @@ namespace CastIron.Sql.Mapping
             TargetType = targetType;
             Name = name;
             GetExisting = getExisting;
+            CurrentPrefix = currentPrefix ?? "";
         }
 
         public string Name { get; }
+        public string CurrentPrefix { get; }
         public Type TargetType { get; }
         public Expression GetExisting { get; }
 
@@ -70,18 +72,19 @@ namespace CastIron.Sql.Mapping
             {
                 { name?.ToLowerInvariant() ?? column.CanonicalName, new List<ColumnInfo> { column } }
             };
-            return new MapTypeContext(_context, columnNames, targetType, name, null);
+            return new MapTypeContext(_context, columnNames, targetType, name, CurrentPrefix, null);
         }
 
         public MapTypeContext GetSubstateForProperty(string name, ICustomAttributeProvider attrs, Type targetType, Expression getExisting = null)
         {
             var context = _context;
             var columns = GetColumnsForProperty(name, attrs);
-            return new MapTypeContext(context, columns, targetType, name, getExisting);
+            var prefix = string.IsNullOrEmpty(name) ? CurrentPrefix : CurrentPrefix + name + Separator;
+            return new MapTypeContext(context, columns, targetType, name, prefix, getExisting);
         }
 
         public MapTypeContext ChangeTargetType(Type targetType)
-            => new MapTypeContext(_context, _columnNames, targetType, Name, GetExisting);
+            => new MapTypeContext(_context, _columnNames, targetType, Name, CurrentPrefix, GetExisting);
 
         public ConstructorInfo GetConstructor(ISpecificTypeSettings settings)
         {
