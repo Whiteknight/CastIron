@@ -337,5 +337,19 @@ namespace CastIron.Sqlite.Tests.Mapping
             result[2]["ID"].Should().Be("3");
             result[2]["Name"].Should().Be("TEST3");
         }
+
+        public class InvalidCollectionType : IEnumerable<int>
+        {
+            public IEnumerator<int> GetEnumerator() => throw new NotImplementedException();
+            System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => throw new NotImplementedException();
+        }
+
+        [Test]
+        public void EnumerableMustHaveAddMethod_Test()
+        {
+            var target = RunnerFactory.Create();
+            Action act = () => target.Query<IEnumerable<int>>("SELECT 1 AS A, 2 AS B, 3 AS C", c => c.For<IEnumerable<int>>(d => d.UseClass<InvalidCollectionType>()));
+            act.Should().Throw<SqlQueryException>();
+        }
     }
 }
