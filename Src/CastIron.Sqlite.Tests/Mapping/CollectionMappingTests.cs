@@ -349,8 +349,20 @@ namespace CastIron.Sqlite.Tests.Mapping
         public void EnumerableMustHaveAddMethod_Test()
         {
             var target = RunnerFactory.Create();
-            Action act = () => target.Query<IEnumerable<int>>("SELECT 1 AS A, 2 AS B, 3 AS C", c => c.For<IEnumerable<int>>(d => d.UseClass<InvalidCollectionType>()));
-            act.Should().Throw<SqlQueryException>();
+            var result = target
+                .Query<IEnumerable<int>>("SELECT 1 AS A, 2 AS B, 3 AS C", c => c
+                    .For<IEnumerable<int>>(d => d
+                        .UseClass<InvalidCollectionType>()
+                    )
+                )
+                .First();
+            // If the configured collection type doesn't have a .Add() method, the compiler falls
+            // back to using List<T> to satisfy the interface
+            result.Should().BeOfType<List<int>>();
+            var asList = result.ToList();
+            asList[0].Should().Be(1);
+            asList[1].Should().Be(2);
+            asList[2].Should().Be(3);
         }
 
         [Test]

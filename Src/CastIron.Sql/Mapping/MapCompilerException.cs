@@ -39,7 +39,7 @@ namespace CastIron.Sql.Mapping
         {
             return new MapCompilerException(
                 $"The provided type {provided.GetFriendlyName()} is not a suitable collection type. " +
-                $"It must implement {nameof(IList)}.{nameof(IList<object>.Add)} to be used for mapping"
+                $"It must implement an Add(T) method to be used for mapping."
             );
         }
 

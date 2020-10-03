@@ -21,64 +21,131 @@ namespace CastIron.Sql.Mapping.Compilers
             _nonScalars = nonScalars;
         }
 
+        private struct ConcreteCollectionInfo
+        {
+            public ConcreteCollectionInfo(Type concreteType, Type elementType, MethodInfo addMethod)
+            {
+                ConcreteType = concreteType;
+                ElementType = elementType;
+                AddMethod = addMethod;
+            }
+
+            public Type ConcreteType { get; }
+            public Type ElementType { get; }
+            public MethodInfo AddMethod { get; }
+        }
+
         public ConstructedValueExpression Compile(MapTypeContext context)
         {
-            var elementType = GetElementType(context);
-            var listType = GetConcreteListType(context, context.TargetType, elementType);
+            // Get the concrete type to construct, the element type to populate, and the Add
+            // method to call for each value
+            var info = GetConcreteTypeInfo(context);
+            var collectionType = info.ConcreteType;
+            var elementType = info.ElementType;
+            var addMethod = info.AddMethod;
+            if (addMethod == null)
+                throw MapCompilerException.InvalidListType(collectionType);
 
-            var constructor = GetListConstructor(listType);
-            var addMethod = GetListAddMethod(context.TargetType, listType, elementType);
+            // Get the default parameterless constructor
+            var constructor = collectionType.GetConstructor(new Type[0]);
+            if (constructor == null)
+                throw MapCompilerException.MissingParameterlessConstructor(collectionType);
 
             var originalTargetType = context.TargetType;
-            context = context.ChangeTargetType(listType);
-            var listVar = GetMaybeInstantiateCollectionExpression(context, constructor);
-            var addStmts = GetCollectionPopulateStatements(context, elementType, listVar.FinalValue, addMethod);
+            context = context.ChangeTargetType(collectionType);
+
+            // Get a list of expressions to create the collection instance and populate it with
+            // values
+            var collectionVar = GetMaybeInstantiateCollectionExpression(context, constructor);
+            var addStmts = GetCollectionPopulateStatements(context, elementType, collectionVar.FinalValue, addMethod);
 
             return new ConstructedValueExpression(
-                listVar.Expressions.Concat(addStmts.Expressions),
-                Expression.Convert(listVar.FinalValue, originalTargetType),
-                listVar.Variables.Concat(addStmts.Variables)
+                collectionVar.Expressions.Concat(addStmts.Expressions),
+                Expression.Convert(collectionVar.FinalValue, originalTargetType),
+                collectionVar.Variables.Concat(addStmts.Variables)
             );
         }
 
-        private static Type GetElementType(MapTypeContext context)
+        private ConcreteCollectionInfo GetConcreteTypeInfo(MapTypeContext context)
         {
-            // It's one of IEnumerable, ICollection or IList, so we can assume the type is object
-            if (context.TargetType.GenericTypeArguments.Length == 0)
-                return typeof(object);
+            // By the time we get into this Compiler we have already limited the valid TargetType
+            // values which are possible. At this point we either have a non-generic collection 
+            // interface (IEnumerable, ICollection, IList) or we have a generic collection
+            // interface type (IEnumerable<T>, ICollection<T>, IReadOnlyCollection<T>, IList<T>
+            // or IReadOnlyList<T>). Separate out because we have different strategies for each
+            if (context.TargetType.IsGenericType && context.TargetType.GenericTypeArguments.Length > 0)
+                return GetConcreteTypeInfoForGenericInterfaceType(context);
 
-            // Otherwise it's one of IEnumerable<T>, ICollection<T>, IList<T>, IReadOnlyList<T> or
-            // ICollection<T>. Get the generic type argument
+            return GetConcreteTypeInfoForInterfaceType(context);
+        }
+
+        private ConcreteCollectionInfo GetConcreteTypeInfoForGenericInterfaceType(MapTypeContext context)
+        {
+            // We have one of the interfaces IEnumerable<T>, ICollection<T>, 
+            // IReadOnlyCollection<T>, IList<T> or IReadOnlyList<T>, get T from generic type
+            // definition
             var elementType = context.TargetType.GenericTypeArguments[0];
-            return elementType;
-        }
 
-        private static MethodInfo GetListAddMethod(Type targetType, Type listType, Type elementType)
-        {
-            return listType.GetMethod(nameof(ICollection<object>.Add)) ?? throw MapCompilerException.MissingMethod(targetType, nameof(ICollection<object>.Add), elementType);
-        }
+            // Start with List<T>
+            var defaultCollectionType = typeof(List<>).MakeGenericType(elementType);
+            var collectionType = defaultCollectionType;
 
-        private static ConstructorInfo GetListConstructor(Type listType)
-        {
-            return listType.GetConstructor(new Type[0]) ?? throw MapCompilerException.MissingParameterlessConstructor(listType);
-        }
+            // See if we have a custom type configured which we should use instead of List<T>
+            var typeSettings = context.Settings.GetTypeSettings(context.TargetType);
+            if (typeSettings.BaseType != null && typeSettings.BaseType != typeof(object))
+                collectionType = typeSettings.GetDefault().Type;
 
-        private static Type GetConcreteListType(MapTypeContext context, Type targetType, Type elementType)
-        {
-            // If we have a configured type, use that. Otherwise fall back to List<T>
-            var typeSettings = context.Settings.GetTypeSettings(targetType);
-            if (typeSettings.BaseType != typeof(object))
+            // The type should have an Add(T) method (even if the interface we're using is 
+            // IReadOnly...<T>). The Add method might not be exposed through the interface.
+            var addMethod = collectionType.GetMethods(BindingFlags.Public | BindingFlags.Instance)
+                .Where(m => m.Name == nameof(ICollection<object>.Add) && m.GetParameters().Length == 1 && m.GetParameters()[0].ParameterType == elementType)
+                .FirstOrDefault();
+            if (addMethod == null)
             {
-                var customType = typeSettings.GetDefault().Type;
-                if (!typeof(ICollection<>).MakeGenericType(elementType).IsAssignableFrom(customType))
-                    throw MapCompilerException.InvalidListType(customType);
-                return customType;
+                // The configured custom type doesn't have a suitable .Add method we can use
+                // instead of freaking out, we'll fall back to List<T> so they get something
+                // usable (we don't have a way to signal a warning to the user here, so they
+                // have to figure it out themselves.
+                var addTMethod = defaultCollectionType.GetMethod(nameof(List<object>.Add), BindingFlags.Public | BindingFlags.Instance);
+                return new ConcreteCollectionInfo(defaultCollectionType, elementType, addTMethod);
+            }
+            return new ConcreteCollectionInfo(collectionType, elementType, addMethod);
+        }
+
+        private ConcreteCollectionInfo GetConcreteTypeInfoForInterfaceType(MapTypeContext context)
+        {
+            // It's one of IEnumerable, ICollection or IList, so we will do some searching to find
+            // an appropriate elementType and Add() method variant
+            var typeSettings = context.Settings.GetTypeSettings(context.TargetType);
+            if (typeSettings.BaseType == typeof(object))
+            {
+                // We don't have any hints from the interface definition here and we don't have
+                // a configured type to use which may give us some info, so just fill in with
+                // List<object>.
+                var listOfObjectType = typeof(List<object>);
+
+                // List<T> only has one .Add method variant, so we don't need to double-check the
+                // parameter type
+                var addObjectMethod = listOfObjectType.GetMethod(nameof(List<object>.Add), BindingFlags.Public | BindingFlags.Instance);
+                var objectType = typeof(object);
+                return new ConcreteCollectionInfo(listOfObjectType, objectType, addObjectMethod);
             }
 
-            var listType = typeof(List<>).MakeGenericType(elementType);
-            if (!targetType.IsAssignableFrom(listType))
-                throw MapCompilerException.CannotConvertType(targetType, listType);
-            return listType;
+            var customType = typeSettings.GetDefault().Type;
+
+            // The custom type might have multiple .Add() method variants. We have to try to pick
+            // the "Best" one, which is hard to do. Basically we want Add(<anyType>) instead of 
+            // Add(object), if possible.
+            var addMethods = context.TargetType
+                .GetMethods(BindingFlags.Public | BindingFlags.Instance)
+                .Where(m => m.Name == nameof(ICollection<object>.Add) && m.GetParameters().Length == 1)
+                .Select(m => new { AddMethod = m, Parameter = m.GetParameters()[0] })
+                .OrderBy(x => x.Parameter.ParameterType == typeof(object) ? 0 : 1)
+                .ToList();
+            if (addMethods.Count == 0)
+                throw MapCompilerException.InvalidListType(context.TargetType);
+            var bestAddMethod = addMethods.FirstOrDefault();
+            return new ConcreteCollectionInfo(customType, bestAddMethod.Parameter.ParameterType, bestAddMethod.AddMethod);
         }
 
         private static ConstructedValueExpression GetMaybeInstantiateCollectionExpression(MapTypeContext context, ConstructorInfo constructor)
