@@ -35,11 +35,6 @@ namespace CastIron.Sql.Mapping
             return new MapCompilerException("No scalar map compilers configured, there's no way to copy data from the result set into an object");
         }
 
-        public static MapCompilerException TypeCannotBeNull()
-        {
-            return new MapCompilerException("The type specified may not be null.");
-        }
-
         public static MapCompilerException InvalidListType(Type provided)
         {
             return new MapCompilerException(
@@ -105,11 +100,6 @@ namespace CastIron.Sql.Mapping
         public static MapCompilerException MissingArrayConstructor(Type targetType)
         {
             return new MapCompilerException($"Array type {targetType.GetFriendlyName()} must have a standard array constructor");
-        }
-
-        public static MapCompilerException TypeUnmappable(Type targetType)
-        {
-            return new MapCompilerException($"Unable to compile a mapping for {targetType.GetFriendlyName()}. Consider using a simpler type.");
         }
 
         public static MapCompilerException MapAndCompilerSpecified()

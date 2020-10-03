@@ -43,9 +43,12 @@ namespace CastIron.Sql.Mapping.Compilers
 
         private static Type GetElementType(MapTypeContext context)
         {
-            if (context.TargetType.GenericTypeArguments.Length != 1)
-                throw MapCompilerException.InvalidInterfaceType(context.TargetType);
+            // It's one of IEnumerable, ICollection or IList, so we can assume the type is object
+            if (context.TargetType.GenericTypeArguments.Length == 0)
+                return typeof(object);
 
+            // Otherwise it's one of IEnumerable<T>, ICollection<T>, IList<T>, IReadOnlyList<T> or
+            // ICollection<T>. Get the generic type argument
             var elementType = context.TargetType.GenericTypeArguments[0];
             return elementType;
         }

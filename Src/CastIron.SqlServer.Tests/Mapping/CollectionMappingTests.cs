@@ -221,5 +221,56 @@ namespace CastIron.SqlServer.Tests.Mapping
             result[1].Should().Be("B");
             result[2].Should().Be("C");
         }
+
+        [Test]
+        public void TestQuery_MapToIList()
+        {
+            var target = RunnerFactory.Create();
+            var result = target.Query<IList>("SELECT 5 AS TestInt, 'TEST' AS TestString, CAST(1 AS BIT) AS TestBool;").First();
+            result.Count.Should().Be(3);
+            result[0].Should().Be(5);
+            result[1].Should().Be("TEST");
+            result[2].Should().Be(true);
+        }
+
+        [Test]
+        public void TestQuery_MapToICollection()
+        {
+            var target = RunnerFactory.Create();
+            var result = target.Query<ICollection>("SELECT 5 AS TestInt, 'TEST' AS TestString, CAST(1 AS BIT) AS TestBool;").First();
+
+            result.Count.Should().Be(3);
+            var list = result.Cast<object>().ToList();
+            list[0].Should().Be(5);
+            list[1].Should().Be("TEST");
+            list[2].Should().Be(true);
+        }
+
+        [Test]
+        public void TestQuery_MapToIEnumerable()
+        {
+            var target = RunnerFactory.Create();
+            var result = target.Query<IEnumerable>("SELECT 5 AS TestInt, 'TEST' AS TestString, CAST(1 AS BIT) AS TestBool;").First();
+
+            var list = result.Cast<object>().ToList();
+            list.Count.Should().Be(3);
+            list[0].Should().Be(5);
+            list[1].Should().Be("TEST");
+            list[2].Should().Be(true);
+        }
+
+        [Test]
+        public void TestQuery_MapToIEnumerableOfObject()
+        {
+            var target = RunnerFactory.Create();
+            var result = target.Query<IEnumerable<object>>("SELECT 5 AS TestInt, 'TEST' AS TestString, CAST(1 AS BIT) AS TestBool;").First();
+            result.Should().BeOfType<List<object>>();
+
+            var list = result.ToList();
+            list.Count.Should().Be(3);
+            list[0].Should().Be(5);
+            list[1].Should().Be("TEST");
+            list[2].Should().Be(true);
+        }
     }
 }

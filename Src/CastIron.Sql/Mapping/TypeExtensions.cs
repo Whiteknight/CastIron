@@ -81,7 +81,7 @@ namespace CastIron.Sql.Mapping
         // Is one of IDictionary<string,X> or IReadOnlyDictionary<string,X>
         public static bool IsDictionaryInterfaceType(this Type t)
         {
-            if (!t.IsGenericType && !t.IsInterface)
+            if (!t.IsGenericType || !t.IsInterface)
                 return false;
             var genericDef = t.GetGenericTypeDefinition();
             return (genericDef == typeof(IDictionary<,>) || genericDef == typeof(IReadOnlyDictionary<,>))
@@ -95,11 +95,33 @@ namespace CastIron.Sql.Mapping
                 && t.GetInterfaces()
                     .Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(ICollection<>));
 
+        private static readonly HashSet<Type> _nonGenericCollectionInterfaces = new HashSet<Type>
+        {
+            typeof(IEnumerable),
+            typeof(ICollection),
+            typeof(IList)
+        };
+
+        private static readonly HashSet<Type> _genericCollectionBaseTypes = new HashSet<Type>
+        {
+            typeof(IEnumerable<>),
+            typeof(ICollection<>),
+            typeof(IList<>),
+            typeof(IReadOnlyCollection<>),
+            typeof(IReadOnlyList<>)
+            // TODO: Would like to support ISet<T>, but that would probably require a new compiler
+        };
+
         public static bool IsAbstractCollectionType(this Type t)
-            =>
-                t.IsGenericType
-                && t.IsInterface
-                && (t.Namespace ?? string.Empty).StartsWith("System.Collections");
+        {
+            if (!t.IsInterface)
+                return false;
+            if (_nonGenericCollectionInterfaces.Contains(t))
+                return true;
+            if (!t.IsGenericType)
+                return false;
+            return _genericCollectionBaseTypes.Contains(t.GetGenericTypeDefinition());
+        }
 
         private static readonly HashSet<Type> _numericTypes = new HashSet<Type>
         {
@@ -163,9 +185,6 @@ namespace CastIron.Sql.Mapping
 
         public static bool IsMappableScalarType(this Type t)
             => _primitiveTypes.Contains(t) || t == typeof(object);
-
-        public static bool IsUntypedEnumerableType(this Type t)
-            => t == typeof(IEnumerable) || t == typeof(IList) || t == typeof(ICollection);
 
         public static bool IsMappableCustomObjectType(this Type t)
         {

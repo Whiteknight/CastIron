@@ -87,10 +87,7 @@ namespace CastIron.Sql.Mapping
             // We instantiate arrays for array types and collections without a specified element type
             // (IEnumerable, ICollection, IList)
             _arrays = new ArrayCompiler(customObjects, scalars);
-            ICompiler maybeArrays = new FirstCompiler(
-                new IfCompiler(s => s.TargetType.IsArrayType(), arrays),
-                new IfCompiler(s => s.TargetType.IsUntypedEnumerableType(), arrays)
-            );
+            ICompiler maybeArrays = new IfCompiler(s => s.TargetType.IsArrayType(), arrays);
 
             // All the possible mapping types, each of which behind a predicate
             _allTypes = new FirstCompiler(

@@ -24,9 +24,6 @@ namespace CastIron.Sql.Mapping.Compilers
 
         public ConstructedValueExpression Compile(MapTypeContext context)
         {
-            if (context.TargetType.IsUntypedEnumerableType())
-                context = context.ChangeTargetType(typeof(object[]));
-
             var elementType = context.TargetType.GetElementType() ?? throw MapCompilerException.CannotDetermineArrayElementType(context.TargetType);
 
             var constructor = context.TargetType.GetConstructor(new[] { typeof(int) }) ?? throw MapCompilerException.MissingArrayConstructor(context.TargetType);
