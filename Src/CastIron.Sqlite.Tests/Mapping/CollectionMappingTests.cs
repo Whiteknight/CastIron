@@ -11,7 +11,7 @@ namespace CastIron.Sqlite.Tests.Mapping
     [TestFixture]
     public class CollectionMappingTests
     {
-        public class TestQuery_StringArray : ISqlQuerySimple<string[]>
+        public class StringArrayQuery : ISqlQuerySimple<string[]>
         {
             public string GetSql()
             {
@@ -25,17 +25,17 @@ namespace CastIron.Sqlite.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery_MapToStringArray()
+        public void Map_StringArray()
         {
             var target = RunnerFactory.Create();
-            var result = target.Query(new TestQuery_StringArray());
+            var result = target.Query(new StringArrayQuery());
             result.Length.Should().Be(3);
             result[0].Should().Be("5");
             result[1].Should().Be("TEST");
             result[2].Should().Be("1");
         }
 
-        public class TestQuery_StringList<T> : ISqlQuerySimple<T>
+        public class StringListQuery<T> : ISqlQuerySimple<T>
         {
             public string GetSql()
             {
@@ -54,10 +54,10 @@ namespace CastIron.Sqlite.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery_MapToStringListProperty()
+        public void Map_StringListProperty()
         {
             var target = RunnerFactory.Create();
-            var result = target.Query(new TestQuery_StringList<TestObjectStringList>());
+            var result = target.Query(new StringListQuery<TestObjectStringList>());
             result.TestString.Count.Should().Be(3);
             result.TestString[0].Should().Be("5");
             result.TestString[1].Should().Be("TEST");
@@ -75,10 +75,10 @@ namespace CastIron.Sqlite.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery_MapToExistingStringListProperty()
+        public void Map_ExistingStringListProperty()
         {
             var target = RunnerFactory.Create();
-            var result = target.Query(new TestQuery_StringList<TestObjectExistingStringList>());
+            var result = target.Query(new StringListQuery<TestObjectExistingStringList>());
             result.TestString.Count.Should().Be(3);
             result.TestString[0].Should().Be("5");
             result.TestString[1].Should().Be("TEST");
@@ -96,10 +96,10 @@ namespace CastIron.Sqlite.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery_MapToStringListCtorParam()
+        public void Map_StringListCtorParam()
         {
             var target = RunnerFactory.Create();
-            var result = target.Query(new TestQuery_StringList<TestObjectStringListCtor>());
+            var result = target.Query(new StringListQuery<TestObjectStringListCtor>());
             result.TestString.Count.Should().Be(3);
             result.TestString[0].Should().Be("5");
             result.TestString[1].Should().Be("TEST");
@@ -112,10 +112,10 @@ namespace CastIron.Sqlite.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery_MapToStringArrayProperty()
+        public void Map_StringArrayProperty()
         {
             var target = RunnerFactory.Create();
-            var result = target.Query(new TestQuery_StringList<TestObjectStringArray>());
+            var result = target.Query(new StringListQuery<TestObjectStringArray>());
             result.TestString.Length.Should().Be(3);
             result.TestString[0].Should().Be("5");
             result.TestString[1].Should().Be("TEST");
@@ -133,10 +133,10 @@ namespace CastIron.Sqlite.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery_MapToStringArrayCtorParam()
+        public void Map_StringArrayCtorParam()
         {
             var target = RunnerFactory.Create();
-            var result = target.Query(new TestQuery_StringList<TestObjectStringArrayCtor>());
+            var result = target.Query(new StringListQuery<TestObjectStringArrayCtor>());
             result.TestString.Length.Should().Be(3);
             result.TestString[0].Should().Be("5");
             result.TestString[1].Should().Be("TEST");
@@ -149,10 +149,10 @@ namespace CastIron.Sqlite.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery_MapToStringIListProperty()
+        public void Map_StringIListProperty()
         {
             var target = RunnerFactory.Create();
-            var result = target.Query(new TestQuery_StringList<TestObjectStringIList>());
+            var result = target.Query(new StringListQuery<TestObjectStringIList>());
             result.TestString.Count.Should().Be(3);
             result.TestString[0].Should().Be("5");
             result.TestString[1].Should().Be("TEST");
@@ -170,10 +170,10 @@ namespace CastIron.Sqlite.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery_MapToExistingStringIListProperty()
+        public void Map_ExistingStringIListProperty()
         {
             var target = RunnerFactory.Create();
-            var result = target.Query(new TestQuery_StringList<TestObjectExistingStringIList>());
+            var result = target.Query(new StringListQuery<TestObjectExistingStringIList>());
             result.TestString.Count.Should().Be(3);
             result.TestString[0].Should().Be("5");
             result.TestString[1].Should().Be("TEST");
@@ -191,10 +191,10 @@ namespace CastIron.Sqlite.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery_MapToStringIListCtorParam()
+        public void Map_StringIListCtorParam()
         {
             var target = RunnerFactory.Create();
-            var result = target.Query(new TestQuery_StringList<TestObjectStringIListCtor>());
+            var result = target.Query(new StringListQuery<TestObjectStringIListCtor>());
             result.TestString.Count.Should().Be(3);
             result.TestString[0].Should().Be("5");
             result.TestString[1].Should().Be("TEST");
@@ -202,7 +202,7 @@ namespace CastIron.Sqlite.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery_MapToRawIntArray()
+        public void Map_RawIntArray()
         {
             var target = RunnerFactory.Create();
             var result = target.Query<List<int>>("SELECT 5, 6, '7'").First();
@@ -213,7 +213,7 @@ namespace CastIron.Sqlite.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery_MapStringToDateTimeList()
+        public void Map_MapStringToDateTimeList()
         {
             var target = RunnerFactory.Create();
             var result = target.Query<List<DateTime>>("SELECT '2018-12-11 17:01:02'").First();
@@ -228,7 +228,7 @@ namespace CastIron.Sqlite.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery_MultipleCustomObjectList()
+        public void Map_MultipleCustomObjectList()
         {
             var target = RunnerFactory.Create();
             var result = target.Query<List<TestObjectSimple>>("SELECT 1 AS ID, 'TEST1' AS Name, 2 AS ID, 'TEST2' AS Name, 3 AS ID, 'TEST3' AS Name").First();
@@ -242,7 +242,7 @@ namespace CastIron.Sqlite.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery_MultipleCustomObjectIList()
+        public void Map_MultipleCustomObjectIList()
         {
             var target = RunnerFactory.Create();
             var result = target.Query<IList<TestObjectSimple>>("SELECT 1 AS ID, 'TEST1' AS Name, 2 AS ID, 'TEST2' AS Name, 3 AS ID, 'TEST3' AS Name").First();
@@ -256,7 +256,7 @@ namespace CastIron.Sqlite.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery_MultipleTupleList()
+        public void Map_MultipleTupleList()
         {
             var target = RunnerFactory.Create();
             var result = target.Query<List<Tuple<int, string>>>("SELECT 1 AS ID, 'TEST1' AS Name, 2 AS ID, 'TEST2' AS Name, 3 AS ID, 'TEST3' AS Name").First();
@@ -270,7 +270,7 @@ namespace CastIron.Sqlite.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery_MultipleDictionaryList()
+        public void Map_MultipleDictionaryList()
         {
             var target = RunnerFactory.Create();
             var result = target.Query<List<Dictionary<string, string>>>("SELECT 1 AS ID, 'TEST1' AS Name, 2 AS ID, 'TEST2' AS Name, 3 AS ID, 'TEST3' AS Name").First();
@@ -284,7 +284,7 @@ namespace CastIron.Sqlite.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery_MultipleIDictionaryList()
+        public void Map_MultipleIDictionaryList()
         {
             var target = RunnerFactory.Create();
             var result = target.Query<List<IDictionary<string, string>>>("SELECT 1 AS ID, 'TEST1' AS Name, 2 AS ID, 'TEST2' AS Name, 3 AS ID, 'TEST3' AS Name").First();
@@ -298,7 +298,7 @@ namespace CastIron.Sqlite.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery_MultipleTupleIList()
+        public void Map_MultipleTupleIList()
         {
             var target = RunnerFactory.Create();
             var result = target.Query<IList<Tuple<int, string>>>("SELECT 1 AS ID, 'TEST1' AS Name, 2 AS ID, 'TEST2' AS Name, 3 AS ID, 'TEST3' AS Name").First();
@@ -312,7 +312,7 @@ namespace CastIron.Sqlite.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery_MultipleDictionaryIList()
+        public void Map_MultipleDictionaryIList()
         {
             var target = RunnerFactory.Create();
             var result = target.Query<IList<Dictionary<string, string>>>("SELECT 1 AS ID, 'TEST1' AS Name, 2 AS ID, 'TEST2' AS Name, 3 AS ID, 'TEST3' AS Name").First();
@@ -326,7 +326,7 @@ namespace CastIron.Sqlite.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery_MultipleIDictionaryIList()
+        public void Map_MultipleIDictionaryIList()
         {
             var target = RunnerFactory.Create();
             var result = target.Query<IList<IDictionary<string, string>>>("SELECT 1 AS ID, 'TEST1' AS Name, 2 AS ID, 'TEST2' AS Name, 3 AS ID, 'TEST3' AS Name").First();
@@ -366,7 +366,7 @@ namespace CastIron.Sqlite.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery_MapToIList()
+        public void Map_IList()
         {
             var target = RunnerFactory.Create();
             var result = target.Query<IList>("SELECT 5 AS TestInt, 'TEST' AS TestString, CAST(1 AS BIT) AS TestBool;").First();
@@ -378,7 +378,7 @@ namespace CastIron.Sqlite.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery_MapToICollection()
+        public void Map_ICollection()
         {
             var target = RunnerFactory.Create();
             var result = target.Query<ICollection>("SELECT 5 AS TestInt, 'TEST' AS TestString, CAST(1 AS BIT) AS TestBool;").First();
@@ -390,7 +390,7 @@ namespace CastIron.Sqlite.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery_MapToIEnumerable()
+        public void Map_IEnumerable()
         {
             var target = RunnerFactory.Create();
             var result = target.Query<IEnumerable>("SELECT 5 AS TestInt, 'TEST' AS TestString, CAST(1 AS BIT) AS TestBool;").First();
@@ -402,7 +402,7 @@ namespace CastIron.Sqlite.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery_MapToIEnumerableOfObject()
+        public void Map_IEnumerableOfObject()
         {
             var target = RunnerFactory.Create();
             var result = target.Query<IEnumerable<object>>("SELECT 5 AS TestInt, 'TEST' AS TestString, CAST(1 AS BIT) AS TestBool;").First();
@@ -413,6 +413,66 @@ namespace CastIron.Sqlite.Tests.Mapping
             list[0].Should().Be(5);
             list[1].Should().Be("TEST");
             list[2].Should().Be(true);
+        }
+
+        [Test]
+        public void Map_IEnumerableT()
+        {
+            var target = RunnerFactory.Create();
+            var result = target.Query<IEnumerable<int>>("SELECT 5 AS A, 6 AS B, 7 AS C;").First();
+            var resultAsList = result.ToList();
+            resultAsList.Count.Should().Be(3);
+            resultAsList[0].Should().Be(5);
+            resultAsList[1].Should().Be(6);
+            resultAsList[2].Should().Be(7);
+        }
+
+        [Test]
+        public void Map_ICollectionT()
+        {
+            var target = RunnerFactory.Create();
+            var result = target.Query<ICollection<int>>("SELECT 5 AS A, 6 AS B, 7 AS C;").First();
+            var resultAsList = result.ToList();
+            resultAsList.Count.Should().Be(3);
+            resultAsList[0].Should().Be(5);
+            resultAsList[1].Should().Be(6);
+            resultAsList[2].Should().Be(7);
+        }
+
+        [Test]
+        public void Map_IReadOnlyCollectionT()
+        {
+            var target = RunnerFactory.Create();
+            var result = target.Query<IReadOnlyCollection<int>>("SELECT 5 AS A, 6 AS B, 7 AS C;").First();
+            var resultAsList = result.ToList();
+            resultAsList.Count.Should().Be(3);
+            resultAsList[0].Should().Be(5);
+            resultAsList[1].Should().Be(6);
+            resultAsList[2].Should().Be(7);
+        }
+
+        [Test]
+        public void Map_IListT()
+        {
+            var target = RunnerFactory.Create();
+            var result = target.Query<IList<int>>("SELECT 5 AS A, 6 AS B, 7 AS C;").First();
+            var resultAsList = result.ToList();
+            resultAsList.Count.Should().Be(3);
+            resultAsList[0].Should().Be(5);
+            resultAsList[1].Should().Be(6);
+            resultAsList[2].Should().Be(7);
+        }
+
+        [Test]
+        public void Map_IReadOnlyListT()
+        {
+            var target = RunnerFactory.Create();
+            var result = target.Query<IReadOnlyList<int>>("SELECT 5 AS A, 6 AS B, 7 AS C;").First();
+            var resultAsList = result.ToList();
+            resultAsList.Count.Should().Be(3);
+            resultAsList[0].Should().Be(5);
+            resultAsList[1].Should().Be(6);
+            resultAsList[2].Should().Be(7);
         }
     }
 }
