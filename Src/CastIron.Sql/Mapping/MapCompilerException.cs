@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Serialization;
@@ -33,14 +32,6 @@ namespace CastIron.Sql.Mapping
         public static MapCompilerException NoScalarMapCompilers()
         {
             return new MapCompilerException("No scalar map compilers configured, there's no way to copy data from the result set into an object");
-        }
-
-        public static MapCompilerException InvalidTupleMap(int paramLength, Type targetType)
-        {
-            return new MapCompilerException(
-                $"Tuple type {targetType.GetFriendlyName()} is invalid mapping target. " +
-                $"Tuple types must have between 1-7 type parameters only (you specified {paramLength}). " +
-                $"The type must also provide a valid factory method with the given number of parameters in {typeof(Tuple)} class.");
         }
 
         public static MapCompilerException InvalidDictionaryTargetType(Type targetType)

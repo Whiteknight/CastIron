@@ -85,5 +85,13 @@ namespace CastIron.Sqlite.Tests.Mapping
             item2["A"].Should().Be("TEST1");
             item2["B"].Should().Be("TEST2");
         }
+
+        [Test]
+        public void Map_Tuple_TooManyParameters()
+        {
+            var target = RunnerFactory.Create();
+            var result = target.Query<Tuple<int, int, int, int, int, int, int, int>>("SELECT 1, 2, 3, 4, 5, 6, 7, 8").First();
+
+        }
     }
 }

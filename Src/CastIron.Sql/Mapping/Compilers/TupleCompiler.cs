@@ -21,7 +21,7 @@ namespace CastIron.Sql.Mapping.Compilers
 
         public ConstructedValueExpression Compile(MapTypeContext context)
         {
-            var typeParams = GetTupleTypeParameters(context);
+            var typeParams = context.TargetType.GenericTypeArguments;
             var factoryMethod = GetTupleFactoryMethod(context, typeParams);
             return MapTupleParameters(context, factoryMethod, typeParams);
         }
@@ -59,21 +59,13 @@ namespace CastIron.Sql.Mapping.Compilers
             return new ConstructedValueExpression(expressions, Expression.Call(null, factoryMethod, args), variables);
         }
 
-        private static Type[] GetTupleTypeParameters(MapTypeContext context)
-        {
-            var typeParams = context.TargetType.GenericTypeArguments;
-            if (typeParams.Length == 0 || typeParams.Length > 7)
-                throw MapCompilerException.InvalidTupleMap(typeParams.Length, context.TargetType);
-            return typeParams;
-        }
-
         private static MethodInfo GetTupleFactoryMethod(MapTypeContext context, Type[] typeParams)
         {
             var factoryMethod = typeof(Tuple).GetMethods(BindingFlags.Public | BindingFlags.Static)
                 .Where(m => m.Name == nameof(Tuple.Create) && m.GetParameters().Length == typeParams.Length)
                 .Select(m => m.MakeGenericMethod(typeParams))
-                .FirstOrDefault();
-            return factoryMethod ?? throw MapCompilerException.InvalidTupleMap(typeParams.Length, context.TargetType);
+                .First();
+            return factoryMethod;
         }
     }
 }
