@@ -90,7 +90,8 @@ namespace CastIron.Sqlite.Tests.Mapping
         public void Map_Tuple_TooManyParameters()
         {
             var target = RunnerFactory.Create();
-            var result = target.Query<Tuple<int, int, int, int, int, int, int, int>>("SELECT 1, 2, 3, 4, 5, 6, 7, 8").First();
+            Action act = () => target.Query<Tuple<int, int, int, int, int, int, int, int>>("SELECT 1, 2, 3, 4, 5, 6, 7, 8").First();
+            act.Should().Throw<SqlQueryException>();
 
         }
     }

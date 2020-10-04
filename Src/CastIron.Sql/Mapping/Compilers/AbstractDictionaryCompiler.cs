@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -12,6 +13,8 @@ namespace CastIron.Sql.Mapping.Compilers
     /// </summary>
     public class AbstractDictionaryCompiler : ICompiler
     {
+        private const string AddMethodName = nameof(IDictionary<string, object>.Add);
+
         private readonly ICompiler _valueCompiler;
 
         public AbstractDictionaryCompiler(ICompiler valueCompiler)
@@ -19,14 +22,40 @@ namespace CastIron.Sql.Mapping.Compilers
             _valueCompiler = valueCompiler;
         }
 
+        private struct ConcreteTypeInfo
+        {
+            public ConcreteTypeInfo(Type concreteType, ConstructorInfo constructor, MethodInfo addMethod)
+            {
+                ConcreteType = concreteType;
+                Constructor = constructor;
+                AddMethod = addMethod;
+            }
+
+            public Type ConcreteType { get; }
+            public ConstructorInfo Constructor { get; }
+            public MethodInfo AddMethod { get; }
+        }
+
         public ConstructedValueExpression Compile(MapTypeContext context)
         {
-            var keyType = typeof(string);
-            var elementType = context.TargetType.GetGenericArguments()[1];
-            var dictType = GetConcreteDictionaryType(context, elementType);
+            var genericArguments = context.TargetType.GetGenericArguments();
+            Debug.Assert(genericArguments.Length == 2);
 
-            var constructor = GetDictionaryConstructor(dictType);
-            var addMethod = GetDictionaryAddMethod(context, dictType, keyType, elementType);
+            var keyType = typeof(string);
+            Debug.Assert(genericArguments[0] == typeof(string));
+
+            var elementType = context.TargetType.GetGenericArguments()[1];
+            Debug.Assert(elementType != null);
+
+            var typeInfo = GetConcreteTypeInfo(context, keyType, elementType);
+            var dictType = typeInfo.ConcreteType;
+            Debug.Assert(dictType != null);
+
+            var constructor = typeInfo.Constructor;
+            Debug.Assert(constructor != null);
+
+            var addMethod = typeInfo.AddMethod;
+            Debug.Assert(addMethod != null);
 
             var concreteState = context.ChangeTargetType(dictType);
             var dictVar = GetMaybeInstantiateDictionaryExpression(concreteState, constructor);
@@ -35,35 +64,33 @@ namespace CastIron.Sql.Mapping.Compilers
             return new ConstructedValueExpression(
                 dictVar.Expressions.Concat(addStmts.Expressions),
                 Expression.Convert(dictVar.FinalValue, context.TargetType),
-                dictVar.Variables.Concat(addStmts.Variables));
+                dictVar.Variables.Concat(addStmts.Variables)
+            );
         }
 
-        private static MethodInfo GetDictionaryAddMethod(MapTypeContext context, Type dictType, Type keyType, Type elementType)
+        private ConcreteTypeInfo GetConcreteTypeInfo(MapTypeContext context, Type keyType, Type elementType)
         {
-            var addMethodParameterTypes = new[] { keyType, elementType };
-            var addMethodName = nameof(IDictionary<string, object>.Add);
-            return dictType.GetMethod(addMethodName, addMethodParameterTypes) ?? throw MapCompilerException.MissingMethod(context.TargetType, addMethodName);
-        }
-
-        private static ConstructorInfo GetDictionaryConstructor(Type dictType)
-        {
-            return dictType.GetConstructor(Type.EmptyTypes) ?? throw MapCompilerException.MissingParameterlessConstructor(dictType);
-        }
-
-        private static Type GetConcreteDictionaryType(MapTypeContext context, Type elementType)
-        {
+            // If we have a custom type try to use that. If we don't have one, or it fails any
+            // of the precondition checks, fall back to Dictionary<string, T>
             var typeSettings = context.Settings.GetTypeSettings(context.TargetType);
             if (typeSettings.BaseType != typeof(object))
             {
                 var customType = typeSettings.GetDefault().Type;
-                if (!typeof(IDictionary<,>).MakeGenericType(typeof(string), elementType).IsAssignableFrom(customType))
-                    throw MapCompilerException.InvalidDictionaryTargetType(customType);
-                return customType;
+                var constructor = customType.GetConstructor(Type.EmptyTypes);
+                var addMethod = customType.GetMethod(AddMethodName, BindingFlags.Public | BindingFlags.Instance, null, new[] { keyType, elementType }, null);
+                if (constructor == null || addMethod == null)
+                    return GetDictionaryOfTTypeInfo(keyType, elementType);
+                return new ConcreteTypeInfo(customType, constructor, addMethod);
             }
+            return GetDictionaryOfTTypeInfo(keyType, elementType);
+        }
+
+        private ConcreteTypeInfo GetDictionaryOfTTypeInfo(Type keyType, Type elementType)
+        {
             var dictType = typeof(Dictionary<,>).MakeGenericType(typeof(string), elementType);
-            if (!context.TargetType.IsAssignableFrom(dictType))
-                throw MapCompilerException.CannotConvertType(context.TargetType, dictType);
-            return dictType;
+            var constructor = dictType.GetConstructor(Type.EmptyTypes);
+            var addMethod = dictType.GetMethod(AddMethodName, new[] { keyType, elementType });
+            return new ConcreteTypeInfo(dictType, constructor, addMethod);
         }
 
         private static ConstructedValueExpression GetMaybeInstantiateDictionaryExpression(MapTypeContext context, ConstructorInfo constructor)
