@@ -35,23 +35,6 @@ namespace CastIron.Sql.Mapping
             return new MapCompilerException("No scalar map compilers configured, there's no way to copy data from the result set into an object");
         }
 
-        public static MapCompilerException InvalidListType(Type provided)
-        {
-            return new MapCompilerException(
-                $"The provided type {provided.GetFriendlyName()} is not a suitable collection type. " +
-                $"It must implement an Add(T) method to be used for mapping."
-            );
-        }
-
-        public static MapCompilerException InvalidInterfaceType(Type provided)
-        {
-            return new MapCompilerException(
-                $"The provided type {provided.GetFriendlyName()} is an interface type which the map compiler does " +
-                $"not support. Consider using one of the interface types {nameof(IEnumerable)}<T>, {nameof(IList)}<T> " +
-                $"or {nameof(ICollection)}<T>. Please consult the documentation for the complete list of interface " +
-                "types supported by the map compiler.");
-        }
-
         public static MapCompilerException InvalidTupleMap(int paramLength, Type targetType)
         {
             return new MapCompilerException(

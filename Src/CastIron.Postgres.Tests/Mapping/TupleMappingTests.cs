@@ -82,8 +82,8 @@ namespace CastIron.Postgres.Tests.Mapping
             var result = target.Query<Tuple<int, object>>("SELECT 5 AS Id, 'TEST1' AS A, 'TEST2' AS B").First();
             result.Item1.Should().Be(5);
             var item2 = result.Item2 as Dictionary<string, object>;
-            item2["A"].Should().Be("TEST1");
-            item2["B"].Should().Be("TEST2");
+            item2["a"].Should().Be("TEST1");
+            item2["b"].Should().Be("TEST2");
         }
     }
 }

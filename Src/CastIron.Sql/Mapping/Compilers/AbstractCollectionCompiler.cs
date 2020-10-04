@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -23,16 +24,18 @@ namespace CastIron.Sql.Mapping.Compilers
 
         private struct ConcreteCollectionInfo
         {
-            public ConcreteCollectionInfo(Type concreteType, Type elementType, MethodInfo addMethod)
+            public ConcreteCollectionInfo(Type concreteType, Type elementType, ConstructorInfo constructor, MethodInfo addMethod)
             {
                 ConcreteType = concreteType;
                 ElementType = elementType;
                 AddMethod = addMethod;
+                Constructor = constructor;
             }
 
             public Type ConcreteType { get; }
             public Type ElementType { get; }
             public MethodInfo AddMethod { get; }
+            public ConstructorInfo Constructor { get; }
         }
 
         public ConstructedValueExpression Compile(MapTypeContext context)
@@ -41,15 +44,17 @@ namespace CastIron.Sql.Mapping.Compilers
             // method to call for each value
             var info = GetConcreteTypeInfo(context);
             var collectionType = info.ConcreteType;
-            var elementType = info.ElementType;
-            var addMethod = info.AddMethod;
-            if (addMethod == null)
-                throw MapCompilerException.InvalidListType(collectionType);
+            Debug.Assert(collectionType != null);
+            Debug.Assert(context.TargetType.IsAssignableFrom(collectionType));
 
-            // Get the default parameterless constructor
-            var constructor = collectionType.GetConstructor(new Type[0]);
-            if (constructor == null)
-                throw MapCompilerException.MissingParameterlessConstructor(collectionType);
+            var elementType = info.ElementType;
+            Debug.Assert(elementType != null);
+
+            var addMethod = info.AddMethod;
+            Debug.Assert(addMethod != null);
+
+            var constructor = info.Constructor;
+            Debug.Assert(constructor != null);
 
             var originalTargetType = context.TargetType;
             context = context.ChangeTargetType(collectionType);
@@ -86,29 +91,28 @@ namespace CastIron.Sql.Mapping.Compilers
             // definition
             var elementType = context.TargetType.GenericTypeArguments[0];
 
-            // Start with List<T>
-            var defaultCollectionType = typeof(List<>).MakeGenericType(elementType);
-            var collectionType = defaultCollectionType;
+            Type collectionType = null;
 
             // See if we have a custom type configured which we should use instead of List<T>
             var typeSettings = context.Settings.GetTypeSettings(context.TargetType);
             if (typeSettings.BaseType != null && typeSettings.BaseType != typeof(object))
                 collectionType = typeSettings.GetDefault().Type;
 
+            // Just use List<T> if there is no custom type
+            if (collectionType == null)
+                return GetListOfTTypeInfo(elementType);
+
             // The type should have an Add(T) method (even if the interface we're using is 
             // IReadOnly...<T>). The Add method might not be exposed through the interface.
             var addMethod = collectionType.GetMethods(BindingFlags.Public | BindingFlags.Instance)
                 .FirstOrDefault(m => m.Name == nameof(ICollection<object>.Add) && m.GetParameters().Length == 1 && m.GetParameters()[0].ParameterType == elementType);
-            if (addMethod == null)
-            {
-                // The configured custom type doesn't have a suitable .Add method we can use
-                // instead of freaking out, we'll fall back to List<T> so they get something
-                // usable (we don't have a way to signal a warning to the user here, so they
-                // have to figure it out themselves.
-                var addTMethod = defaultCollectionType.GetMethod(nameof(List<object>.Add), BindingFlags.Public | BindingFlags.Instance);
-                return new ConcreteCollectionInfo(defaultCollectionType, elementType, addTMethod);
-            }
-            return new ConcreteCollectionInfo(collectionType, elementType, addMethod);
+            var constructor = collectionType.GetConstructor(new Type[0]);
+
+            // Fall back to List<T> if the custom type isn't working out.
+            if (addMethod == null || constructor == null)
+                return GetListOfTTypeInfo(elementType);
+
+            return new ConcreteCollectionInfo(collectionType, elementType, constructor, addMethod);
         }
 
         private ConcreteCollectionInfo GetConcreteTypeInfoForInterfaceType(MapTypeContext context)
@@ -117,21 +121,11 @@ namespace CastIron.Sql.Mapping.Compilers
             // an appropriate elementType and Add() method variant
             var typeSettings = context.Settings.GetTypeSettings(context.TargetType);
             if (typeSettings.BaseType == typeof(object))
-            {
-                // We don't have any hints from the interface definition here and we don't have
-                // a configured type to use which may give us some info, so just fill in with
-                // List<object>.
-                var listOfObjectType = typeof(List<object>);
-
-                // List<T> only has one .Add method variant, so we don't need to double-check the
-                // parameter type
-                var addObjectMethod = listOfObjectType.GetMethod(nameof(List<object>.Add), BindingFlags.Public | BindingFlags.Instance);
-                var objectType = typeof(object);
-                return new ConcreteCollectionInfo(listOfObjectType, objectType, addObjectMethod);
-            }
+                return GetListOfTTypeInfo(typeof(object));
 
             var customType = typeSettings.GetDefault().Type;
 
+            var constructor = customType.GetConstructor(new Type[0]);
             // The custom type might have multiple .Add() method variants. We have to try to pick
             // the "Best" one, which is hard to do. Basically we want Add(<anyType>) instead of 
             // Add(object), if possible.
@@ -141,10 +135,23 @@ namespace CastIron.Sql.Mapping.Compilers
                 .Select(m => new { AddMethod = m, Parameter = m.GetParameters()[0] })
                 .OrderBy(x => x.Parameter.ParameterType == typeof(object) ? 0 : 1)
                 .ToList();
-            if (addMethods.Count == 0)
-                throw MapCompilerException.InvalidListType(context.TargetType);
+
+            // If we don't have a default constructor or a suitable .Add() method, fall back to
+            // List<object>. There's no way to signal an error from here, so the user has to 
+            // figure it out.
+            if (constructor == null || addMethods.Count == 0)
+                return GetListOfTTypeInfo(typeof(object));
+
             var bestAddMethod = addMethods.FirstOrDefault();
-            return new ConcreteCollectionInfo(customType, bestAddMethod.Parameter.ParameterType, bestAddMethod.AddMethod);
+            return new ConcreteCollectionInfo(customType, bestAddMethod.Parameter.ParameterType, constructor, bestAddMethod.AddMethod);
+        }
+
+        private ConcreteCollectionInfo GetListOfTTypeInfo(Type elementType)
+        {
+            var listOfTType = typeof(List<>).MakeGenericType(elementType);
+            var addTMethod = listOfTType.GetMethod(nameof(List<object>.Add), BindingFlags.Public | BindingFlags.Instance);
+            var listTConstructor = listOfTType.GetConstructor(new Type[0]);
+            return new ConcreteCollectionInfo(listOfTType, elementType, listTConstructor, addTMethod);
         }
 
         private static ConstructedValueExpression GetMaybeInstantiateCollectionExpression(MapTypeContext context, ConstructorInfo constructor)

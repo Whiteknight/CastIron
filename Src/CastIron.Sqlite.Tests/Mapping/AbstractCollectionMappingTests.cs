@@ -281,5 +281,33 @@ namespace CastIron.Sqlite.Tests.Mapping
             resultAsList[1].Should().Be(6);
             resultAsList[2].Should().Be(7);
         }
+
+        public class CollectionWithoutDefaultConstructor : IEnumerable<int>
+        {
+            public CollectionWithoutDefaultConstructor(int a, string b)
+            {
+            }
+
+            public IEnumerator<int> GetEnumerator() => throw new NotImplementedException();
+            System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => throw new NotImplementedException();
+        }
+
+        [Test]
+        public void CustomCollectionWithoutDefaultConstructor_Throws()
+        {
+            var target = RunnerFactory.Create();
+            var result = target
+                .Query<IEnumerable<int>>("SELECT 1 AS A, 2 AS B, 3 AS C", c => c
+                    .For<IEnumerable<int>>(d => d
+                        .UseClass<CollectionWithoutDefaultConstructor>()
+                    )
+                )
+                .First();
+            var resultAsList = result.ToList();
+            resultAsList.Count.Should().Be(3);
+            resultAsList[0].Should().Be(1);
+            resultAsList[1].Should().Be(2);
+            resultAsList[2].Should().Be(3);
+        }
     }
 }
