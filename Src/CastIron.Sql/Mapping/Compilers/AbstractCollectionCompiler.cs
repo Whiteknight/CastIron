@@ -129,7 +129,7 @@ namespace CastIron.Sql.Mapping.Compilers
             // The custom type might have multiple .Add() method variants. We have to try to pick
             // the "Best" one, which is hard to do. Basically we want Add(<anyType>) instead of 
             // Add(object), if possible.
-            var addMethods = context.TargetType
+            var addMethods = customType
                 .GetMethods(BindingFlags.Public | BindingFlags.Instance)
                 .Where(m => m.Name == nameof(ICollection<object>.Add) && m.GetParameters().Length == 1)
                 .Select(m => new { AddMethod = m, Parameter = m.GetParameters()[0] })

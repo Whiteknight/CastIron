@@ -293,7 +293,7 @@ namespace CastIron.Sqlite.Tests.Mapping
         }
 
         [Test]
-        public void CustomCollectionWithoutDefaultConstructor_Throws()
+        public void CustomCollectionWithoutDefaultConstructor_DoesNotThrow()
         {
             var target = RunnerFactory.Create();
             var result = target
@@ -304,6 +304,41 @@ namespace CastIron.Sqlite.Tests.Mapping
                 )
                 .First();
             var resultAsList = result.ToList();
+            resultAsList.Count.Should().Be(3);
+            resultAsList[0].Should().Be(1);
+            resultAsList[1].Should().Be(2);
+            resultAsList[2].Should().Be(3);
+        }
+
+        public class CustomEnumerableWithDuckTypedAdd : IEnumerable
+        {
+            private readonly List<int> _items;
+
+            public CustomEnumerableWithDuckTypedAdd()
+            {
+                _items = new List<int>();
+            }
+
+            public IEnumerator GetEnumerator() => _items.GetEnumerator();
+
+            public void Add(int x)
+            {
+                _items.Add(x);
+            }
+        }
+
+        [Test]
+        public void CustomCollectionWithDuckTypedAdd_Test()
+        {
+            var target = RunnerFactory.Create();
+            var result = target
+                .Query<IEnumerable>("SELECT 1 AS A, 2 AS B, 3 AS C", c => c
+                    .For<IEnumerable>(d => d
+                        .UseClass<CustomEnumerableWithDuckTypedAdd>()
+                    )
+                )
+                .First();
+            var resultAsList = result.Cast<int>().ToList();
             resultAsList.Count.Should().Be(3);
             resultAsList[0].Should().Be(1);
             resultAsList[1].Should().Be(2);
