@@ -75,8 +75,7 @@ namespace CastIron.Sql.Mapping
             return dictType != null;
         }
 
-        public static bool IsArrayType(this Type t)
-            => t.IsArray && t.HasElementType;
+        public static bool IsArrayType(this Type t) => t.IsArray && t.HasElementType;
 
         // Is one of IDictionary<string,X> or IReadOnlyDictionary<string,X>
         public static bool IsDictionaryInterfaceType(this Type t)

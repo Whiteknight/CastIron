@@ -41,7 +41,8 @@ namespace CastIron.Sql.Mapping.Compilers
         private static MethodInfo GetDictionaryAddMethod(MapTypeContext context, Type dictType, Type keyType, Type elementType)
         {
             var addMethodParameterTypes = new[] { keyType, elementType };
-            return dictType.GetMethod(nameof(IDictionary<string, object>.Add), addMethodParameterTypes) ?? throw MapCompilerException.DictionaryTypeMissingAddMethod(context.TargetType);
+            var addMethodName = nameof(IDictionary<string, object>.Add);
+            return dictType.GetMethod(addMethodName, addMethodParameterTypes) ?? throw MapCompilerException.MissingMethod(context.TargetType, addMethodName);
         }
 
         private static ConstructorInfo GetDictionaryConstructor(Type dictType)

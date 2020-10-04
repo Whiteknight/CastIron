@@ -42,14 +42,6 @@ namespace CastIron.Sql.Mapping
                 $"and must implement the .{nameof(IDictionary<string, object>.Add)}({typeof(string).Name}, {typeof(object).Name}) method");
         }
 
-        public static MapCompilerException DictionaryTypeMissingAddMethod(Type targetType)
-        {
-            return new MapCompilerException(
-                $"Type {targetType.FullName} looks like a dictionary type but does not provide a " +
-                $".{nameof(Dictionary<string, object>.Add)}() Method. The map compiler uses the Add method to " +
-                "add data to the dictionary. Without access to this method, the map may not procede.");
-        }
-
         public static MapCompilerException CannotConvertType(Type targetType, Type workingType)
         {
             return new MapCompilerException($"Cannot assign the provided type {targetType.GetFriendlyName()} to working type {workingType.GetFriendlyName()}");
@@ -64,11 +56,6 @@ namespace CastIron.Sql.Mapping
         {
             var argsString = string.Join(",", argumentTypes.Select(a => a.GetFriendlyName()));
             return new MapCompilerException($"Type {targetType.GetFriendlyName()} is missing method .{methodName}({argsString})");
-        }
-
-        public static MapCompilerException CannotDetermineArrayElementType(Type targetType)
-        {
-            return new MapCompilerException($"Cannot find element type for array type {targetType.GetFriendlyName()}");
         }
 
         public static MapCompilerException MissingArrayConstructor(Type targetType)

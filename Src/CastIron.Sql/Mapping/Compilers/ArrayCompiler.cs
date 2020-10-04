@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -23,18 +24,24 @@ namespace CastIron.Sql.Mapping.Compilers
 
         public ConstructedValueExpression Compile(MapTypeContext context)
         {
-            var elementType = context.TargetType.GetElementType() ?? throw MapCompilerException.CannotDetermineArrayElementType(context.TargetType);
+            // Element type and constructor should both always be available for Array types, and
+            // we know this is an array type in MapCompiler. Just assume we have these things, but
+            // Debug.Assert them just to be sure.
+            var elementType = context.TargetType.GetElementType();
+            Debug.Assert(elementType != null);
 
-            var constructor = context.TargetType.GetConstructor(new[] { typeof(int) }) ?? throw MapCompilerException.MissingArrayConstructor(context.TargetType);
-
-            var columns = context.GetColumns().ToList();
+            var constructor = context.TargetType.GetConstructor(new[] { typeof(int) });
+            Debug.Assert(constructor != null);
 
             if (elementType.IsMappableCustomObjectType())
                 return CompileArrayOfCustomObject(context, elementType, constructor);
 
             // In an array, object is always treated as a scalar type
             if (elementType.IsSupportedPrimitiveType() || elementType == typeof(object))
+            {
+                var columns = context.GetColumns().ToList();
                 return CompileArrayOfScalar(context, constructor, columns, elementType);
+            }
 
             // It's not a type we know how to support, so do nothing
             return ConstructedValueExpression.Nothing;
