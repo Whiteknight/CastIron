@@ -17,7 +17,7 @@ namespace CastIron.Postgres.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery_ListOfCustomObject()
+        public void Map_ListOfCustomObject()
         {
             var target = RunnerFactory.Create();
             var result = target.Query<List<TestObject1>>("SELECT 5 AS TestInt, 'TEST' AS TestString, CAST(1 AS BIT) AS TestBool;").First();
@@ -28,7 +28,7 @@ namespace CastIron.Postgres.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery_IListOfCustomObject()
+        public void Map_IListOfCustomObject()
         {
             var target = RunnerFactory.Create();
             var result = target.Query<IList<TestObject1>>("SELECT 5 AS TestInt, 'TEST' AS TestString, CAST(1 AS BIT) AS TestBool;").First();

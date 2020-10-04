@@ -98,8 +98,7 @@ namespace CastIron.Sql.Mapping.Compilers
             // The type should have an Add(T) method (even if the interface we're using is 
             // IReadOnly...<T>). The Add method might not be exposed through the interface.
             var addMethod = collectionType.GetMethods(BindingFlags.Public | BindingFlags.Instance)
-                .Where(m => m.Name == nameof(ICollection<object>.Add) && m.GetParameters().Length == 1 && m.GetParameters()[0].ParameterType == elementType)
-                .FirstOrDefault();
+                .FirstOrDefault(m => m.Name == nameof(ICollection<object>.Add) && m.GetParameters().Length == 1 && m.GetParameters()[0].ParameterType == elementType);
             if (addMethod == null)
             {
                 // The configured custom type doesn't have a suitable .Add method we can use

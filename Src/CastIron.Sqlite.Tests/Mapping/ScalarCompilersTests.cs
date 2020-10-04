@@ -9,7 +9,7 @@ namespace CastIron.Sqlite.Tests.Mapping
     public class ScalarCompilersTests
     {
         [Test]
-        public void NoScalarCompilers_()
+        public void NoScalarCompilers_Error()
         {
             // If we don't have any scalar compilers configured, there's no mapping we can do
             var runner = RunnerFactory.Create();

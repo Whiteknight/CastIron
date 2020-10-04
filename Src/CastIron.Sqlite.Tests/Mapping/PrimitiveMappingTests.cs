@@ -184,17 +184,6 @@ namespace CastIron.Sqlite.Tests.Mapping
         }
 
         [Test]
-        public void Primitive_binary_ByteArray()
-        {
-            Assert.Inconclusive("SQLite isn't handling Binary the same, figure that out");
-            var target = RunnerFactory.Create();
-            var result = target.Query(new TestQuery<byte[]>("SELECT CAST(0x0102030405 AS Binary(5)) AS TestBinary"));
-            result.Should().NotBeNull();
-            result.Length.Should().Be(5);
-            result.Should().BeEquivalentTo(new byte[] { 1, 2, 3, 4, 5 });
-        }
-
-        [Test]
         public void Primitive_string_Guid()
         {
             var target = RunnerFactory.Create();

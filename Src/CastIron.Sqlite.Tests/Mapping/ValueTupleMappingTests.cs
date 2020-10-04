@@ -66,12 +66,12 @@ namespace CastIron.Sqlite.Tests.Mapping
         public void Map_Tuple_CustomObject2()
         {
             var target = RunnerFactory.Create();
-            var result = target.Query<(TestObject1, int, TestObject1)>("SELECT 5 AS Id, 'TEST1' AS A, 'TEST2' AS B, 'TEST3' AS A, 'TEST4' AS B").First();
-            result.Item1.A.Should().Be("TEST1");
-            result.Item1.B.Should().Be("TEST2");
-            result.Item2.Should().Be(5);
-            result.Item3.A.Should().Be("TEST3");
-            result.Item3.B.Should().Be("TEST4");
+            var result = target.Query<(TestObject1 first, int second, TestObject1 third)>("SELECT 5 AS Id, 'TEST1' AS A, 'TEST2' AS B, 'TEST3' AS A, 'TEST4' AS B").First();
+            result.first.A.Should().Be("TEST1");
+            result.first.B.Should().Be("TEST2");
+            result.second.Should().Be(5);
+            result.third.A.Should().Be("TEST3");
+            result.third.B.Should().Be("TEST4");
         }
 
         [Test]

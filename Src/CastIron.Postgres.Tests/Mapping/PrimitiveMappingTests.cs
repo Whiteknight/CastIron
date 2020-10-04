@@ -49,7 +49,7 @@ namespace CastIron.Postgres.Tests.Mapping
             result.TestBool.Should().Be(true);
         }
 
-        public class TestQuery_Unbox : ISqlQuerySimple<TestObject1>
+        public class Map_Unbox : ISqlQuerySimple<TestObject1>
         {
             public string GetSql()
             {
@@ -63,17 +63,17 @@ namespace CastIron.Postgres.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery_UnboxProperties()
+        public void Map_UnboxProperties()
         {
             var target = RunnerFactory.Create();
-            var result = target.Query(new TestQuery_Unbox());
+            var result = target.Query(new Map_Unbox());
             result.TestInt.Should().Be(5);
             result.TestString.Should().Be("6");
             result.TestBool.Should().Be(true);
         }
 
         [Test]
-        public void TestQuery_MapStringToDateTime()
+        public void Map_MapStringToDateTime()
         {
             var target = RunnerFactory.Create();
             var result = target.Query<DateTime>("SELECT '2018-12-11 17:01:02'").First();

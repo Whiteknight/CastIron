@@ -9,7 +9,7 @@ namespace CastIron.Postgres.Tests.Mapping
     [TestFixture]
     public class UnnamedColumnMappingTests
     { 
-        public class TestQuery_UnnamedColumns<T> : ISqlQuerySimple<T>
+        public class Map_UnnamedColumns<T> : ISqlQuerySimple<T>
         {
             public string GetSql()
             {
@@ -29,10 +29,10 @@ namespace CastIron.Postgres.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery_MapToUnnamedValuesCollection()
+        public void Map_MapToUnnamedValuesCollection()
         {
             var target = RunnerFactory.Create();
-            var result = target.Query(new TestQuery_UnnamedColumns<TestObjectUnnamedValues>());
+            var result = target.Query(new Map_UnnamedColumns<TestObjectUnnamedValues>());
             result.UnnamedValues.Count.Should().Be(3);
             result.UnnamedValues[0].Should().Be("5");
             result.UnnamedValues[1].Should().Be("TEST");
@@ -50,17 +50,17 @@ namespace CastIron.Postgres.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery_MapToUnnamedValuesCollectionCtor()
+        public void Map_MapToUnnamedValuesCollectionCtor()
         {
             var target = RunnerFactory.Create();
-            var result = target.Query(new TestQuery_UnnamedColumns<TestObjectUnnamedValuesCtor>());
+            var result = target.Query(new Map_UnnamedColumns<TestObjectUnnamedValuesCtor>());
             result.UnnamedValues.Count.Should().Be(3);
             result.UnnamedValues[0].Should().Be("5");
             result.UnnamedValues[1].Should().Be("TEST");
             result.UnnamedValues[2].Should().Be("3.14");
         }
 
-        public class TestQuery_AllNamedColumns<T> : ISqlQuerySimple<T>
+        public class Map_AllNamedColumns<T> : ISqlQuerySimple<T>
         {
             public string GetSql()
             {
@@ -80,10 +80,10 @@ namespace CastIron.Postgres.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery_MapToUnnamedValuesCollection_None()
+        public void Map_MapToUnnamedValuesCollection_None()
         {
             var target = RunnerFactory.Create();
-            var result = target.Query(new TestQuery_AllNamedColumns<TestObjectUnnamedValues2>());
+            var result = target.Query(new Map_AllNamedColumns<TestObjectUnnamedValues2>());
             result.UnnamedValues.Count.Should().Be(0);
         }
 
@@ -98,10 +98,10 @@ namespace CastIron.Postgres.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery_MapToUnnamedValuesCollectionCtor_None()
+        public void Map_MapToUnnamedValuesCollectionCtor_None()
         {
             var target = RunnerFactory.Create();
-            var result = target.Query(new TestQuery_AllNamedColumns<TestObjectUnnamedValuesCtor2>());
+            var result = target.Query(new Map_AllNamedColumns<TestObjectUnnamedValuesCtor2>());
             result.UnnamedValues.Count.Should().Be(0);
         }
     }

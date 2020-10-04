@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Dynamic;
 using System.Linq;
 using CastIron.Sql;
 using FluentAssertions;
@@ -11,7 +10,7 @@ namespace CastIron.Postgres.Tests.Mapping
     public class ObjectAndObjectArrayMappingTests
     {
         [Test]
-        public void TestQuery_MapToObject()
+        public void Map_Object()
         {
             var target = RunnerFactory.Create();
             var result = target.Query<object>("SELECT 5 AS TestInt, 'TEST' AS TestString, CAST(1 AS BIT) AS TestBool;").First();
@@ -25,7 +24,7 @@ namespace CastIron.Postgres.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery_MapToObjectWithDuplicates()
+        public void Map_ObjectWithDuplicates()
         {
             var target = RunnerFactory.Create();
             var result = target.Query<object>("SELECT 5 AS TestInt, 'A' AS TestString, 'B' AS TestString;").First();
@@ -41,7 +40,7 @@ namespace CastIron.Postgres.Tests.Mapping
         }
 
         [Test]
-        public void TestQuery_MapToObjectArray()
+        public void Map_ObjectArray()
         {
             var target = RunnerFactory.Create();
             var result = target.Query<object[]>("SELECT 5 AS TestInt, 'TEST' AS TestString, CAST(1 AS BIT) AS TestBool;").First();
@@ -51,18 +50,6 @@ namespace CastIron.Postgres.Tests.Mapping
             result[0].Should().Be(5);
             result[1].Should().Be("TEST");
             result[2].Should().Be(true);
-        }
-
-        [Test]
-        public void TestQuery_dynamic()
-        {
-            var target = RunnerFactory.Create();
-            dynamic result = target.Query<ExpandoObject>("SELECT 5 AS TestInt, 'TEST' AS TestString;").First();
-            string testString = result.teststring;
-            testString.Should().Be("TEST");
-
-            int testInt = (int)result.testint;
-            testInt.Should().Be(5);
         }
     }
 }
