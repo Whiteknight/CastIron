@@ -39,7 +39,14 @@ namespace CastIron.Sql.Mapping.Compilers
 
             // If we have no columns, just return null
             if (numColumns == 0)
-                return new ConstructedValueExpression(Expression.Convert(Expression.Constant(null), typeof(object)));
+            {
+                return new ConstructedValueExpression(
+                    Expression.Convert(
+                        Expression.Constant(null),
+                        typeof(object)
+                    )
+                );
+            }
 
             // If we have exactly one column, map the value as a scalar and return a single result
             if (numColumns == 1)

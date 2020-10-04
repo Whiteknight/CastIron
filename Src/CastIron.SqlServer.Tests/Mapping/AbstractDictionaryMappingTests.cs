@@ -6,7 +6,6 @@ using NUnit.Framework;
 
 namespace CastIron.SqlServer.Tests.Mapping
 {
-
     public class AbstractDictionaryMappingTests
     {
         [Test]

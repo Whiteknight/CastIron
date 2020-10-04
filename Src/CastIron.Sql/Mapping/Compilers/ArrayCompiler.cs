@@ -8,8 +8,7 @@ namespace CastIron.Sql.Mapping.Compilers
 {
     /// <summary>
     /// Compiles a mapping to an array type. Columns are mapped to elements until all available columns
-    /// are exhausted. Supports any array type and IEnumerable, ICollection and IList if element types are
-    /// not provided.
+    /// are exhausted. Supports any array type
     /// </summary>
     public class ArrayCompiler : ICompiler
     {
