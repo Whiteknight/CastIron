@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.Serialization;
 
 namespace CastIron.Sql.Mapping
@@ -42,20 +41,11 @@ namespace CastIron.Sql.Mapping
                 $"and must implement the .{nameof(IDictionary<string, object>.Add)}({typeof(string).Name}, {typeof(object).Name}) method");
         }
 
-        public static MapCompilerException CannotConvertType(Type targetType, Type workingType)
+        public static MapCompilerException InvalidCollectionType(Type targetType)
         {
-            return new MapCompilerException($"Cannot assign the provided type {targetType.GetFriendlyName()} to working type {workingType.GetFriendlyName()}");
-        }
-
-        public static MapCompilerException MissingParameterlessConstructor(Type targetType)
-        {
-            return new MapCompilerException($"Target type {targetType.GetFriendlyName()} must have a default parameterless constructor");
-        }
-
-        public static MapCompilerException MissingMethod(Type targetType, string methodName, params Type[] argumentTypes)
-        {
-            var argsString = string.Join(",", argumentTypes.Select(a => a.GetFriendlyName()));
-            return new MapCompilerException($"Type {targetType.GetFriendlyName()} is missing method .{methodName}({argsString})");
+            return new MapCompilerException(
+                $"Collection type {targetType.GetFriendlyName()} must inherit from IEnumerable or IEnumerable<T>, " +
+                "must have a default parameterless constructor, and must have a public .Add(T) method.");
         }
 
         public static MapCompilerException MapAndCompilerSpecified()

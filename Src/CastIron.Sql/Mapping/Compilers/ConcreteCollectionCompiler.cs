@@ -85,7 +85,7 @@ namespace CastIron.Sql.Mapping.Compilers
             // subclass, but we can't default to something else with a parameterless constructor
             var constructor = targetType.GetConstructor(Type.EmptyTypes);
             if (constructor == null)
-                throw MapCompilerException.MissingParameterlessConstructor(targetType);
+                throw MapCompilerException.InvalidCollectionType(targetType);
 
             // Same with .Add(). The type absolutely must have a .Add(T) method variant or we
             // cannot proceed
@@ -94,7 +94,7 @@ namespace CastIron.Sql.Mapping.Compilers
                 .Where(m => m.Name == AddMethodName && m.GetParameters().Length == 1)
                 .ToList();
             if (addMethods.Count == 0)
-                throw MapCompilerException.MissingMethod(targetType, AddMethodName);
+                throw MapCompilerException.InvalidCollectionType(targetType);
 
             // Find all IEnumerable<T> interfaces. For each one we're going to look for a matching
             // .Add(T) method. If we find a match, that's what we're going with.
