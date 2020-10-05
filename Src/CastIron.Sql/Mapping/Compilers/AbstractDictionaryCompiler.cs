@@ -38,6 +38,9 @@ namespace CastIron.Sql.Mapping.Compilers
 
         public ConstructedValueExpression Compile(MapTypeContext context)
         {
+            if (!IsSupportedType(context.TargetType))
+                return ConstructedValueExpression.Nothing;
+
             var genericArguments = context.TargetType.GetGenericArguments();
             Debug.Assert(genericArguments.Length == 2);
 
@@ -66,6 +69,16 @@ namespace CastIron.Sql.Mapping.Compilers
                 Expression.Convert(dictVar.FinalValue, context.TargetType),
                 dictVar.Variables.Concat(addStmts.Variables)
             );
+        }
+
+        // Is one of IDictionary<string,X> or IReadOnlyDictionary<string,X>
+        private static bool IsSupportedType(Type t)
+        {
+            if (!t.IsGenericType || !t.IsInterface)
+                return false;
+            var genericDef = t.GetGenericTypeDefinition();
+            return (genericDef == typeof(IDictionary<,>) || genericDef == typeof(IReadOnlyDictionary<,>))
+                   && t.GenericTypeArguments[0] == typeof(string);
         }
 
         private ConcreteTypeInfo GetConcreteTypeInfo(MapTypeContext context, Type keyType, Type elementType)

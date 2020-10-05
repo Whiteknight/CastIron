@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using System.Linq.Expressions;
 
 namespace CastIron.Sql.Mapping
@@ -19,108 +17,6 @@ namespace CastIron.Sql.Mapping
 
         public static Type GetTypeWithoutNullability(this Type t)
             => t.IsGenericType && t.GetGenericTypeDefinition() == typeof(Nullable<>) ? t.GenericTypeArguments[0] : t;
-
-        private static readonly HashSet<Type> _tupleTypes = new HashSet<Type>
-        {
-            typeof(Tuple<>),
-            typeof(Tuple<,>),
-            typeof(Tuple<,,>),
-            typeof(Tuple<,,,>),
-            typeof(Tuple<,,,,>),
-            typeof(Tuple<,,,,,>),
-            typeof(Tuple<,,,,,,>)
-        };
-
-        public static bool IsTupleType(this Type parentType)
-        {
-            if (!parentType.IsGenericType || !parentType.IsConstructedGenericType)
-                return false;
-            var genericTypeDef = parentType.GetGenericTypeDefinition();
-            return _tupleTypes.Contains(genericTypeDef);
-        }
-
-#if NETSTANDARD
-
-        private static readonly HashSet<Type> _valueTupleTypes = new HashSet<Type>
-        {
-            typeof(ValueTuple<>),
-            typeof(ValueTuple<,>),
-            typeof(ValueTuple<,,>),
-            typeof(ValueTuple<,,,>),
-            typeof(ValueTuple<,,,,>),
-            typeof(ValueTuple<,,,,,>),
-            typeof(ValueTuple<,,,,,,>)
-        };
-
-        public static bool IsValueTupleType(this Type parentType)
-        {
-            if (!parentType.IsGenericType || !parentType.IsConstructedGenericType)
-                return false;
-            var genericTypeDef = parentType.GetGenericTypeDefinition();
-            return _valueTupleTypes.Contains(genericTypeDef);
-        }
-
-#endif
-
-        // It is Dictionary<string,X> or is concrete and inherits from IDictionary<string,X>
-        public static bool IsConcreteDictionaryType(this Type t)
-        {
-            if (t.IsInterface || t.IsAbstract)
-                return false;
-            if (t.IsGenericType && t.GetGenericTypeDefinition() == typeof(Dictionary<,>) && t.GenericTypeArguments[0] == typeof(string))
-                return true;
-            var dictType = t.GetInterfaces()
-                .Where(i => i.IsGenericType)
-                .FirstOrDefault(i => i.GetGenericTypeDefinition() == typeof(IDictionary<,>) && i.GenericTypeArguments[0] == typeof(string));
-            return dictType != null;
-        }
-
-        public static bool IsArrayType(this Type t) => t.IsArray && t.HasElementType;
-
-        // Is one of IDictionary<string,X> or IReadOnlyDictionary<string,X>
-        public static bool IsDictionaryInterfaceType(this Type t)
-        {
-            if (!t.IsGenericType || !t.IsInterface)
-                return false;
-            var genericDef = t.GetGenericTypeDefinition();
-            return (genericDef == typeof(IDictionary<,>) || genericDef == typeof(IReadOnlyDictionary<,>))
-                   && t.GenericTypeArguments[0] == typeof(string);
-        }
-
-        public static bool IsConcreteCollectionType(this Type t)
-            =>
-                !t.IsInterface
-                && !t.IsAbstract
-                && t.GetInterfaces()
-                    .Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(ICollection<>));
-
-        private static readonly HashSet<Type> _nonGenericCollectionInterfaces = new HashSet<Type>
-        {
-            typeof(IEnumerable),
-            typeof(ICollection),
-            typeof(IList)
-        };
-
-        private static readonly HashSet<Type> _genericCollectionBaseTypes = new HashSet<Type>
-        {
-            typeof(IEnumerable<>),
-            typeof(ICollection<>),
-            typeof(IList<>),
-            typeof(IReadOnlyCollection<>),
-            typeof(IReadOnlyList<>)
-            // TODO: Would like to support ISet<T>, but that would probably require a new compiler
-        };
-
-        public static bool IsAbstractCollectionType(this Type t)
-        {
-            if (!t.IsInterface)
-                return false;
-            if (_nonGenericCollectionInterfaces.Contains(t))
-                return true;
-            if (!t.IsGenericType)
-                return false;
-            return _genericCollectionBaseTypes.Contains(t.GetGenericTypeDefinition());
-        }
 
         private static readonly HashSet<Type> _numericTypes = new HashSet<Type>
         {
@@ -181,9 +77,6 @@ namespace CastIron.Sql.Mapping
         public static bool IsSupportedPrimitiveType(this Type t) => _primitiveTypes.Contains(t);
 
         public static bool IsNumericType(this Type t) => _numericTypes.Contains(t);
-
-        public static bool IsMappableScalarType(this Type t)
-            => _primitiveTypes.Contains(t) || t == typeof(object);
 
         public static bool IsMappableCustomObjectType(this Type t)
         {

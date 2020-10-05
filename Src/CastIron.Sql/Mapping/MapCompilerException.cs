@@ -58,11 +58,6 @@ namespace CastIron.Sql.Mapping
             return new MapCompilerException($"Type {targetType.GetFriendlyName()} is missing method .{methodName}({argsString})");
         }
 
-        public static MapCompilerException MissingArrayConstructor(Type targetType)
-        {
-            return new MapCompilerException($"Array type {targetType.GetFriendlyName()} must have a standard array constructor");
-        }
-
         public static MapCompilerException MapAndCompilerSpecified()
         {
             return new MapCompilerException(

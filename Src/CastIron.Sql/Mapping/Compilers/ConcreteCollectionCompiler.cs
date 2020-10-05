@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -11,6 +13,8 @@ namespace CastIron.Sql.Mapping.Compilers
     /// </summary>
     public class ConcreteCollectionCompiler : ICompiler
     {
+        private const string AddMethodName = nameof(ICollection<object>.Add);
+
         private readonly ICompiler _scalars;
         private readonly ICompiler _nonScalars;
 
@@ -20,13 +24,41 @@ namespace CastIron.Sql.Mapping.Compilers
             _nonScalars = nonScalars;
         }
 
+        private struct ConcreteTypeInfo
+        {
+            public ConcreteTypeInfo(Type concreteType, Type elementType, ConstructorInfo constructor, MethodInfo addMethod)
+            {
+                ConcreteType = concreteType;
+                ElementType = elementType;
+                Constructor = constructor;
+                AddMethod = addMethod;
+            }
+
+            public Type ConcreteType { get; }
+            public Type ElementType { get; }
+            public ConstructorInfo Constructor { get; }
+            public MethodInfo AddMethod { get; }
+        }
+
         public ConstructedValueExpression Compile(MapTypeContext context)
         {
-            var iCollectionType = GetICollectionInterfaceType(context);
-            var elementType = iCollectionType.GenericTypeArguments[0];
+            if (!IsSupportedType(context.TargetType))
+                return ConstructedValueExpression.Nothing;
 
-            var constructor = GetConstructor(context);
-            var addMethod = GetAddMethod(context, iCollectionType, elementType);
+            // We have a concrete type which implements IEnumerable/IEnumerable<T> and has an Add 
+            // method. Get these things.
+            var info = GetTypeInfo(context);
+            var collectionType = info.ConcreteType;
+            Debug.Assert(collectionType != null);
+
+            var elementType = info.ElementType;
+            Debug.Assert(elementType != null);
+
+            var constructor = info.Constructor;
+            Debug.Assert(constructor != null);
+
+            var addMethod = info.AddMethod;
+            Debug.Assert(addMethod != null);
 
             var listVar = GetMaybeInstantiateCollectionExpression(context, constructor);
             var addStmts = GetCollectionPopulateStatements(context, elementType, listVar.FinalValue, addMethod);
@@ -34,25 +66,57 @@ namespace CastIron.Sql.Mapping.Compilers
             return new ConstructedValueExpression(listVar.Expressions.Concat(addStmts.Expressions), listVar.FinalValue, listVar.Variables.Concat(addStmts.Variables));
         }
 
-        private static MethodInfo GetAddMethod(MapTypeContext context, Type icollectionType, Type elementType)
-        {
-            return icollectionType.GetMethod(nameof(ICollection<object>.Add)) ?? throw MapCompilerException.MissingMethod(context.TargetType, nameof(ICollection<object>.Add), elementType);
-        }
+        private static bool IsSupportedType(Type t)
+            =>
+                !t.IsInterface
+                && !t.IsAbstract
+                && t.GetInterfaces().Any(i => i == typeof(IEnumerable) || (i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IEnumerable<>)))
+                && t.GetMethods(BindingFlags.Public | BindingFlags.Instance).Any(m => m.Name == "Add");
 
-        private static ConstructorInfo GetConstructor(MapTypeContext context)
+        private ConcreteTypeInfo GetTypeInfo(MapTypeContext context)
         {
-            return context.TargetType.GetConstructor(Type.EmptyTypes) ?? throw MapCompilerException.MissingParameterlessConstructor(context.TargetType);
-        }
+            var targetType = context.TargetType;
+            var typeSettings = context.Settings.GetTypeSettings(targetType);
+            if (typeSettings.BaseType != typeof(object))
+                targetType = typeSettings.GetDefault().Type;
 
-        private static Type GetICollectionInterfaceType(MapTypeContext context)
-        {
-            var icollectionType = context.TargetType
+            // We absolutely need a constructor here, there's no way around it. The user has asked
+            // for a specific concrete type, we can either return that type or the configured 
+            // subclass, but we can't default to something else with a parameterless constructor
+            var constructor = targetType.GetConstructor(Type.EmptyTypes);
+            if (constructor == null)
+                throw MapCompilerException.MissingParameterlessConstructor(targetType);
+
+            // Same with .Add(). The type absolutely must have a .Add(T) method variant or we
+            // cannot proceed
+            var addMethods = targetType
+                .GetMethods(BindingFlags.Public | BindingFlags.Instance)
+                .Where(m => m.Name == AddMethodName && m.GetParameters().Length == 1)
+                .ToList();
+            if (addMethods.Count == 0)
+                throw MapCompilerException.MissingMethod(targetType, AddMethodName);
+
+            // Find all IEnumerable<T> interfaces. For each one we're going to look for a matching
+            // .Add(T) method. If we find a match, that's what we're going with.
+            var iEnumerableOfTTypes = targetType
                 .GetInterfaces()
-                .FirstOrDefault(i => i.Namespace == "System.Collections.Generic" && i.IsGenericType && i.GetGenericTypeDefinition() == typeof(ICollection<>))
-                ?? throw MapCompilerException.CannotConvertType(context.TargetType, typeof(ICollection<>));
-            if (!icollectionType.IsAssignableFrom(context.TargetType))
-                throw MapCompilerException.CannotConvertType(context.TargetType, icollectionType);
-            return icollectionType;
+                .Where(t => t.IsGenericType && t.GetGenericTypeDefinition() == typeof(IEnumerable<>))
+                .ToDictionary(t => t.GetGenericArguments()[0]);
+            if (iEnumerableOfTTypes.Count > 0)
+            {
+                var bestAddMethod = addMethods.FirstOrDefault(m => iEnumerableOfTTypes.ContainsKey(m.GetParameters()[0].ParameterType));
+                if (bestAddMethod != null)
+                {
+                    var bestAddElementType = bestAddMethod.GetParameters()[0].ParameterType;
+                    return new ConcreteTypeInfo(targetType, bestAddElementType, constructor, bestAddMethod);
+                }
+            }
+
+            // At this point we know the collection must be IEnumerable because of precondition
+            // checks. So we'll just use any available Add method 
+            var addMethod = addMethods.FirstOrDefault();
+            var elementType = addMethod.GetParameters()[0].ParameterType;
+            return new ConcreteTypeInfo(targetType, elementType, constructor, addMethod);
         }
 
         private ConstructedValueExpression GetMaybeInstantiateCollectionExpression(MapTypeContext context, ConstructorInfo constructor)

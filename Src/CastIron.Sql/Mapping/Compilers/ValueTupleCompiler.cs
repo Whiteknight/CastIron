@@ -15,6 +15,17 @@ namespace CastIron.Sql.Mapping.Compilers
     {
         private readonly ICompiler _values;
 
+        private static readonly HashSet<Type> _valueTupleTypes = new HashSet<Type>
+        {
+            typeof(ValueTuple<>),
+            typeof(ValueTuple<,>),
+            typeof(ValueTuple<,,>),
+            typeof(ValueTuple<,,,>),
+            typeof(ValueTuple<,,,,>),
+            typeof(ValueTuple<,,,,,>),
+            typeof(ValueTuple<,,,,,,>)
+        };
+
         public ValueTupleCompiler(ICompiler values)
         {
             _values = values;
@@ -23,9 +34,20 @@ namespace CastIron.Sql.Mapping.Compilers
         // value = Tuple.Create(converted columns)
         public ConstructedValueExpression Compile(MapTypeContext context)
         {
+            if (!IsSupportedType(context.TargetType))
+                return ConstructedValueExpression.Nothing;
+
             var typeParams = context.TargetType.GenericTypeArguments;
             var factoryMethod = GetValueTupleFactoryMethod(context, typeParams);
             return MapTupleParameters(context, factoryMethod, typeParams);
+        }
+
+        private static bool IsSupportedType(Type parentType)
+        {
+            if (!parentType.IsGenericType || !parentType.IsConstructedGenericType)
+                return false;
+            var genericTypeDef = parentType.GetGenericTypeDefinition();
+            return _valueTupleTypes.Contains(genericTypeDef);
         }
 
         private ConstructedValueExpression MapTupleParameters(MapTypeContext context, MethodInfo factoryMethod, Type[] typeParams)

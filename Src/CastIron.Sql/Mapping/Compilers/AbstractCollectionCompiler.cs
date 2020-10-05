@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -15,6 +16,24 @@ namespace CastIron.Sql.Mapping.Compilers
     {
         private readonly ICompiler _scalars;
         private readonly ICompiler _nonScalars;
+
+        private static readonly HashSet<Type> _nonGenericCollectionInterfaces = new HashSet<Type>
+        {
+            typeof(IEnumerable),
+            typeof(ICollection),
+            typeof(IList)
+        };
+
+        private static readonly HashSet<Type> _genericCollectionBaseTypes = new HashSet<Type>
+        {
+            typeof(IEnumerable<>),
+            typeof(ICollection<>),
+            typeof(IList<>),
+            typeof(IReadOnlyCollection<>),
+            typeof(IReadOnlyList<>)
+            // TODO: Would like to support ISet<T>, but that would probably require a new compiler
+        };
+
 
         public AbstractCollectionCompiler(ICompiler scalars, ICompiler nonScalars)
         {
@@ -40,6 +59,9 @@ namespace CastIron.Sql.Mapping.Compilers
 
         public ConstructedValueExpression Compile(MapTypeContext context)
         {
+            if (!IsSupportedType(context.TargetType))
+                return ConstructedValueExpression.Nothing;
+
             // Get the concrete type to construct, the element type to populate, and the Add
             // method to call for each value
             var info = GetConcreteTypeInfo(context);
@@ -69,6 +91,17 @@ namespace CastIron.Sql.Mapping.Compilers
                 Expression.Convert(collectionVar.FinalValue, originalTargetType),
                 collectionVar.Variables.Concat(addStmts.Variables)
             );
+        }
+
+        private static bool IsSupportedType(Type t)
+        {
+            if (!t.IsInterface)
+                return false;
+            if (_nonGenericCollectionInterfaces.Contains(t))
+                return true;
+            if (!t.IsGenericType)
+                return false;
+            return _genericCollectionBaseTypes.Contains(t.GetGenericTypeDefinition());
         }
 
         private ConcreteCollectionInfo GetConcreteTypeInfo(MapTypeContext context)

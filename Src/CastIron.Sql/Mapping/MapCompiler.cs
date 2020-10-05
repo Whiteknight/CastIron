@@ -33,7 +33,6 @@ namespace CastIron.Sql.Mapping
             ICompiler arrays = new DeferredCompiler(() => _arrays);
             ICompiler _objects = null;
             ICompiler objects = new DeferredCompiler(() => _objects);
-            ICompiler maybeObjects = new IfCompiler(s => s.TargetType == typeof(object), objects);
 
             // Scalars are primitive types which can be directly converted to from column values
             ICompiler scalars = new ScalarCompiler(scalarMapCompilers);
@@ -47,38 +46,35 @@ namespace CastIron.Sql.Mapping
             // Tuple compiler fills by index, so tuple values cannot be things which consume all contents
             // greedily (collections, dictionaries)
             ICompiler tupleContents = new FirstCompiler(
-                maybeObjects,
+                objects,
                 maybeScalars,
                 maybeCustomObjects
             );
-            ICompiler maybeTuples = new IfCompiler(s => s.TargetType.IsTupleType(),
-                new TupleCompiler(tupleContents)
-            );
+            ICompiler tuples = new TupleCompiler(tupleContents);
+
 #if NETSTANDARD
-            ICompiler maybeValueTuples = new IfCompiler(s => s.TargetType.IsValueTupleType(),
-                new ValueTupleCompiler(tupleContents)
-            );
+            ICompiler valueTuples = new ValueTupleCompiler(tupleContents);
 #endif
 
             // Dictionaries consume contents greedily and fill in as much as possible by column name
             ICompiler dictionaryContents = allTypes;
             ICompiler concreteDictionaries = new ConcreteDictionaryCompiler(dictionaryContents);
-            ICompiler maybeConcreteDictionaries = new IfCompiler(s => s.TargetType.IsConcreteDictionaryType(), concreteDictionaries);
             ICompiler abstractDictionaries = new AbstractDictionaryCompiler(dictionaryContents);
-            ICompiler maybeAbstractDictionaries = new IfCompiler(s => s.TargetType.IsDictionaryInterfaceType(), abstractDictionaries);
 
             // "object" compiler may instantiate a dictionary, scalar or array depending on location in the
             // object graph and number of available columns
             _objects = new ObjectCompiler(concreteDictionaries, scalars, arrays);
 
-            // arrays and collections can contain scalars which don't consume greedily
+            // collections can contain scalars but also other non-scalar types which do not consume
+            // columns greedily. Otherwise we would have a collection of length 1, which contains
+            // a collection that consumes all available columns, which isn't an interesting case.
             ICompiler nonScalarCollectionContents = new FirstCompiler(
-                maybeTuples,
+                tuples,
 #if NETSTANDARD
-                maybeValueTuples,
+                valueTuples,
 #endif
-                maybeConcreteDictionaries,
-                maybeAbstractDictionaries,
+                concreteDictionaries,
+                abstractDictionaries,
                 maybeCustomObjects
             );
             ICompiler concreteCollections = new ConcreteCollectionCompiler(scalars, nonScalarCollectionContents);
@@ -87,20 +83,19 @@ namespace CastIron.Sql.Mapping
             // We instantiate arrays for array types and collections without a specified element type
             // (IEnumerable, ICollection, IList)
             _arrays = new ArrayCompiler(customObjects, scalars);
-            ICompiler maybeArrays = new IfCompiler(s => s.TargetType.IsArrayType(), arrays);
 
-            // All the possible mapping types, each of which behind a predicate
+            // All the possible mapping types
             _allTypes = new FirstCompiler(
-                maybeObjects,
+                objects,
                 maybeScalars,
-                maybeArrays,
-                maybeConcreteDictionaries,
-                maybeAbstractDictionaries,
-                new IfCompiler(s => s.TargetType.IsAbstractCollectionType(), abstractCollections),
-                new IfCompiler(s => s.TargetType.IsConcreteCollectionType(), concreteCollections),
-                maybeTuples,
+                arrays,
+                concreteDictionaries,
+                abstractDictionaries,
+                abstractCollections,
+                concreteCollections,
+                tuples,
 #if NETSTANDARD
-                maybeValueTuples,
+                valueTuples,
 #endif
                 maybeCustomObjects
             );

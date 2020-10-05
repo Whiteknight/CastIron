@@ -24,6 +24,9 @@ namespace CastIron.Sql.Mapping.Compilers
 
         public ConstructedValueExpression Compile(MapTypeContext context)
         {
+            if (!IsSupportedType(context.TargetType))
+                return ConstructedValueExpression.Nothing;
+
             // Element type and constructor should both always be available for Array types, and
             // we know this is an array type in MapCompiler. Just assume we have these things, but
             // Debug.Assert them just to be sure.
@@ -46,6 +49,8 @@ namespace CastIron.Sql.Mapping.Compilers
             // It's not a type we know how to support, so do nothing
             return ConstructedValueExpression.Nothing;
         }
+
+        private static bool IsSupportedType(Type t) => t.IsArray && t.HasElementType;
 
         private ConstructedValueExpression CompileArrayOfScalar(MapTypeContext context, ConstructorInfo constructor, List<ColumnInfo> columns, Type elementType)
         {

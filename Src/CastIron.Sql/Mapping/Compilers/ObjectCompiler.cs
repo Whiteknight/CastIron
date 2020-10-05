@@ -24,6 +24,9 @@ namespace CastIron.Sql.Mapping.Compilers
 
         public ConstructedValueExpression Compile(MapTypeContext context)
         {
+            if (context.TargetType != typeof(object))
+                return ConstructedValueExpression.Nothing;
+
             // At the top-level (name==null) we convert to dictionary to preserve column name information
             if (context.Name == null)
             {

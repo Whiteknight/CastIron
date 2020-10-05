@@ -20,6 +20,9 @@ namespace CastIron.Sql.Mapping.Compilers
 
         public ConstructedValueExpression Compile(MapTypeContext context)
         {
+            if (!IsSupportedType(context.TargetType))
+                return ConstructedValueExpression.Nothing;
+
             var idictType = GetIDictionaryType(context);
             var elementType = idictType.GetGenericArguments()[1];
 
@@ -33,6 +36,19 @@ namespace CastIron.Sql.Mapping.Compilers
                 dictVar.Expressions.Concat(addStmts.Expressions),
                 Expression.Convert(dictVar.FinalValue, context.TargetType),
                 dictVar.Variables.Concat(addStmts.Variables));
+        }
+
+        // It is Dictionary<string,X> or is concrete and inherits from IDictionary<string,X>
+        private static bool IsSupportedType(Type t)
+        {
+            if (t.IsInterface || t.IsAbstract)
+                return false;
+            if (t.IsGenericType && t.GetGenericTypeDefinition() == typeof(Dictionary<,>) && t.GenericTypeArguments[0] == typeof(string))
+                return true;
+            var dictType = t.GetInterfaces()
+                .Where(i => i.IsGenericType)
+                .FirstOrDefault(i => i.GetGenericTypeDefinition() == typeof(IDictionary<,>) && i.GenericTypeArguments[0] == typeof(string));
+            return dictType != null;
         }
 
         private static MethodInfo GetIDictionaryAddMethod(Type targetType, Type idictType)
