@@ -258,6 +258,8 @@ namespace CastIron.Sql.Mapping.Compilers
             {
                 var result = _nonScalars.Compile(elementState);
                 var newNumberOfColumns = context.NumberOfColumns();
+
+                // We haven't consumed any new columns, so we're done.
                 if (newNumberOfColumns == numberOfColumns)
                     break;
                 expressions.AddRange(result.Expressions);

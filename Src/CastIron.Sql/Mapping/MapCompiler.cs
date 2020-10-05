@@ -36,7 +36,6 @@ namespace CastIron.Sql.Mapping
 
             // Scalars are primitive types which can be directly converted to from column values
             ICompiler scalars = new ScalarCompiler(scalarMapCompilers);
-            ICompiler maybeScalars = new IfCompiler(s => s.TargetType.IsSupportedPrimitiveType(), scalars);
 
             // Custom objects are objects which are not dictionaries, collections, tuples or object
             // Needs to handle scalars separately because of the set-in-place requirements
@@ -46,7 +45,7 @@ namespace CastIron.Sql.Mapping
             // greedily (collections, dictionaries)
             ICompiler tupleContents = new FirstCompiler(
                 objects,
-                maybeScalars,
+                scalars,
                 customObjects
             );
             ICompiler tuples = new TupleCompiler(tupleContents);
@@ -86,7 +85,7 @@ namespace CastIron.Sql.Mapping
             // All the possible mapping types
             _allTypes = new FirstCompiler(
                 objects,
-                maybeScalars,
+                scalars,
                 arrays,
                 concreteDictionaries,
                 abstractDictionaries,
