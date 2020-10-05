@@ -31,7 +31,7 @@ namespace CastIron.Sql.Mapping.Compilers
             typeof(IList<>),
             typeof(IReadOnlyCollection<>),
             typeof(IReadOnlyList<>)
-            // TODO: Would like to support ISet<T>, but that would probably require a new compiler
+            // Would like to support ISet<T>, but that would probably require a new compiler
         };
 
         public AbstractCollectionCompiler(ICompiler scalars, ICompiler nonScalars)

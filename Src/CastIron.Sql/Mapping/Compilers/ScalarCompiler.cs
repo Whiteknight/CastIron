@@ -24,7 +24,7 @@ namespace CastIron.Sql.Mapping.Compilers
 
         public ConstructedValueExpression Compile(MapTypeContext context)
         {
-            if (!context.TargetType.IsSupportedPrimitiveType())
+            if (!context.TargetType.IsSupportedPrimitiveType() && context.TargetType != typeof(object))
                 return ConstructedValueExpression.Nothing;
 
             var column = context.SingleColumn();
