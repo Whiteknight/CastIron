@@ -159,7 +159,7 @@ namespace CastIron.Sqlite.Tests.Mapping
             var result = target
                 .Query<IEnumerable<int>>("SELECT 1 AS A, 2 AS B, 3 AS C", c => c
                     .For<IEnumerable<int>>(d => d
-                        .UseClass<CollectionWithoutAddMethod>()
+                        .UseType<CollectionWithoutAddMethod>()
                     )
                 )
                 .First();
@@ -299,7 +299,7 @@ namespace CastIron.Sqlite.Tests.Mapping
             var result = target
                 .Query<IEnumerable<int>>("SELECT 1 AS A, 2 AS B, 3 AS C", c => c
                     .For<IEnumerable<int>>(d => d
-                        .UseClass<CollectionWithoutDefaultConstructor>()
+                        .UseType<CollectionWithoutDefaultConstructor>()
                     )
                 )
                 .First();
@@ -334,7 +334,7 @@ namespace CastIron.Sqlite.Tests.Mapping
             var result = target
                 .Query<IEnumerable>("SELECT 1 AS A, 2 AS B, 3 AS C", c => c
                     .For<IEnumerable>(d => d
-                        .UseClass<CustomEnumerableWithDuckTypedAdd>()
+                        .UseType<CustomEnumerableWithDuckTypedAdd>()
                     )
                 )
                 .First();

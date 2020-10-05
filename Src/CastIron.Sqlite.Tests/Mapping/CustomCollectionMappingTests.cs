@@ -69,7 +69,7 @@ namespace CastIron.Sqlite.Tests.Mapping
                     "SELECT 'A', 'B', 'C'",
                     b => b
                         .For<ICollection<string>>(c => c
-                            .UseClass<TestCollectionType>()
+                            .UseType<TestCollectionType>()
                         )
                     )
                 .First();
@@ -89,7 +89,7 @@ namespace CastIron.Sqlite.Tests.Mapping
                     "SELECT 'A', 'B', 'C'",
                     b => b
                         .For<IEnumerable<string>>(c => c
-                            .UseClass<TestCollectionType>()
+                            .UseType<TestCollectionType>()
                         )
                     )
                 .First();
@@ -110,7 +110,7 @@ namespace CastIron.Sqlite.Tests.Mapping
                     "SELECT 'A', 'B', 'C'",
                     b => b
                         .For<IList<string>>(c => c
-                            .UseClass<TestCollectionType>()
+                            .UseType<TestCollectionType>()
                         )
                     )
                 .First();

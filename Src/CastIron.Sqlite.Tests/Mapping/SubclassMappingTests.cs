@@ -37,8 +37,8 @@ namespace CastIron.Sqlite.Tests.Mapping
                 return result
                     .AsEnumerable<TestNumber>(b => b
                         .For<TestNumber>(c => c
-                            .UseClass<TestSmallNumber>()
-                            .UseSubclass<TestBigNumber>(r => r.GetInt32(0) > 3)
+                            .UseType<TestSmallNumber>()
+                            .UseSubtype<TestBigNumber>(r => r.GetInt32(0) > 3)
                         )
                     )
                     .ToList();
@@ -84,8 +84,8 @@ namespace CastIron.Sqlite.Tests.Mapping
                 return result
                     .AsEnumerable<TestNumber>(b => b
                         .For<TestNumber>(c => c
-                            .UseClass<TestSmallNumber>()
-                            .UseSubclass<TestBigNumber>(r => r.GetInt32(0) > 3)
+                            .UseType<TestSmallNumber>()
+                            .UseSubtype<TestBigNumber>(r => r.GetInt32(0) > 3)
                         )
                     )
                     .ToList();

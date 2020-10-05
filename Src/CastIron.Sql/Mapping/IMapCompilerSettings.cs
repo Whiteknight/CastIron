@@ -104,7 +104,7 @@ namespace CastIron.Sql.Mapping
         /// </summary>
         /// <typeparam name="TSpecific"></typeparam>
         /// <returns></returns>
-        IMapCompilerSettings<T> UseClass<TSpecific>()
+        IMapCompilerSettings<T> UseType<TSpecific>()
             where TSpecific : T;
 
         /// <summary>
@@ -115,7 +115,7 @@ namespace CastIron.Sql.Mapping
         /// <param name="predicate"></param>
         /// <param name="setup"></param>
         /// <returns></returns>
-        IMapCompilerSettings<T> UseSubclass<TSubclass>(Func<IDataRecord, bool> predicate, Action<IMapCompilerSettingsBase<T>> setup = null)
+        IMapCompilerSettings<T> UseSubtype<TSubclass>(Func<IDataRecord, bool> predicate, Action<IMapCompilerSettingsBase<T>> setup = null)
             where TSubclass : T;
     }
 }

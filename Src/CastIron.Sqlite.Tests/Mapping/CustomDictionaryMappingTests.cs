@@ -59,7 +59,7 @@ namespace CastIron.Sqlite.Tests.Mapping
                 .Query<IDictionary<string, int>>(
                     "SELECT 5 AS A, 6 AS B, 7 AS C;",
                     b => b.For<IDictionary<string, int>>(
-                        c => c.UseClass<CustomDictionary>()
+                        c => c.UseType<CustomDictionary>()
                     )
                 )
                 .First();

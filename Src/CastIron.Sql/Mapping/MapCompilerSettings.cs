@@ -99,25 +99,33 @@ namespace CastIron.Sql.Mapping
             return this;
         }
 
-        public IMapCompilerSettings<T> UseClass<TSpecific>()
+        public IMapCompilerSettings<T> UseType<TSpecific>()
             where TSpecific : T
         {
+            // TSpecific must be a constructable, public class
+            var type = typeof(TSpecific);
+            if (type.IsInterface || type.IsAbstract)
+                throw MapCompilerException.UnconstructableAbstractType(type);
             _specific.SetType(typeof(TSpecific));
             return this;
         }
 
-        public IMapCompilerSettings<T> UseSubclass<TSubclass>(Func<IDataRecord, bool> predicate, Action<IMapCompilerSettingsBase<T>> setup = null)
-            where TSubclass : T
+        public IMapCompilerSettings<T> UseSubtype<TSubtype>(Func<IDataRecord, bool> predicate, Action<IMapCompilerSettingsBase<T>> setup = null)
+            where TSubtype : T
         {
             Argument.NotNull(predicate, nameof(predicate));
 
-            var predicateContext = new SpecificTypeSettings<T, TSubclass>();
-            predicateContext.SetType(typeof(TSubclass));
+            var subclassType = typeof(TSubtype);
+            if (subclassType.IsInterface || subclassType.IsAbstract)
+                throw MapCompilerException.UnconstructableAbstractType(subclassType);
+
+            var predicateContext = new SpecificTypeSettings<T, TSubtype>();
+            predicateContext.SetType(typeof(TSubtype));
             predicateContext.Predicate = predicate;
 
             if (setup != null)
             {
-                var specific = new SpecificTypeSettings<T, TSubclass>();
+                var specific = new SpecificTypeSettings<T, TSubtype>();
                 _currentType.AddType(specific);
                 var subclassContext = new MapCompilerSettings<T>(_types, _currentType, specific);
                 setup.Invoke(subclassContext);
