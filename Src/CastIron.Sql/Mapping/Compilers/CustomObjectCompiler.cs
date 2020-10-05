@@ -24,6 +24,9 @@ namespace CastIron.Sql.Mapping.Compilers
 
         public ConstructedValueExpression Compile(MapTypeContext context)
         {
+            if (!context.TargetType.IsMappableCustomObjectType())
+                return ConstructedValueExpression.Nothing;
+
             var expressions = new List<Expression>();
             var variables = new List<ParameterExpression>();
 

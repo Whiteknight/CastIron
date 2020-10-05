@@ -34,7 +34,6 @@ namespace CastIron.Sql.Mapping.Compilers
             // TODO: Would like to support ISet<T>, but that would probably require a new compiler
         };
 
-
         public AbstractCollectionCompiler(ICompiler scalars, ICompiler nonScalars)
         {
             _scalars = scalars;

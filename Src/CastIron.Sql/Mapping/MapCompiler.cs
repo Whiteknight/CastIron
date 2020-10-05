@@ -41,14 +41,13 @@ namespace CastIron.Sql.Mapping
             // Custom objects are objects which are not dictionaries, collections, tuples or object
             // Needs to handle scalars separately because of the set-in-place requirements
             ICompiler customObjects = new CustomObjectCompiler(allTypes, scalars);
-            ICompiler maybeCustomObjects = new IfCompiler(s => s.TargetType.IsMappableCustomObjectType(), customObjects);
 
             // Tuple compiler fills by index, so tuple values cannot be things which consume all contents
             // greedily (collections, dictionaries)
             ICompiler tupleContents = new FirstCompiler(
                 objects,
                 maybeScalars,
-                maybeCustomObjects
+                customObjects
             );
             ICompiler tuples = new TupleCompiler(tupleContents);
 
@@ -75,7 +74,7 @@ namespace CastIron.Sql.Mapping
 #endif
                 concreteDictionaries,
                 abstractDictionaries,
-                maybeCustomObjects
+                customObjects
             );
             ICompiler concreteCollections = new ConcreteCollectionCompiler(scalars, nonScalarCollectionContents);
             ICompiler abstractCollections = new AbstractCollectionCompiler(scalars, nonScalarCollectionContents);
@@ -97,7 +96,7 @@ namespace CastIron.Sql.Mapping
 #if NETSTANDARD
                 valueTuples,
 #endif
-                maybeCustomObjects
+                customObjects
             );
             return _allTypes;
         }
