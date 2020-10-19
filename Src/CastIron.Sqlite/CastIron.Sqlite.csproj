@@ -5,7 +5,7 @@
     <AssemblyName>CastIron.Sqlite</AssemblyName>
     <RootNamespace>CastIron.Sqlite</RootNamespace>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <Version>2.0.0-alpha2</Version>
+    <Version>2.0.0-alpha3</Version>
     <Authors>Andrew F. Whitworth</Authors>
     <LangVersion>8.0</LangVersion>
     <Company />
@@ -28,12 +28,8 @@
     <PackageReference Include="Microsoft.Data.Sqlite" Version="2.1.0" />
   </ItemGroup>
 
-    <ItemGroup Condition="'$(Configuration)' == 'Release'">
-        <PackageReference Include="CastIron.Sql" Version="1.0.0"></PackageReference>
-    </ItemGroup>
-
-    <ItemGroup Condition="'$(Configuration)' == 'Debug'">
-        <ProjectReference Include="..\CastIron.Sql\CastIron.Sql.csproj"></ProjectReference>
-    </ItemGroup>
+  <ItemGroup >
+      <ProjectReference Include="..\CastIron.Sql\CastIron.Sql.csproj"></ProjectReference>
+  </ItemGroup>
 
 </Project>

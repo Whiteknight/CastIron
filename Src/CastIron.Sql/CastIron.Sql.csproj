@@ -6,7 +6,7 @@
     <RootNamespace>CastIron.Sql</RootNamespace>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <LangVersion>8.0</LangVersion>
-    <Version>2.0.0-alpha2</Version>
+    <Version>2.0.0-alpha3</Version>
     <Authors>Andrew F. Whitworth</Authors>
     <Company />
     <Description>Bare-metal SQL Micro-ORM with Query Object implementation</Description>
