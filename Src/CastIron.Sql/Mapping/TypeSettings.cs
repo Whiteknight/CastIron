@@ -5,11 +5,12 @@ using System.Linq;
 namespace CastIron.Sql.Mapping
 {
     /// <summary>
-    /// Used during compilation to get settings related to a type. During compilation, the type
-    /// instantiated may be this type or a subtype
+    /// Used during compilation to get settings related to a type. 
     /// </summary>
     public interface ITypeSettings
     {
+        // We use this interface to hide access to other public methods of the TypeSettings<T> 
+        // class which external code should not call directly.
         Type BaseType { get; }
         ISpecificTypeSettings GetDefault();
         IEnumerable<ISpecificTypeSettings> GetSpecificTypes();

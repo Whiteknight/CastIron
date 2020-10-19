@@ -4,6 +4,12 @@ using System.Text;
 
 namespace CastIron.Sql.Mapping
 {
+    /// <summary>
+    /// Tries to produce a more succinct, print-friendly, common stringification for a Type name
+    /// than anything the built-in System.Type offers by default. The string representation of the
+    /// type generated here is not round-trip friendly in a strict sense, but should be enough
+    /// to help a programmer figure out what's going on.
+    /// </summary>
     public class TypeFriendlyNameStringifier
     {
         public static TypeFriendlyNameStringifier Instance { get; } = new TypeFriendlyNameStringifier();
