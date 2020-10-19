@@ -1,7 +1,14 @@
-  dotnet build -f netstandard2.0 Src/CastIron.Sql/CastIron.Sql.csproj
-#  dotnet build --no-dependencies -f netstandard2.0 Src/CastIron.MySql/CastIron.MySql.csproj
-#  dotnet build --no-dependencies -f netstandard2.0 Src/CastIron.Postgres/CastIron.Postgres.csproj
-  dotnet build --no-dependencies -f netstandard2.0 Src/CastIron.Sqlite/CastIron.Sqlite.csproj
+dotnet build Src/CastIron.Sql/CastIron.Sql.csproj --configuration Release
+dotnet pack --no-build --no-restore Src/CastIron.Sql/CastIron.Sql.csproj --configuration Release
 
-#  dotnet build --no-dependencies -f netcoreapp2.0 Src/CastIron.Sql.Tests/CastIron.Sql.Tests.csproj
- dotnet build --no-dependencies -f netcoreapp2.0 Src/CastIron.Sql.Tests/CastIron.Sqlite.Tests.csproj
+dotnet build Src/CastIron.SqlServer/CastIron.SqlServer.csproj --configuration Release
+dotnet pack --no-build --no-restore Src/CastIron.SqlServer/CastIron.SqlServer.csproj --configuration Release
+
+dotnet build Src/CastIron.Sqlite/CastIron.Sqlite.csproj --configuration Release
+dotnet pack --no-build --no-restore Src/CastIron.Sqlite/CastIron.Sqlite.csproj --configuration Release
+
+dotnet build Src/CastIron.Postgres/CastIron.Postgres.csproj --configuration Release
+dotnet pack --no-build --no-restore Src/CastIron.Postgres/CastIron.Postgres.csproj --configuration Release
+
+dotnet build Src/CastIron.MySql/CastIron.MySql.csproj --configuration Release
+dotnet pack --no-build --no-restore Src/CastIron.MySql/CastIron.MySql.csproj --configuration Release
