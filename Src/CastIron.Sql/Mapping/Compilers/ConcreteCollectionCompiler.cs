@@ -67,11 +67,15 @@ namespace CastIron.Sql.Mapping.Compilers
         }
 
         private static bool IsSupportedType(Type t)
-            =>
-                !t.IsInterface
-                && !t.IsAbstract
-                && t.GetInterfaces().Any(i => i == typeof(IEnumerable) || (i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IEnumerable<>)))
-                && t.GetMethods(BindingFlags.Public | BindingFlags.Instance).Any(m => m.Name == "Add");
+        {
+            if (t.IsInterface || t.IsAbstract)
+                return false;
+
+            if (!t.GetInterfaces().Any(i => i == typeof(IEnumerable) || (i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IEnumerable<>))))
+                return false;
+            var addMethod = t.GetMethod("Add", BindingFlags.Public | BindingFlags.Instance);
+            return addMethod != null;
+        }
 
         private ConcreteTypeInfo GetTypeInfo(MapTypeContext context)
         {

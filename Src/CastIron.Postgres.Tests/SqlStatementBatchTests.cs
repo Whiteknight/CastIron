@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using System.Threading.Tasks;
 using CastIron.Sql;
 using FluentAssertions;
 using NUnit.Framework;
@@ -100,7 +101,7 @@ namespace CastIron.Postgres.Tests
         }
 
         [Test]
-        public async void CommandAndQueryBatch_AsTask()
+        public async Task CommandAndQueryBatch_AsTask()
         {
             var runner = RunnerFactory.Create();
             var batch = runner.CreateBatch();

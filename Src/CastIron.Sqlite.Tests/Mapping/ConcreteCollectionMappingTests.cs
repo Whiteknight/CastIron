@@ -161,5 +161,27 @@ namespace CastIron.Sqlite.Tests.Mapping
             result[2]["ID"].Should().Be("3");
             result[2]["Name"].Should().Be("TEST3");
         }
+
+        [Test]
+        public void Map_HashSetT()
+        {
+            var target = RunnerFactory.Create();
+            var result = target.Query<HashSet<int>>("SELECT 5 AS A, 6 AS B, 7 AS C;").First();
+            result.Count.Should().Be(3);
+            result.Contains(5).Should().BeTrue();
+            result.Contains(6).Should().BeTrue();
+            result.Contains(7).Should().BeTrue();
+        }
+
+        [Test]
+        public void Map_SortedSetT()
+        {
+            var target = RunnerFactory.Create();
+            var result = target.Query<SortedSet<int>>("SELECT 5 AS A, 6 AS B, 7 AS C;").First();
+            result.Count.Should().Be(3);
+            result.Contains(5).Should().BeTrue();
+            result.Contains(6).Should().BeTrue();
+            result.Contains(7).Should().BeTrue();
+        }
     }
 }

@@ -282,6 +282,17 @@ namespace CastIron.Sqlite.Tests.Mapping
             resultAsList[2].Should().Be(7);
         }
 
+        [Test]
+        public void Map_ISetT()
+        {
+            var target = RunnerFactory.Create();
+            var result = target.Query<ISet<int>>("SELECT 5 AS A, 6 AS B, 7 AS C;").First();
+            result.Count.Should().Be(3);
+            result.Contains(5).Should().BeTrue();
+            result.Contains(6).Should().BeTrue();
+            result.Contains(7).Should().BeTrue();
+        }
+
         public class CollectionWithoutDefaultConstructor : IEnumerable<int>
         {
             public CollectionWithoutDefaultConstructor(int a, string b)

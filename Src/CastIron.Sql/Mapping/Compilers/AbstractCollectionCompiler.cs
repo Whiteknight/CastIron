@@ -30,8 +30,8 @@ namespace CastIron.Sql.Mapping.Compilers
             typeof(ICollection<>),
             typeof(IList<>),
             typeof(IReadOnlyCollection<>),
-            typeof(IReadOnlyList<>)
-            // Would like to support ISet<T>, but that would probably require a new compiler
+            typeof(IReadOnlyList<>),
+            typeof(ISet<>)
         };
 
         public AbstractCollectionCompiler(ICompiler scalars, ICompiler nonScalars)
@@ -132,7 +132,7 @@ namespace CastIron.Sql.Mapping.Compilers
 
             // Just use List<T> if there is no custom type
             if (collectionType == null)
-                return GetListOfTTypeInfo(elementType);
+                return GetDefaultConcreteTypeInfo(context.TargetType, elementType);
 
             // The type should have an Add(T) method (even if the interface we're using is 
             // IReadOnly...<T>). The Add method might not be exposed through the interface.
@@ -142,7 +142,7 @@ namespace CastIron.Sql.Mapping.Compilers
 
             // Fall back to List<T> if the custom type isn't working out.
             if (addMethod == null || constructor == null)
-                return GetListOfTTypeInfo(elementType);
+                return GetDefaultConcreteTypeInfo(context.TargetType, elementType);
 
             return new ConcreteCollectionInfo(collectionType, elementType, constructor, addMethod);
         }
@@ -153,7 +153,7 @@ namespace CastIron.Sql.Mapping.Compilers
             // an appropriate elementType and Add() method variant
             var typeSettings = context.Settings.GetTypeSettings(context.TargetType);
             if (typeSettings.BaseType == typeof(object))
-                return GetListOfTTypeInfo(typeof(object));
+                return GetDefaultConcreteTypeInfo(context.TargetType, typeof(object));
 
             var customType = typeSettings.GetDefault().Type;
 
@@ -172,18 +172,25 @@ namespace CastIron.Sql.Mapping.Compilers
             // List<object>. There's no way to signal an error from here, so the user has to 
             // figure it out.
             if (constructor == null || addMethods.Count == 0)
-                return GetListOfTTypeInfo(typeof(object));
+                return GetDefaultConcreteTypeInfo(context.TargetType, typeof(object));
 
             var bestAddMethod = addMethods.FirstOrDefault();
             return new ConcreteCollectionInfo(customType, bestAddMethod.Parameter.ParameterType, constructor, bestAddMethod.AddMethod);
         }
 
-        private ConcreteCollectionInfo GetListOfTTypeInfo(Type elementType)
+        private ConcreteCollectionInfo GetDefaultConcreteTypeInfo(Type targetType, Type elementType)
         {
-            var listOfTType = typeof(List<>).MakeGenericType(elementType);
-            var addTMethod = listOfTType.GetMethod(nameof(List<object>.Add), BindingFlags.Public | BindingFlags.Instance);
-            var listTConstructor = listOfTType.GetConstructor(new Type[0]);
-            return new ConcreteCollectionInfo(listOfTType, elementType, listTConstructor, addTMethod);
+            // Return List<T> for everything except ISet<T>. Return SortedSet<T> if we are looking for ISet<T>
+            if (targetType.IsGenericType && targetType.GetGenericTypeDefinition() == typeof(ISet<>))
+                return GetConcreteTypeInfo(typeof(SortedSet<>).MakeGenericType(elementType), elementType);
+            return GetConcreteTypeInfo(typeof(List<>).MakeGenericType(elementType), elementType);
+        }
+
+        private ConcreteCollectionInfo GetConcreteTypeInfo(Type concreteType, Type elementType)
+        {
+            var addTMethod = concreteType.GetMethod(nameof(List<object>.Add), BindingFlags.Public | BindingFlags.Instance);
+            var listTConstructor = concreteType.GetConstructor(new Type[0]);
+            return new ConcreteCollectionInfo(concreteType, elementType, listTConstructor, addTMethod);
         }
 
         private static ConstructedValueExpression GetMaybeInstantiateCollectionExpression(MapTypeContext context, ConstructorInfo constructor)
