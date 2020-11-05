@@ -74,7 +74,7 @@ namespace CastIron.Sql.Mapping
             typeof(ushort?),
         };
 
-        public static bool IsSupportedPrimitiveType(this Type t) => _primitiveTypes.Contains(t);
+        public static bool IsSupportedPrimitiveType(this Type t) => _primitiveTypes.Contains(t) || t.IsEnum;
 
         public static bool IsNumericType(this Type t) => _numericTypes.Contains(t);
 

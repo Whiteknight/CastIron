@@ -23,7 +23,8 @@ namespace CastIron.Sql.Mapping.ScalarCompilers
                         Expression.Call(
                             null,
                             _guidParseMethod,
-                            Expression.Convert(rawVar, typeof(string))
+                            Expression.Convert(rawVar, typeof(string)),
+                            Expression.Constant(true)
                         ),
                         targetType
                     ),

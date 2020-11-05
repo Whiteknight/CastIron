@@ -14,6 +14,7 @@ namespace CastIron.Sql.Mapping
             new NumericConversionMapCompiler(),
             new NumberToBoolMapCompiler(),
             new StringToGuidMapCompiler(),
+            new EnumScalarMapCompiler(),
             new ConvertibleMapCompiler(),
             new DefaultScalarMapCompiler(),
         };
