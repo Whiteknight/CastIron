@@ -29,8 +29,8 @@ namespace CastIron.Sql.Mapping.Compilers
             var constructor = GetDictionaryConstructor(context.TargetType);
             var addMethod = GetIDictionaryAddMethod(context.TargetType, idictType);
 
-            var dictVar = GetMaybeInstantiateDictionaryExpression(context, constructor);
-            var addStmts = AddDictionaryPopulateStatements(context, elementType, dictVar.FinalValue, addMethod);
+            var dictVar = DictionaryExpressionFactory.GetMaybeInstantiateDictionaryExpression(context, constructor);
+            var addStmts = DictionaryExpressionFactory.AddDictionaryPopulateStatements(_valueCompiler, context, elementType, dictVar.FinalValue, addMethod);
 
             return new ConstructedValueExpression(
                 dictVar.Expressions.Concat(addStmts.Expressions),
@@ -67,86 +67,6 @@ namespace CastIron.Sql.Mapping.Compilers
                 .Where(i => i.IsGenericType)
                 .FirstOrDefault(i => i.GetGenericTypeDefinition() == typeof(IDictionary<,>) && i.GenericTypeArguments[0] == typeof(string))
                 ?? throw MapCompilerException.InvalidDictionaryTargetType(context.TargetType);
-        }
-
-        private static ConstructedValueExpression GetMaybeInstantiateDictionaryExpression(MapTypeContext context, ConstructorInfo constructor)
-        {
-            var newInstance = context.CreateVariable(context.TargetType, "dictionary");
-            if (context.GetExisting == null)
-            {
-                // There's no way to get an existing value, so call the parameterless constructor
-                var getNewInstanceExpr = Expression.Assign(
-                    newInstance,
-                    Expression.New(constructor)
-                );
-                return new ConstructedValueExpression(new[] { getNewInstanceExpr }, newInstance, new[] { newInstance });
-            }
-
-            // Try to get the existing value. If we have it return it. Otherwise call the default
-            // parameterless constructor
-            var tryGetExistingInstanceExpr = Expression.Assign(
-                newInstance,
-                Expression.Condition(
-                    Expression.Equal(
-                        context.GetExisting,
-                        Expression.Constant(null)
-                    ),
-                    Expression.Convert(
-                        Expression.New(constructor),
-                        context.TargetType
-                    ),
-                    Expression.Convert(context.GetExisting, context.TargetType)
-                )
-            );
-            return new ConstructedValueExpression(new[] { tryGetExistingInstanceExpr }, newInstance, new[] { newInstance });
-        }
-
-        private ConstructedValueExpression AddDictionaryPopulateStatements(MapTypeContext context, Type elementType, Expression dictVar, MethodInfo addMethod)
-        {
-            var expressions = new List<Expression>();
-            var variables = new List<ParameterExpression>();
-            if (context.Name == null)
-            {
-                var firstColumnsByName = context.GetFirstIndexForEachColumnName();
-                foreach (var column in firstColumnsByName)
-                {
-                    var substate = context.GetSubstateForProperty(column.CanonicalName, null, elementType);
-                    var getScalarExpression = _valueCompiler.Compile(substate);
-                    expressions.AddRange(getScalarExpression.Expressions);
-                    expressions.Add(
-                        Expression.Call(
-                            dictVar,
-                            addMethod,
-                            Expression.Constant(column.OriginalName),
-                            getScalarExpression.FinalValue
-                        )
-                    );
-                    variables.AddRange(getScalarExpression.Variables);
-                }
-
-                return new ConstructedValueExpression(expressions, null, variables);
-            }
-
-            var columns = context.GetFirstIndexForEachColumnName();
-            foreach (var column in columns)
-            {
-                var keyName = column.OriginalName.Substring(context.CurrentPrefix.Length);
-                var childName = column.CanonicalName.Substring(context.CurrentPrefix.Length);
-                var columnSubstate = context.GetSubstateForColumn(column, elementType, childName);
-                var getScalarExpression = _valueCompiler.Compile(columnSubstate);
-                expressions.AddRange(getScalarExpression.Expressions);
-                expressions.Add(
-                    Expression.Call(
-                        dictVar,
-                        addMethod,
-                        Expression.Constant(keyName),
-                        getScalarExpression.FinalValue
-                    )
-                );
-                variables.AddRange(getScalarExpression.Variables);
-            }
-
-            return new ConstructedValueExpression(expressions, null, variables);
         }
     }
 }

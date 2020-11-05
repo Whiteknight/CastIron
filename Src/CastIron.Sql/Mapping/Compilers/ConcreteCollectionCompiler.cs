@@ -53,7 +53,7 @@ namespace CastIron.Sql.Mapping.Compilers
 
             if (!t.GetInterfaces().Any(i => i == typeof(IEnumerable) || (i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IEnumerable<>))))
                 return false;
-            var addMethod = t.GetMethod("Add", BindingFlags.Public | BindingFlags.Instance);
+            var addMethod = t.GetMethod(AddMethodName, BindingFlags.Public | BindingFlags.Instance);
             return addMethod != null;
         }
 
