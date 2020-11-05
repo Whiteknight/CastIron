@@ -58,7 +58,7 @@ namespace CastIron.Sqlite.Tests.Mapping
             var result = target
                 .Query<IDictionary<string, int>>(
                     "SELECT 5 AS A, 6 AS B, 7 AS C;",
-                    b => b.For<IDictionary<string, int>>(
+                    setup: b => b.For<IDictionary<string, int>>(
                         c => c.UseType<CustomDictionary>()
                     )
                 )

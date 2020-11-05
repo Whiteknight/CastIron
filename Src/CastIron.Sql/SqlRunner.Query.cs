@@ -1,11 +1,11 @@
-﻿using CastIron.Sql.Execution;
-using CastIron.Sql.Mapping;
-using CastIron.Sql.Statements;
-using CastIron.Sql.Utility;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using CastIron.Sql.Execution;
+using CastIron.Sql.Mapping;
+using CastIron.Sql.Statements;
+using CastIron.Sql.Utility;
 
 namespace CastIron.Sql
 {
@@ -19,11 +19,11 @@ namespace CastIron.Sql
         /// <param name="runner"></param>
         /// <param name="sql"></param>
         /// <returns></returns>
-        public static IReadOnlyList<T> Query<T>(this ISqlRunner runner, string sql, Action<IMapCompilerSettings> setupCompiler = null)
+        public static IReadOnlyList<T> Query<T>(this ISqlRunner runner, string sql, Action<IMapCompilerSettings> setup = null, bool cacheMappings = false)
         {
             Argument.NotNull(runner, nameof(runner));
             Argument.NotNullOrEmpty(sql, nameof(sql));
-            return runner.Query(SqlQuery.FromString<T>(sql, setupCompiler));
+            return runner.Query(SqlQuery.FromString<T>(sql, setup, cacheMappings));
         }
 
         /// <summary>
@@ -110,11 +110,11 @@ namespace CastIron.Sql
         /// <param name="runner"></param>
         /// <param name="sql"></param>
         /// <returns></returns>
-        public static Task<IReadOnlyList<T>> QueryAsync<T>(this ISqlRunner runner, string sql, Action<IMapCompilerSettings> setupCompiler = null)
+        public static Task<IReadOnlyList<T>> QueryAsync<T>(this ISqlRunner runner, string sql, Action<IMapCompilerSettings> setup = null, bool cacheMappings = false)
         {
             Argument.NotNull(runner, nameof(runner));
             Argument.NotNullOrEmpty(sql, nameof(sql));
-            return runner.QueryAsync(SqlQuery.FromString<T>(sql, setupCompiler));
+            return runner.QueryAsync(SqlQuery.FromString<T>(sql, setup, cacheMappings));
         }
 
         /// <summary>

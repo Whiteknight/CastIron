@@ -13,5 +13,16 @@ namespace CastIron.Sql.Statements
         }
 
         public string GetSql() => _sql;
+
+        public override int GetHashCode() => _sql.GetHashCode();
+
+        public override bool Equals(object obj)
+        {
+            if (obj == null)
+                return false;
+            if (!(obj is SqlCommand typed))
+                return false;
+            return _sql == typed._sql;
+        }
     }
 }

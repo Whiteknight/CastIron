@@ -25,7 +25,7 @@ namespace CastIron.SqlServer.Tests
 
         public static ISqlRunner Create(Action<IContextBuilder> defaultBuilder = null)
         {
-            return SqlServer.RunnerFactory.Create(_configuration["MSSQL"], defaultBuilder);
+            return SqlServer.RunnerFactory.Create(_configuration["MSSQL"], null, null, defaultBuilder);
         }
     }
 }

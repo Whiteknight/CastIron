@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using System.Threading.Tasks;
 using CastIron.Sql;
 using FluentAssertions;
 using NUnit.Framework;
@@ -100,15 +101,16 @@ namespace CastIron.Sqlite.Tests
         }
 
         [Test]
-        public void CommandAndQueryBatch_AsTask()
+        public async Task CommandAndQueryBatch_AsTask()
         {
             var runner = RunnerFactory.Create();
             var batch = runner.CreateBatch();
             var promise = batch.Add(new QuerySimpleQuery());
             var task = promise.AsTask(TimeSpan.FromSeconds(10));
+
             runner.Execute(batch);
 
-            var result = task.Result;
+            var result = await task;
             result.Should().Be("TEST");
         }
 

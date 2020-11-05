@@ -58,7 +58,7 @@ namespace CastIron.Sql.Execution
                 int rowsAffected = dbCommand.Command.ExecuteNonQuery();
 
                 context.StartMapResults(index);
-                var resultSet = new DataReaderResults(dbCommand, context, null, rowsAffected);
+                var resultSet = new DataReaderResults(dbCommand, context, null, rowsAffected, command);
                 return command.ReadOutputs(resultSet);
             }
             catch (SqlQueryException)
@@ -119,7 +119,7 @@ namespace CastIron.Sql.Execution
                 var rowsAffected = await dbCommand.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
 
                 context.StartMapResults(index);
-                var resultSet = new DataReaderResults(dbCommand, context, null, rowsAffected);
+                var resultSet = new DataReaderResults(dbCommand, context, null, rowsAffected, command);
                 return command.ReadOutputs(resultSet);
             }
             catch (SqlQueryException)

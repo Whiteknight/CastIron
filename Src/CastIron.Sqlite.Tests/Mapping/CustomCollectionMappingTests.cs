@@ -67,7 +67,7 @@ namespace CastIron.Sqlite.Tests.Mapping
             var result = target
                 .Query<ICollection<string>>(
                     "SELECT 'A', 'B', 'C'",
-                    b => b
+                    setup: b => b
                         .For<ICollection<string>>(c => c
                             .UseType<TestCollectionType>()
                         )
@@ -87,7 +87,7 @@ namespace CastIron.Sqlite.Tests.Mapping
             var result = target
                 .Query<IEnumerable<string>>(
                     "SELECT 'A', 'B', 'C'",
-                    b => b
+                    setup: b => b
                         .For<IEnumerable<string>>(c => c
                             .UseType<TestCollectionType>()
                         )
@@ -108,7 +108,7 @@ namespace CastIron.Sqlite.Tests.Mapping
             var result = target
                 .Query<IList<string>>(
                     "SELECT 'A', 'B', 'C'",
-                    b => b
+                    setup: b => b
                         .For<IList<string>>(c => c
                             .UseType<TestCollectionType>()
                         )

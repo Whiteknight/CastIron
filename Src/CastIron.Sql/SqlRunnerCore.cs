@@ -1,9 +1,9 @@
-﻿using CastIron.Sql.Execution;
-using CastIron.Sql.Utility;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using CastIron.Sql.Execution;
+using CastIron.Sql.Utility;
 using ExecutionContext = CastIron.Sql.Execution.ExecutionContext;
 
 namespace CastIron.Sql

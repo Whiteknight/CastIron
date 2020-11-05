@@ -1,5 +1,6 @@
 ﻿using System;
 using CastIron.Sql;
+using CastIron.Sql.Mapping;
 
 namespace CastIron.Postgres
 {
@@ -14,12 +15,14 @@ namespace CastIron.Postgres
         /// Create the runner for the given connection string
         /// </summary>
         /// <param name="connectionString"></param>
-        /// <param name="defaultBuilder"></param>
+        /// <param name="build"></param>
         /// <returns></returns>
-        public static ISqlRunner Create(string connectionString, Action<IContextBuilder> defaultBuilder = null)
+        public static ISqlRunner Create(string connectionString, IMapCache mapCache = null, IMapCompilerSource compilerSource = null, Action<IContextBuilder> build = null)
         {
             var connectionFactory = new PostgresDbConnectionFactory(connectionString);
-            return new SqlRunner(_core, connectionFactory, defaultBuilder, new Sql.Mapping.MapCompilerSource());
+            mapCache = mapCache ?? new MapCache();
+            compilerSource = compilerSource ?? new MapCompilerSource();
+            return new SqlRunner(_core, connectionFactory, build, compilerSource, mapCache);
         }
     }
 }

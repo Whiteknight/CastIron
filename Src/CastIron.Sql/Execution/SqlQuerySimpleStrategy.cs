@@ -23,7 +23,7 @@ namespace CastIron.Sql.Execution
                 context.StartExecute(index, dbCommand);
                 using var reader = dbCommand.ExecuteReader();
                 context.StartMapResults(index);
-                var rawResultSet = new DataReaderResults(dbCommand, context, reader);
+                var rawResultSet = new DataReaderResults(dbCommand, context, reader, null, query);
                 return queryReader.Read(rawResultSet);
             }
             catch (SqlQueryException)
@@ -54,7 +54,7 @@ namespace CastIron.Sql.Execution
                 context.StartExecute(index, dbCommand);
                 using var reader = await dbCommand.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
                 context.StartMapResults(index);
-                var rawResultSet = new DataReaderResults(dbCommand, context, reader);
+                var rawResultSet = new DataReaderResults(dbCommand, context, reader, null, query);
                 return await Task.Run(() => queryReader.Read(rawResultSet), cancellationToken).ConfigureAwait(false);
             }
             catch (SqlQueryException)
@@ -88,7 +88,7 @@ namespace CastIron.Sql.Execution
                 var reader = command.ExecuteReader();
 
                 context.StartMapResults(1);
-                return new DataReaderResultsStream(command, context, reader);
+                return new DataReaderResultsStream(command, context, reader, query);
             }
             catch (SqlQueryException)
             {
@@ -123,7 +123,7 @@ namespace CastIron.Sql.Execution
                 var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
 
                 context.StartMapResults(1);
-                return new DataReaderResultsStream(command, context, reader);
+                return new DataReaderResultsStream(command, context, reader, query);
             }
             catch (SqlQueryException)
             {

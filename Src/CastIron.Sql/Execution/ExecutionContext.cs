@@ -17,11 +17,12 @@ namespace CastIron.Sql.Execution
         private PerformanceMonitor _monitor;
         private Action<string> _onCommandText;
 
-        public ExecutionContext(IDbConnectionFactory factory, IProviderConfiguration provider, IDbCommandStringifier stringifier, IMapCompiler compiler)
+        public ExecutionContext(IDbConnectionFactory factory, IProviderConfiguration provider, IDbCommandStringifier stringifier, IMapCompiler compiler, IMapCache mapCache)
         {
             MapCompiler = compiler;
             Stringifier = stringifier;
             Provider = provider;
+            MapCache = mapCache;
             _completed = 0;
             _opened = 0;
             Connection = factory.Create();
@@ -32,6 +33,8 @@ namespace CastIron.Sql.Execution
         public IDbConnectionAsync Connection { get; }
         public IDbTransaction Transaction { get; private set; }
         public IMapCompiler MapCompiler { get; }
+        public IMapCache MapCache { get; }
+
         public bool IsCompleted => Interlocked.CompareExchange(ref _completed, 0, 0) != 0;
         public bool IsOpen => Interlocked.CompareExchange(ref _opened, 0, 0) != 0;
 

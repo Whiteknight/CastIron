@@ -14,9 +14,12 @@ namespace CastIron.Sql.Mapping
         protected const string StateOutputParams = "OutputParams";
 
         private readonly int? _rowsAffected;
-        private ParameterCache _parameterCache;
+        private readonly object _queryObject;
 
-        protected DataReaderResultsBase(IDbCommandAsync command, IExecutionContext context, IDataReaderAsync reader, int? rowsAffected)
+        private ParameterCache _parameterCache;
+        private object _cacheKey;
+
+        protected DataReaderResultsBase(IDbCommandAsync command, IExecutionContext context, IDataReaderAsync reader, int? rowsAffected, object queryObject)
         {
             Command = command;
             Context = context;
@@ -24,6 +27,8 @@ namespace CastIron.Sql.Mapping
             CurrentSet = 0;
             Provider = context.Provider;
             _rowsAffected = rowsAffected;
+            _queryObject = queryObject;
+            _cacheKey = null;
 
             StateMachine = new StringKeyedStateMachine();
             StateMachine.AddState(StateRawReaderConsumed)
@@ -49,6 +54,11 @@ namespace CastIron.Sql.Mapping
         public int CurrentSet { get; private set; }
 
         public int RowsAffected => _rowsAffected ?? Reader?.Reader?.RecordsAffected ?? 0;
+
+        public void CacheMappings(bool useCache, object key = null)
+        {
+            _cacheKey = useCache ? (key ?? _queryObject) : null;
+        }
 
         public IDataReader AsRawReader()
         {
@@ -81,12 +91,21 @@ namespace CastIron.Sql.Mapping
 
         protected Func<IDataRecord, T> CreateMap<T>(Action<IMapCompilerSettings> setup)
         {
+            var cached = Context.MapCache.Get(_cacheKey, CurrentSet) as Func<IDataRecord, T>;
+            if (cached != null)
+                return cached;
+            var map = CreateMapInternal<T>(setup);
+            Context.MapCache.Cache(_cacheKey, CurrentSet, map);
+            return map;
+        }
+
+        private Func<IDataRecord, T> CreateMapInternal<T>(Action<IMapCompilerSettings> setup)
+        {
             var settings = new CompilationSettings();
             var compilerBuilder = new MapCompilerSettings(settings);
             setup?.Invoke(compilerBuilder);
             var operation = new MapContext(Provider, typeof(T), settings);
             var map = Context.MapCompiler.Compile<T>(operation, Reader.Reader);
-
             return map;
         }
 
@@ -157,8 +176,8 @@ namespace CastIron.Sql.Mapping
     /// </summary>
     public class DataReaderResults : DataReaderResultsBase, IDataResults
     {
-        public DataReaderResults(IDbCommandAsync command, IExecutionContext context, IDataReaderAsync reader, int? rowsAffected = null)
-            : base(command, context, reader, rowsAffected)
+        public DataReaderResults(IDbCommandAsync command, IExecutionContext context, IDataReaderAsync reader, int? rowsAffected, object queryObject)
+            : base(command, context, reader, rowsAffected, queryObject)
         {
         }
     }
@@ -167,8 +186,8 @@ namespace CastIron.Sql.Mapping
     {
         private const string StateDisposed = "Disposed";
 
-        public DataReaderResultsStream(IDbCommandAsync command, IExecutionContext context, IDataReaderAsync reader)
-            : base(command, context, reader, null)
+        public DataReaderResultsStream(IDbCommandAsync command, IExecutionContext context, IDataReaderAsync reader, object queryObject)
+            : base(command, context, reader, null, queryObject)
         {
             StateMachine.AddState(StateDisposed)
                 .TransitionOnEvent(StateRawReaderConsumed, null, ThrowDisposedException)

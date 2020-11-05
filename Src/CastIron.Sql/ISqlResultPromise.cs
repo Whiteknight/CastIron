@@ -23,7 +23,9 @@ namespace CastIron.Sql
         T GetValue();
 
         /// <summary>
-        /// Convert this promise into a Task which can be awaited
+        /// Convert this promise into a Task which can be awaited. The Task will only complete
+        /// after the batch has been executed. Use this only if the batch is executed on a separate
+        /// thread or if the batch has already been executed on the current thread. 
         /// </summary>
         /// <param name="timeout"></param>
         /// <returns></returns>

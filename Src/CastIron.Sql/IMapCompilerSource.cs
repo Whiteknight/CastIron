@@ -6,5 +6,6 @@ namespace CastIron.Sql
     {
         void Add(IScalarMapCompiler compiler);
         void Clear();
+        IMapCompiler GetCompiler();
     }
 }

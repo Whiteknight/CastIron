@@ -26,5 +26,6 @@ namespace CastIron.Sql.Execution
         bool IsCompleted { get; }
 
         IMapCompiler MapCompiler { get; }
+        IMapCache MapCache { get; }
     }
 }

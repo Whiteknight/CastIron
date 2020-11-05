@@ -157,7 +157,7 @@ namespace CastIron.Sqlite.Tests.Mapping
         {
             var target = RunnerFactory.Create();
             var result = target
-                .Query<IEnumerable<int>>("SELECT 1 AS A, 2 AS B, 3 AS C", c => c
+                .Query<IEnumerable<int>>("SELECT 1 AS A, 2 AS B, 3 AS C", setup: c => c
                     .For<IEnumerable<int>>(d => d
                         .UseType<CollectionWithoutAddMethod>()
                     )
@@ -297,7 +297,7 @@ namespace CastIron.Sqlite.Tests.Mapping
         {
             var target = RunnerFactory.Create();
             var result = target
-                .Query<IEnumerable<int>>("SELECT 1 AS A, 2 AS B, 3 AS C", c => c
+                .Query<IEnumerable<int>>("SELECT 1 AS A, 2 AS B, 3 AS C", setup: c => c
                     .For<IEnumerable<int>>(d => d
                         .UseType<CollectionWithoutDefaultConstructor>()
                     )
@@ -332,7 +332,7 @@ namespace CastIron.Sqlite.Tests.Mapping
         {
             var target = RunnerFactory.Create();
             var result = target
-                .Query<IEnumerable>("SELECT 1 AS A, 2 AS B, 3 AS C", c => c
+                .Query<IEnumerable>("SELECT 1 AS A, 2 AS B, 3 AS C", setup: c => c
                     .For<IEnumerable>(d => d
                         .UseType<CustomEnumerableWithDuckTypedAdd>()
                     )

@@ -60,6 +60,19 @@ namespace CastIron.Sql
         /// </summary>
         /// <returns></returns>
         ParameterCache GetParameters();
+
+        /// <summary>
+        /// Uses the cache to lookup compiled mappings and to save new mappings once they are
+        /// compiled. The default cache key used will be the ISqlQuery/ISqlCommand object instance,
+        /// so that object should make sure not to change the structure of the result set or the
+        /// compilation settings after the first call to .Read(). Notice that the cache holds a 
+        /// reference to the object used as the cache key, which will prevent that object from 
+        /// being garbage-collected. If you are using cache, make sure you try to reuse your query
+        /// object instances
+        /// </summary>
+        /// <param name="useCache"></param>
+        /// <param name="key"></param>
+        void CacheMappings(bool useCache, object key = null);
     }
 
     /// <summary>

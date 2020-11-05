@@ -17,23 +17,50 @@ namespace CastIron.Sql.Statements
         }
 
         public string GetSql() => _sql;
+
+        public override int GetHashCode() => _sql.GetHashCode();
+
+        public override bool Equals(object obj) => obj != null && obj is SqlQuerySimpleFromString typed && typed._sql == _sql;
     }
 
     public class SqlQuerySimpleFromString<TRow> : ISqlQuerySimple<IReadOnlyList<TRow>>
     {
         private readonly string _sql;
+        private readonly bool _cacheMappings;
         private readonly Action<IMapCompilerSettings> _setupCompiler;
 
-        public SqlQuerySimpleFromString(string sql, Action<IMapCompilerSettings> setupCompiler = null)
+        public SqlQuerySimpleFromString(string sql, Action<IMapCompilerSettings> setupCompiler = null, bool cacheMappings = false)
         {
             Argument.NotNullOrEmpty(sql, nameof(sql));
             _sql = sql;
+            _cacheMappings = cacheMappings;
             _setupCompiler = setupCompiler;
         }
 
         public string GetSql() => _sql;
 
         public IReadOnlyList<TRow> Read(IDataResults result)
-            => result.AsEnumerable<TRow>(_setupCompiler).ToList();
+        {
+            result.CacheMappings(_cacheMappings);
+            return result.AsEnumerable<TRow>(_setupCompiler).ToList();
+        }
+
+        public override int GetHashCode()
+        {
+            if (_setupCompiler != null)
+                return base.GetHashCode();
+            return _sql.GetHashCode();
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (obj == null)
+                return false;
+            if (!(obj is SqlQuerySimpleFromString<TRow> typed))
+                return false;
+            if (_setupCompiler != null)
+                return _sql == typed._sql && _setupCompiler == typed._setupCompiler;
+            return _sql == typed._sql;
+        }
     }
 }

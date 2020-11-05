@@ -25,7 +25,7 @@ namespace CastIron.Sqlite.Tests
 
         public static ISqlRunner Create(Action<IContextBuilder> defaultBuilder = null)
         {
-            return Sqlite.RunnerFactory.Create(_configuration["SQLITE"], defaultBuilder);
+            return Sqlite.RunnerFactory.Create(_configuration["SQLITE"], null, null, defaultBuilder);
         }
     }
 }

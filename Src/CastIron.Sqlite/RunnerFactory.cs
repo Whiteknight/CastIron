@@ -1,5 +1,6 @@
 ﻿using System;
 using CastIron.Sql;
+using CastIron.Sql.Mapping;
 
 namespace CastIron.Sqlite
 {
@@ -10,10 +11,12 @@ namespace CastIron.Sqlite
     {
         private static readonly SqlRunnerCore _core = new SqlRunnerCore(new SqliteDataInteractionFactory(), new SqliteConfiguration(), new SqliteDbCommandStringifier());
 
-        public static ISqlRunner Create(string connectionString, Action<IContextBuilder> defaultBuilder = null)
+        public static ISqlRunner Create(string connectionString, IMapCache mapCache = null, IMapCompilerSource compilerSource = null, Action<IContextBuilder> build = null)
         {
             var connectionFactory = new SqliteDbConnectionFactory(connectionString);
-            return new SqlRunner(_core, connectionFactory, defaultBuilder, new Sql.Mapping.MapCompilerSource());
+            mapCache = mapCache ?? new MapCache();
+            compilerSource = compilerSource ?? new MapCompilerSource();
+            return new SqlRunner(_core, connectionFactory, build, compilerSource, mapCache);
         }
     }
 }

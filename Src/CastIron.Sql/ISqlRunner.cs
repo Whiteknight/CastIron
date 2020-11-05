@@ -29,6 +29,7 @@ namespace CastIron.Sql
         IDataInteractionFactory InteractionFactory { get; }
 
         IMapCompilerSource MapCompiler { get; }
+        IMapCache MapCache { get; }
 
         /// <summary>
         /// Create an execution context for a database connection. The context provides parameters

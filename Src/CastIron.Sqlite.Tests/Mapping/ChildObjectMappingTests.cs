@@ -34,7 +34,7 @@ namespace CastIron.Sqlite.Tests.Mapping
         public void TestQuery_ObjectWithChildCustomSeparator()
         {
             var target = RunnerFactory.Create();
-            var query = SqlQuery.FromString<TestObject_WithChild>("SELECT 5 AS Id, 'TEST' AS ChildXName;", c => c.UseChildSeparator("X"));
+            var query = SqlQuery.FromString<TestObject_WithChild>("SELECT 5 AS Id, 'TEST' AS ChildXName;", setup: c => c.UseChildSeparator("X"));
             var result = target.Query(query).First();
             result.Id.Should().Be(5);
             result.Child.Name.Should().Be("TEST");
@@ -46,7 +46,7 @@ namespace CastIron.Sqlite.Tests.Mapping
             public object Value { get; set; }
         }
 
-        [Test] 
+        [Test]
         public void TestQuery_ObjectPropertySingleValue()
         {
             var target = RunnerFactory.Create();
@@ -82,7 +82,7 @@ namespace CastIron.Sqlite.Tests.Mapping
         {
             public class ChildB
             {
-                public string Value { get; set;}
+                public string Value { get; set; }
             }
 
             public class ChildA
@@ -105,7 +105,7 @@ namespace CastIron.Sqlite.Tests.Mapping
         public void TestQuery_NestedChildrenCustomSeparator()
         {
             var target = RunnerFactory.Create();
-            var query = SqlQuery.FromString<TestObject_WithNestedChildren>("SELECT 'TEST' AS AXBXValue", c => c.UseChildSeparator("X"));
+            var query = SqlQuery.FromString<TestObject_WithNestedChildren>("SELECT 'TEST' AS AXBXValue", setup: c => c.UseChildSeparator("X"));
             var result = target.Query(query).Single();
             result?.A?.B?.Value.Should().Be("TEST");
         }

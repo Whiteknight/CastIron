@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using CastIron.Sql.Execution;
-using CastIron.Sql.Mapping;
 using CastIron.Sql.Utility;
 using ExecutionContext = CastIron.Sql.Execution.ExecutionContext;
 
@@ -16,18 +15,21 @@ namespace CastIron.Sql
         private readonly Action<IContextBuilder> _defaultBuilder;
         private readonly SqlRunnerCore _core;
         private readonly IDbConnectionFactory _connectionFactory;
-        private readonly MapCompilerSource _compilerBuilder;
+        private readonly IMapCompilerSource _compilerBuilder;
+        private readonly IMapCache _mapCache;
 
-        public SqlRunner(SqlRunnerCore core, IDbConnectionFactory connectionFactory, Action<IContextBuilder> defaultBuilder, MapCompilerSource compilerBuilder)
+        public SqlRunner(SqlRunnerCore core, IDbConnectionFactory connectionFactory, Action<IContextBuilder> defaultBuilder, IMapCompilerSource compilerBuilder, IMapCache mapCache)
         {
             Argument.NotNull(core, nameof(core));
             Argument.NotNull(connectionFactory, nameof(connectionFactory));
             Argument.NotNull(compilerBuilder, nameof(compilerBuilder));
+            Argument.NotNull(mapCache, nameof(mapCache));
 
             _core = core;
             _connectionFactory = connectionFactory;
             _defaultBuilder = defaultBuilder;
             _compilerBuilder = compilerBuilder;
+            _mapCache = mapCache;
         }
 
         public IDataInteractionFactory InteractionFactory => _core.InteractionFactory;
@@ -36,12 +38,14 @@ namespace CastIron.Sql
 
         public IMapCompilerSource MapCompiler => _compilerBuilder;
 
+        public IMapCache MapCache => _mapCache;
+
         public QueryObjectStringifier ObjectStringifier => _core.ObjectStringifier;
 
         public ExecutionContext CreateExecutionContext()
         {
             var compiler = _compilerBuilder.GetCompiler();
-            var context = new ExecutionContext(_connectionFactory, Provider, _core.CommandStringifier, compiler);
+            var context = new ExecutionContext(_connectionFactory, Provider, _core.CommandStringifier, compiler, _mapCache);
             _defaultBuilder?.Invoke(context);
             return context;
         }

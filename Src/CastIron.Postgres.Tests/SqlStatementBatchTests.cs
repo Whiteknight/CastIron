@@ -100,7 +100,7 @@ namespace CastIron.Postgres.Tests
         }
 
         [Test]
-        public void CommandAndQueryBatch_AsTask()
+        public async void CommandAndQueryBatch_AsTask()
         {
             var runner = RunnerFactory.Create();
             var batch = runner.CreateBatch();
@@ -108,7 +108,7 @@ namespace CastIron.Postgres.Tests
             var task = promise.AsTask(TimeSpan.FromSeconds(10));
             runner.Execute(batch);
 
-            var result = task.Result;
+            var result = await task;
             result.Should().Be("TEST");
         }
 

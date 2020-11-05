@@ -42,14 +42,5 @@ namespace CastIron.Sqlite.Tests
             result.Should().Be("TEST");
             report.Should().NotBeNull();
         }
-
-        [Test]
-        public void SqlQuery_Combine()
-        {
-            var runner = RunnerFactory.Create();
-            var query = SqlQuery.Combine("SELECT 'TEST'", r => r.AsEnumerable<string>().First());
-            var result = runner.Query(query);
-            result.Should().Be("TEST");
-        }
     }
 }

@@ -23,9 +23,9 @@ namespace CastIron.Postgres.Tests
             _configuration = builder.Build();
         }
 
-        public static ISqlRunner Create(Action<IContextBuilder> defaultBuilder = null) 
+        public static ISqlRunner Create(Action<IContextBuilder> defaultBuilder = null)
         {
-            return Postgres.RunnerFactory.Create(_configuration["POSTGRES"], defaultBuilder);
+            return Postgres.RunnerFactory.Create(_configuration["POSTGRES"], null, null, defaultBuilder);
         }
     }
 }

@@ -10,11 +10,13 @@ namespace CastIron.Sql.Execution
         {
         }
 
-        public ProviderLimitationException(string message) : base(message)
+        public ProviderLimitationException(string message)
+            : base(message)
         {
         }
 
-        public ProviderLimitationException(string message, Exception inner) : base(message, inner)
+        public ProviderLimitationException(string message, Exception inner)
+            : base(message, inner)
         {
         }
 
