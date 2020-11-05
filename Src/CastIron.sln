@@ -22,6 +22,9 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CastIron.Postgres.Tests", "CastIron.Postgres.Tests\CastIron.Postgres.Tests.csproj", "{402CD203-76D1-43FD-B851-5D0B34152B25}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{7CBEBF17-72AB-43E6-B773-D0A6A1D06DC4}"
+	ProjectSection(SolutionItems) = preProject
+		..\docker-compose.yml = ..\docker-compose.yml
+	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CastIron.SqlServer", "CastIron.SqlServer\CastIron.SqlServer.csproj", "{786EC40C-F600-4490-AA20-F2FCE3FF7427}"
 EndProject

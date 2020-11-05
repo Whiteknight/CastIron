@@ -1,7 +1,7 @@
 version: "3.2"
 services:
   sql-server:
-    container_name: mssqlserver
+    container_name: castiron-mssql
     image: mcr.microsoft.com/mssql/server:2019-latest
     # volumes:
     #   - mssqlsystem:/var/opt/mssql
@@ -13,7 +13,7 @@ services:
       ACCEPT_EULA: "Y"
       MSSQL_PID: "Developer"
   postgresql:
-    container_name: postgresql
+    container_name: castiron-postgres
     image: postgres:12-alpine
     # volumes:
     #   - postgresdata:/var/lib/postgresql/data
