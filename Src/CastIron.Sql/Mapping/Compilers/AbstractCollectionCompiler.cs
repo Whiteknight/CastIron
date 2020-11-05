@@ -40,22 +40,6 @@ namespace CastIron.Sql.Mapping.Compilers
             _nonScalars = nonScalars;
         }
 
-        private struct ConcreteCollectionInfo
-        {
-            public ConcreteCollectionInfo(Type concreteType, Type elementType, ConstructorInfo constructor, MethodInfo addMethod)
-            {
-                ConcreteType = concreteType;
-                ElementType = elementType;
-                AddMethod = addMethod;
-                Constructor = constructor;
-            }
-
-            public Type ConcreteType { get; }
-            public Type ElementType { get; }
-            public MethodInfo AddMethod { get; }
-            public ConstructorInfo Constructor { get; }
-        }
-
         public ConstructedValueExpression Compile(MapTypeContext context)
         {
             if (!IsSupportedType(context.TargetType))
@@ -63,18 +47,11 @@ namespace CastIron.Sql.Mapping.Compilers
 
             // Get the concrete type to construct, the element type to populate, and the Add
             // method to call for each value
-            var info = GetConcreteTypeInfo(context);
-            var collectionType = info.ConcreteType;
+            var (collectionType, elementType, constructor, addMethod) = GetConcreteTypeInfo(context);
             Debug.Assert(collectionType != null);
             Debug.Assert(context.TargetType.IsAssignableFrom(collectionType));
-
-            var elementType = info.ElementType;
             Debug.Assert(elementType != null);
-
-            var addMethod = info.AddMethod;
             Debug.Assert(addMethod != null);
-
-            var constructor = info.Constructor;
             Debug.Assert(constructor != null);
 
             var originalTargetType = context.TargetType;
@@ -82,8 +59,8 @@ namespace CastIron.Sql.Mapping.Compilers
 
             // Get a list of expressions to create the collection instance and populate it with
             // values
-            var collectionVar = GetMaybeInstantiateCollectionExpression(context, constructor);
-            var addStmts = GetCollectionPopulateStatements(context, elementType, collectionVar.FinalValue, addMethod);
+            var collectionVar = CollectionExpressionFactory.GetMaybeInstantiateCollectionExpression(context, constructor);
+            var addStmts = CollectionExpressionFactory.GetCollectionPopulateStatements(_scalars, _nonScalars, context, elementType, collectionVar.FinalValue, addMethod);
 
             return new ConstructedValueExpression(
                 collectionVar.Expressions.Concat(addStmts.Expressions),
@@ -191,92 +168,6 @@ namespace CastIron.Sql.Mapping.Compilers
             var addTMethod = concreteType.GetMethod(nameof(List<object>.Add), BindingFlags.Public | BindingFlags.Instance);
             var listTConstructor = concreteType.GetConstructor(new Type[0]);
             return new ConcreteCollectionInfo(concreteType, elementType, listTConstructor, addTMethod);
-        }
-
-        private static ConstructedValueExpression GetMaybeInstantiateCollectionExpression(MapTypeContext context, ConstructorInfo constructor)
-        {
-            var newInstance = context.CreateVariable(context.TargetType, "list");
-            if (context.GetExisting == null)
-            {
-                // if we don't have an expression to get an existing slot, just create new by
-                // calling the default parameterless constructor on the collection type
-                var createNewExpr = Expression.Assign(
-                    newInstance,
-                    Expression.New(constructor)
-                );
-                return new ConstructedValueExpression(new[] { createNewExpr }, newInstance, new[] { newInstance });
-            }
-
-            // Try to get the existing value. If it's null, just create new with the default
-            // parameterless constructor. If it's not null we can return it.
-            var getExistingExpr = Expression.Assign(
-                newInstance,
-                Expression.Condition(
-                    Expression.Equal(
-                        context.GetExisting,
-                        Expression.Constant(null)
-                    ),
-                    Expression.Convert(
-                        Expression.New(constructor),
-                        context.TargetType
-                    ),
-                    Expression.Convert(context.GetExisting, context.TargetType)
-                )
-            );
-            return new ConstructedValueExpression(new[] { getExistingExpr }, newInstance, new[] { newInstance });
-        }
-
-        private ConstructedValueExpression GetCollectionPopulateStatements(MapTypeContext context, Type elementType, Expression listVar, MethodInfo addMethod)
-        {
-            if (!context.HasColumns())
-                return new ConstructedValueExpression(null);
-
-            var expressions = new List<Expression>();
-            var variables = new List<ParameterExpression>();
-
-            // For scalar types (object is treated like a scalar here), map each column to an entry in the
-            // array, consuming all remaining columns.
-            if (elementType.IsSupportedPrimitiveType() || elementType == typeof(object))
-            {
-                var columns = context.GetColumns();
-                foreach (var column in columns)
-                {
-                    var columnState = context.GetSubstateForColumn(column, elementType, null);
-                    var result = _scalars.Compile(columnState);
-                    expressions.AddRange(result.Expressions);
-                    expressions.Add(
-                        Expression.Call(
-                            listVar,
-                            addMethod,
-                            result.FinalValue
-                        )
-                    );
-                    variables.AddRange(result.Variables);
-                }
-
-                return new ConstructedValueExpression(expressions, null, variables);
-            }
-
-            // For all non-scalar types
-            // loop so long as we have columns and consume columns every iteration.
-            var elementState = context.ChangeTargetType(elementType);
-            var numberOfColumns = context.NumberOfColumns();
-            while (numberOfColumns > 0)
-            {
-                var result = _nonScalars.Compile(elementState);
-                var newNumberOfColumns = context.NumberOfColumns();
-
-                // We haven't consumed any new columns, so we're done.
-                if (newNumberOfColumns == numberOfColumns)
-                    break;
-                expressions.AddRange(result.Expressions);
-                expressions.Add(
-                    Expression.Call(listVar, addMethod, result.FinalValue)
-                );
-                variables.AddRange(result.Variables);
-                numberOfColumns = newNumberOfColumns;
-            }
-            return new ConstructedValueExpression(expressions, null, variables);
         }
     }
 }
