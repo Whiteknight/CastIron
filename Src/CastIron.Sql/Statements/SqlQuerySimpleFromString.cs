@@ -48,7 +48,7 @@ namespace CastIron.Sql.Statements
         public override int GetHashCode()
         {
             if (_setupCompiler != null)
-                return base.GetHashCode();
+                return _sql.GetHashCode() ^ _setupCompiler.GetHashCode() ^ _cacheMappings.GetHashCode();
             return _sql.GetHashCode();
         }
 
