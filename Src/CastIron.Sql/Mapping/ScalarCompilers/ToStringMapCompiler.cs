@@ -8,12 +8,12 @@ namespace CastIron.Sql.Mapping.ScalarCompilers
     /// </summary>
     public class ToStringMapCompiler : IScalarMapCompiler
     {
-        public bool CanMap(Type targetType, Type columnType, string sqlTypeName) 
+        public bool CanMap(Type targetType, Type columnType, string sqlTypeName)
             => targetType == typeof(string);
 
         public Expression Map(Type targetType, Type columnType, string sqlTypeName, ParameterExpression rawVar)
             =>
-                // result = raw != DBNull ? raw.ToString() : default(string);
+                // Create expression tree to represent "result = raw != DBNull ? raw.ToString() : default(string);"
                 Expression.Condition(
                     Expression.NotEqual(Expressions.DbNullExp, rawVar),
                     Expression.Call(

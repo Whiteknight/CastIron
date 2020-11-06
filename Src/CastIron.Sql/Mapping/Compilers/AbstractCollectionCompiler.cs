@@ -159,11 +159,11 @@ namespace CastIron.Sql.Mapping.Compilers
         {
             // Return List<T> for everything except ISet<T>. Return SortedSet<T> if we are looking for ISet<T>
             if (targetType.IsGenericType && targetType.GetGenericTypeDefinition() == typeof(ISet<>))
-                return GetConcreteTypeInfo(typeof(SortedSet<>).MakeGenericType(elementType), elementType);
-            return GetConcreteTypeInfo(typeof(List<>).MakeGenericType(elementType), elementType);
+                return GetConcreteTypeInfoForConcreteType(typeof(SortedSet<>).MakeGenericType(elementType), elementType);
+            return GetConcreteTypeInfoForConcreteType(typeof(List<>).MakeGenericType(elementType), elementType);
         }
 
-        private ConcreteCollectionInfo GetConcreteTypeInfo(Type concreteType, Type elementType)
+        private ConcreteCollectionInfo GetConcreteTypeInfoForConcreteType(Type concreteType, Type elementType)
         {
             var addTMethod = concreteType.GetMethod(nameof(List<object>.Add), BindingFlags.Public | BindingFlags.Instance);
             var listTConstructor = concreteType.GetConstructor(new Type[0]);

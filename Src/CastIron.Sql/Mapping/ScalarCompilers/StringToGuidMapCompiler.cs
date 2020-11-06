@@ -16,7 +16,7 @@ namespace CastIron.Sql.Mapping.ScalarCompilers
 
         public Expression Map(Type targetType, Type columnType, string sqlTypeName, ParameterExpression rawVar)
             =>
-                // result = raw != DBNull ? (targetType)Guid.Parse((string)raw) : default(Guid);
+                // Create expression tree to represent "result = raw != DBNull ? (targetType)Guid.Parse((string)raw) : default(Guid);"
                 Expression.Condition(
                     Expression.NotEqual(Expressions.DbNullExp, rawVar),
                     Expression.Convert(

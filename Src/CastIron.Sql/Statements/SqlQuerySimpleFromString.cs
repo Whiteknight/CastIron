@@ -54,8 +54,6 @@ namespace CastIron.Sql.Statements
 
         public override bool Equals(object obj)
         {
-            if (obj == null)
-                return false;
             if (!(obj is SqlQuerySimpleFromString<TRow> typed))
                 return false;
             if (_setupCompiler != null)

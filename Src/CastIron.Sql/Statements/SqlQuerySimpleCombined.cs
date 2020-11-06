@@ -34,7 +34,7 @@ namespace CastIron.Sql.Statements
 
         public override bool Equals(object obj)
         {
-            if (obj == null || !(obj is SqlQuerySimpleCombined<T> typed))
+            if (!(obj is SqlQuerySimpleCombined<T> typed))
                 return false;
             return _cacheMappings == typed._cacheMappings && _query.Equals(typed._query) && _materializer.Equals(typed._materializer);
         }
