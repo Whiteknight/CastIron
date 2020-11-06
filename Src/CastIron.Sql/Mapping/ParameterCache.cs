@@ -80,7 +80,6 @@ namespace CastIron.Sql.Mapping
         public T GetOutputParameters<T>()
             where T : class, new()
         {
-            // TODO: Can we introspect and get constructor parameters by name?
             var t = new T();
             var properties = typeof(T)
                 .GetProperties(BindingFlags.Public | BindingFlags.Instance)

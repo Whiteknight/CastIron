@@ -7,7 +7,6 @@ using CastIron.Sql.Execution;
 
 namespace CastIron.SqlServer
 {
-    // TODO: Unit testing and more use-cases
     /// <summary>
     /// Serialize an IDbCommand to a string.
     /// This class is intended for internal debugging and auditing purposes. The generated SQL

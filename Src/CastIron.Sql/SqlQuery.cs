@@ -10,7 +10,6 @@ namespace CastIron.Sql
         public static ISqlQuerySimple FromString(string sql)
             => new SqlQuerySimpleFromString(sql);
 
-        // TODO: More methods in this class need to support setup
         public static ISqlQuerySimple<IReadOnlyList<T>> FromString<T>(string sql, Action<IMapCompilerSettings> setup = null, bool cacheMappings = false)
             => new SqlQuerySimpleFromString<T>(sql, setup, cacheMappings);
 

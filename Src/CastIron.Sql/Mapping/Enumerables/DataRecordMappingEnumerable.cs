@@ -64,8 +64,6 @@ namespace CastIron.Sql.Mapping.Enumerables
 
             public bool MoveNext()
             {
-                // TODO: We need to keep track of the result set so that if the reader has advanced we cannot continue
-                // TODO: While this is enumerating we cannot do anything else with the reader.
                 if (_context.IsCompleted || _reader.Reader.IsClosed)
                 {
                     Current = default;

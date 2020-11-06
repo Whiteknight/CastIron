@@ -32,16 +32,16 @@ namespace CastIron.Sql.Mapping
 
             StateMachine = new StringKeyedStateMachine();
             StateMachine.AddState(StateRawReaderConsumed)
-                .TransitionOnEvent(StateRawReaderConsumed, null, () => throw DataReaderException.ThrowRawReaderConsumedException())
-                .TransitionOnEvent(StateReaderConsuming, null, () => throw DataReaderException.ThrowRawReaderConsumedException())
-                .TransitionOnEvent(StateOutputParams, null, () => throw DataReaderException.ThrowRawReaderConsumedException());
+                .TransitionOnEvent(StateRawReaderConsumed, null, ThrowRawReaderConsumedException)
+                .TransitionOnEvent(StateReaderConsuming, null, ThrowRawReaderConsumedException)
+                .TransitionOnEvent(StateOutputParams, null, ThrowRawReaderConsumedException);
             StateMachine.AddState(StateReaderConsuming)
-                .TransitionOnEvent(StateRawReaderConsumed, null, () => throw DataReaderException.ThrowConsumeAfterStreamingStartedException())
+                .TransitionOnEvent(StateRawReaderConsumed, null, ThrowConsumeAfterStreamingStartedException)
                 .TransitionOnEvent(StateReaderConsuming, StateReaderConsuming)
                 .TransitionOnEvent(StateOutputParams, StateOutputParams, EnableOutputParameters);
             StateMachine.AddState(StateOutputParams)
-                .TransitionOnEvent(StateRawReaderConsumed, null, () => throw DataReaderException.ReaderClosed())
-                .TransitionOnEvent(StateReaderConsuming, null, () => throw DataReaderException.ReaderClosed())
+                .TransitionOnEvent(StateRawReaderConsumed, null, ThrowReaderClosedException)
+                .TransitionOnEvent(StateReaderConsuming, null, ThrowReaderClosedException)
                 .TransitionOnEvent(StateOutputParams, StateOutputParams, EnableOutputParameters);
         }
 
@@ -168,6 +168,10 @@ namespace CastIron.Sql.Mapping
 
             return true;
         }
+
+        private void ThrowRawReaderConsumedException() => throw DataReaderException.RawReaderConsumed();
+        private void ThrowConsumeAfterStreamingStartedException() => throw DataReaderException.ConsumeAfterStreamingStarted();
+        private void ThrowReaderClosedException() => throw DataReaderException.ReaderClosed();
     }
 
     /// <summary>

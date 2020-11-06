@@ -151,7 +151,6 @@ namespace CastIron.Sql
         /// <returns></returns>
         public static IEnumerable<T> AsEnumerableNextSeveral<T>(this IDataResultsBase results, int numResultSets, Action<IMapCompilerSettings> setup = null)
         {
-            // TODO: We need to mark the IDataResultsBase object as "locked" so we can't start another read operation or move-next operation while this is running
             Argument.NotNull(results, nameof(results));
             if (numResultSets <= 0)
                 yield break;

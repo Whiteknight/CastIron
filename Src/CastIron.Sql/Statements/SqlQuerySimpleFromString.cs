@@ -20,7 +20,7 @@ namespace CastIron.Sql.Statements
 
         public override int GetHashCode() => _sql.GetHashCode();
 
-        public override bool Equals(object obj) => obj != null && obj is SqlQuerySimpleFromString typed && typed._sql == _sql;
+        public override bool Equals(object obj) => obj is SqlQuerySimpleFromString typed && typed._sql == _sql;
     }
 
     public class SqlQuerySimpleFromString<TRow> : ISqlQuerySimple<IReadOnlyList<TRow>>

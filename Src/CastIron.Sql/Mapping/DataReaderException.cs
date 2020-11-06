@@ -35,7 +35,7 @@ namespace CastIron.Sql.Mapping
                 $"Depending on your command text, it may still be possible to read output parameters or connection metrics such as {nameof(IDataReader)}.{nameof(IDataReader.RecordsAffected)}");
         }
 
-        public static DataReaderException ThrowRawReaderConsumedException()
+        public static DataReaderException RawReaderConsumed()
         {
             return new DataReaderException(
                 $"The raw {nameof(IDataReader)} has already been consumed and cannot be consumed again. " +
@@ -43,7 +43,7 @@ namespace CastIron.Sql.Mapping
                 $"The code component which holds a reference to the {nameof(IDataReader)} has full control over that object, including reading values and calling {nameof(IDisposable.Dispose)} when necessary.");
         }
 
-        public static DataReaderException ThrowConsumeAfterStreamingStartedException()
+        public static DataReaderException ConsumeAfterStreamingStarted()
         {
             return new DataReaderException(
                 $"{nameof(IDataReader)} has already started streaming results. The raw reader cannot be consumed. " +
