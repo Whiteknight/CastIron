@@ -86,7 +86,7 @@ namespace CastIron.Sql.Mapping
         {
             PrepareToEnumerate();
             var map = CreateMap<T>(setup);
-            return new DataRecordMappingEnumerable<T>(Reader, Context, map);
+            return new DataRecordMappingEnumerable<T>(this, Reader, Context, map);
         }
 
         protected Func<IDataRecord, T> CreateMap<T>(Action<IMapCompilerSettings> setup)
@@ -212,7 +212,7 @@ namespace CastIron.Sql.Mapping
         {
             PrepareToEnumerate();
             var map = CreateMap<T>(setup);
-            return new AsyncDataRecordMappingEnumerable<T>(Reader, Context, map);
+            return new AsyncDataRecordMappingEnumerable<T>(this, Reader, Context, map);
         }
 
 #endif

@@ -156,19 +156,42 @@ namespace CastIron.Sql
                 yield break;
 
             var values = results.AsEnumerable<T>(setup);
+            var currentSet = results.CurrentSet;
             foreach (var value in values)
+            {
+                if (currentSet != results.CurrentSet)
+                    throw DataReaderException.EnumeratorBroken();
                 yield return value;
+            }
             numResultSets--;
 
             while (numResultSets > 0)
             {
+                // Make sure we're still where we think we are
+                if (currentSet != results.CurrentSet)
+                    throw DataReaderException.EnumeratorBroken();
+
+                // Move to the next result set
                 var hasMore = results.TryAdvanceToNextResultSet();
                 if (!hasMore)
                     yield break;
                 numResultSets--;
+
+                // Make sure the next set is what we expect (no preemption)
+                var nextSet = results.CurrentSet;
+                if (nextSet != currentSet + 1)
+                    throw DataReaderException.EnumeratorBroken();
+                currentSet = nextSet;
+
+                // Enumerate, checking before each value to make sure we are still on the correct
+                // result set
                 var nextValues = results.AsEnumerable<T>(setup);
                 foreach (var value in nextValues)
+                {
+                    if (currentSet != results.CurrentSet)
+                        throw DataReaderException.EnumeratorBroken();
                     yield return value;
+                }
             }
         }
 

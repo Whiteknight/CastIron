@@ -91,5 +91,13 @@ namespace CastIron.Sql.Mapping
         {
             return new DataReaderException($"Could not find parameter named {name}. Please check your query and your spelling and try again.");
         }
+
+        public static DataReaderException EnumeratorBroken()
+        {
+            return new DataReaderException(
+                "Cannot continue enumeration, the underlying results stream has been modified since enumeration began.\n" +
+                "You must complete enumeration of a result set before you may move to a new result set. Once you move to a new result set, all existing row enumerators become invalid"
+            );
+        }
     }
 }
