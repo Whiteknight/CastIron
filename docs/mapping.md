@@ -204,6 +204,16 @@ results[0].Item2.Names == new string[0];
 
 This is because tuples mapping gets columns in order without names, while objects greedily map columns by property<->column name (discussed more below). The first instance of `IdAndName` maps a single `Id` column and all the columns named `Name`, and then the second `IdAndName` instance is able to map the second `Id` column but there are no remaining unmapped columns for the `Names` property.
 
+## ValueTuple Mappings
+
+CastIron can map a ValueTuple struct in almost exactly the same way as it maps Tuple types. This can lead to some very succinct code. Compare to the first example from the Tuple mapping section above:
+
+```csharp
+var (firstValue, secondValue, thirdValue) = result.AsEnumerable<(int first, string second, float third)>>().First();
+```
+
+ValueTuple mappings are extremely useful when you want to map results of a query to domain objects, without having to explicitly create data model classes as an intermediate step.
+
 ## Primitive Mappings
 
 If we ask CastIron to map a row to one of the primitive types, it will take the value from the first column of the result set and map it. Other columns will be ignored.
@@ -225,7 +235,7 @@ var iListOfNullableFloats = result.AsEnumerable<List<float?>>();
 var iEnumerableOfString = result.AsEnumerable<IEnumerable<string>>();
 ```
 
-By default, CastIron can support arrays of primitive types, any interface type which is assignable from `List<T>`, and any concrete type which implements `ICollection<T>` and has a default parameterless constructor (Where `T` is any of the primitive types). Some examples:
+By default, CastIron can support arrays of primitive types, any interface type which is assignable from `List<T>`, and any concrete type which implements `ICollection<T>` and has a default parameterless constructor (Where `T` is any of the primitive types) and `ISet<T>`. Some examples:
 
 * `T[]`
 * `IList<T>`
@@ -234,13 +244,14 @@ By default, CastIron can support arrays of primitive types, any interface type w
 * `IEnumerable<T>`
 * `List<T>`
 * `HashSet<T>`
+* `ISet<T>`
 * Custom types which inherit from `ICollection<T>` and have a default parameterless constructor
 
 In these situations, CastIron will map values from all columns to the specified primitive type and store all values from a single row into a single collection instance.
 
 ## Dictionary Mappings
 
-CastIron can map a row to a dictionary where the key is a `string` name of the column and the value is the value of that column. CastIron can support:
+CastIron can map a row to a dictionary where the key is a `string` name of the column and the value is the value of that column. The key will always be the name of the column, and the value will always be the value from that column or columns of the same name. CastIron can support:
 
 1. `Dictionary<string, T>`
 1. Any custom type which implements `IDictionary<string, T>` and has a default parameterless constructor
@@ -360,10 +371,12 @@ With no options specified, CastIron will create an object instance by searching 
 The default behavior of CastIron is to search for the "best" matching constructor. The default heuristic for what constitutes "best" is to find the constructor with the largest number of parameters which can be mapped from columns in the result set. This heuristic can be overridden by providing your own custom `IConstructorFinder` instance:
 
 ```csharp
-var objects = results.AsEnumerable<MyType>(c => c.UseConstructorFinder(myConstructorFinder));
+var objects = results.AsEnumerable<MyType>(c => c
+    .For<MyType>(d => d.UseConstructorFinder(myConstructorFinder))
+);
 ```
 
-CastIron provides two types which can be used:
+CastIron provides two types which can be used if you do not want to write your own:
 
 * `CastIron.Sql.Mapping.BestMatchConstructorFinder` which uses the "best" heuristic above and
 * `CastIron.Sql.Mapping.DefaultOnlyConstructorFinder` which only uses the default parameterless constructor, and forces all columns to map to public properties.
@@ -375,21 +388,25 @@ Instead of these two, you can provide your own custom instance if you want to ha
 You can use a custom factory method to provide an instance.
 
 ```csharp
-var objects = results.AsEnumerable<MyType>(c => c.UseFactory(r => new MyType()));
+var objects = results.AsEnumerable<MyType>(c => c
+    .For<MyType>(d => d.UseFactory(r => new MyType()))
+);
 ```
 
-Notice that, because factory methods are outside the control of CastIron and may change behavior, maps cannot be cached if factory methods are used. 
-
-Also note that there's no way for CastIron to "consume" columns from the reader. If you use a value from the reader in the factory method, those columns will still be used to map properties later in the mapping algorithm. To avoid this issue, make sure you don't have writable properties with the same name as constructor parameters (match is case-insensitive).
+Also note that there's no way for CastIron to "consume" columns from the reader. If you use a value from the reader in the factory method, those columns will still be used to map properties later in the mapping algorithm. 
 
 #### Preferred Constructors
 
 You can manually specify a constructor to use, if you want to have that control. There are two overrides for method `.UseConstructor()` which allow you to specify which one to use. The first takes a `ConstructorInfo` parameter, and the second takes an array of types which are used to lookup the constructor:
 
 ```csharp
-var objects = results.AsEnumerable<MyType>(c => c.UseConstructor(constructorInfo));
+var objects = results.AsEnumerable<MyType>(c => c
+    .For<MyType>(d => d.UseConstructor(constructorInfo))
+);
 
-var objects = results.AsEnumerable<MyType(c => c.UseConstructor(new Type[] { ... }));
+var objects = results.AsEnumerable<MyType(c => c
+    .For<MyType>(d => d.UseConstructor(new Type[] { ... }))
+);
 ```
 
 The constructor provided may not be `null`, may not be a `static`, `private` or `protected`. It must be the constructor for the class you are trying to map. Failure of any of these checks will cause an exception to be thrown.
@@ -401,46 +418,60 @@ CastIron doesn't just map a result set to an enumerable of values. First it comp
 You can implement your own mapper compiler by implementing the `IMapCompiler` interface in your own custom class. You can use your custom map compiler from the `IDataResults.AsEnumerable<T>()` method:
 
 ```csharp
-var enumerable = results.AsEnumerable<MyCustomType>(c => c.UseCompiler(myCompiler));
+var enumerable = results.AsEnumerable<MyCustomType>(c => c
+    .For<MyCustomType>(d => d.UseCompiler(myCompiler))
+);
 ```
 
-CastIron provides two built-in compiler types which may be useful to you.
+### Caching
 
-### `MapCompiler`
-
-The default `MapCompiler` is the brains of the operation. This type performs the compilation of mapping delegates for all mapping rules described in this file.
-
-### `CachingMapCompiler`
-
-The `CachingMapCompiler` class is a Decorator type which wraps any `IMapCompiler` and caches the compiled mapping functions. This helps to speed up mapping of subsequent calls which use the same result set (same number of columns with the same names) and same output type.
-
-You can clear the cache at any time by calling the `ClearCache()` method on the `CachingMapCompiler` instance. This can be handy in cases where you're executing lots of one-off dynamic queries and do not want to build up a large memory footprint.
-
-If you are doing many dynamic queries which are not reusable, the caching compiler is likely not the best choice and you should consider just using the `MapCompiler` directly.
-
-### The Default Compiler
-
-There is a global instance of the `IMapCompiler` which will be used whenever you do not specify a compiler explicitly.
+CastIron does not automatically cache mappings, because in some use-cases would generate lots of one-off mappings, which could fill the cache and use up large amounts of memory. Instead, CastIron has an opt-in cache which you can use as needed:
 
 ```csharp
-var defaultInstance = CastIron.Sql.Mapping.MapCompilation.GetDefaultInstance();
+results.CacheMappings(true, key);
 ```
 
-This method defaults to a global caching compiler:
+The `key` is the unique lookup key used to identify the map inside the cache. If not provided, the key will default to the query object instance being executed. This is useful if you have a Query object instance which you reuse over and over again, with maybe only some parameter values changing between each execution. If you aren't reusing the same Query object instance, you should probably use a custom key instead, such as a string name, or even the raw text of the SQL itself.
+
+The cached mapping is highly dependent on both the object being mapped and the structure of the result set. The number, order and data types of the columns is critical. So long as the columns are the same, the cached map function will work as expected. If the columns change in any way, the map may throw all sorts or errors or have all sorts of weird effects.
+
+The cache can be inspected, cleared or manipulated from the `ISqlRunner` instance:
 
 ```csharp
-var cachingInstance = CastIron.Sql.Mapping.MapCompilation.GetCachedInstance();
+runner.MapCache.Clear();
 ```
 
-This `CachingMapCompiler` instance can be used directly and can be cleared like any other caching compiler instance to save memory space.
+#### Setting the Cache Instance
 
-You can set your own default compiler, so you don't have to set it in every single query:
+By default, every `ISqlRunner` instance is created with a new cache instance, and cached mappings are not shared between runners. However, this might not be the best use-case for your application. You can specify a custom cache when you create the runner:
 
 ```csharp
-CastIron.Sql.Mapping.MapCompilation.SetDefaultInstance(myCompiler);
+var runner = RunnerFactory.Create(connectionString, mapCache: myCache);
 ```
 
-When you call `AsEnumerable<T>()` without any arguments, the default mapper is used.
+There is a default global instance of a cache which you can use, as one way to share caches between multiple runners:
+
+```csharp
+var globalCache = CastIron.Sql.Mapping.MapCache.GetDefaultInstance();
+var runner = RunnerFactory.Create(connectionString, mapCache: globalCache);
+```
+
+### Setting Up Your Compiler
+
+Map compilers are broken down into three objects:
+
+1. The `IScalarMapCompiler` which handles mapping specific column types to specific value types. For example there is a scalar map compiler to map any column type to a `string` using the `.ToString()` method.
+2. The `ICompiler` which handles mapping an aggregate type such as a tuple, array or custom object.
+3. The `IMapCompiler` type which orchestrates the two and performs the mapping.
+
+There is another object, the `IMapCompilerSource` which keeps track of `IScalarMapCompiler` and `ICompiler` instances and acts like a factory for `IMapCompiler`.
+
+```csharp
+var myMapCompilerSource = new CastIron.Sql.Mapping.MapCompilerSource();
+var runner = RunnerFactory.Create(connectionString, compilerSource: myMapCompileSource);
+```
+
+You can provide a custom implementation of `IMapCompilerSource` if you are brave enough, or you can modify an existing one. 
 
 ### Using Subclasses
 
@@ -472,13 +503,16 @@ You can create different mappings for rows which represent Dogs from rows which 
 
 ```csharp
 var pets = results.AsEnumerable<Pet>(s => s
+    .For<Pet>(p => p
 
-    // Default type, if no other predicates match
-    .UseClass<Exotic>()
+        // Default type, if no other predicates match
+        .UseClass<Exotic>()
 
-    // Predicates tested in order until a match is found
-    .UseSubclass<Dog>(r => r.GetString(0) == "dog")
-    .UseSubclass<Cat>(r => r.GetString(0) == "cat"));
+        // Predicates tested in order until a match is found
+        .UseSubclass<Dog>(r => r.GetString(0) == "dog")
+        .UseSubclass<Cat>(r => r.GetString(0) == "cat")
+    )
+);
 ```
 
 Predicates are evaluated in the specified order, so when there is overlap the first predicate which matches will select the subclass to use.
@@ -488,7 +522,9 @@ Predicates are evaluated in the specified order, so when there is overlap the fi
 A Map is a delegate which takes an `IDataRecord` and returns your desired object type. The mapper compilers build these mappers automatically, but you can specify your own if you want the control, or have existing logic which you are trying to port to CastIron.
 
 ```csharp
-var enumerable = results.AsEnumerable<MyResultType>(c => c.UseMap(r => new MyResultType { ... }));
+var enumerable = results.AsEnumerable<MyResultType>(c => c
+    .For<MyResultType>(d => d.UseMap(r => new MyResultType { ... }))
+);
 ```
 
-This option is only one level of abstraction higher than the `.AsRawReader()` method and typically requires more work to implement than the mapper compilers. Where possible, try to use one of the existing maps or map compilers to save yourself work and potential sources of bugs.
+This option is only one level of abstraction higher than the `.AsRawReader()` method and is only really useful as a step to migrate existing data access code to use CastIron. Where possible, try to use one of the existing maps or map compilers to save yourself work and potential sources of bugs.

@@ -3,8 +3,8 @@
 Start by creating an `ISqlRunner` for your chosen provider:
 
 ```csharp
-// MS SQL Server, requires CastIron.Sql package
-var runner = CastIron.Sql.RunnerFactory.Create(connectionString);
+// MS SQL Server, requires CastIron.SqlServer package
+var runner = CastIron.SqlServer.RunnerFactory.Create(connectionString);
 
 // SQLite, requires CastIron.Sqlite package
 var runner = CastIron.Sqlite.RunnerFactory.Create(connectionString);
@@ -73,17 +73,9 @@ using (var stream = await runner.QueryStreamAsync(new MyQueryObject())) {
 ### Execute a query and get a raw `IDataReader`
 
 ```csharp
-using (var stream = runner.QueryStream(new MyQueryObject()))) {
-    using (var reader = stream.AsRawReader()) {
-        ...
-    }
-}
-```
-
-```csharp
-using (var stream = runner.QueryStream("SELECT * FROM MyTable"))
+using (var stream = runner.QueryStream(new MyQueryObject()))) 
+using (var reader = stream.AsRawReader()) 
 {
-    var reader = stream.AsRawReader();
     ...
 }
 ```
@@ -111,21 +103,21 @@ runner.Execute("UPDATE MyTable SET ...");
 ### Map an existing `IDataReader` to an enumerable of objects
 
 ```csharp
-var result = runner.WrapAsResultStream(reader).AsEnumerable<MyType>();
+var result = runner.WrapAsResultStream(dataReader).AsEnumerable<MyType>();
 ```
 
 ### Map an existing `DataTable` to an enumerable of objects
 
 ```csharp
-var result = runner.WrapAsResultStream(table).AsEnumerable<MyType>();
+var result = runner.WrapAsResultStream(dataTable).AsEnumerable<MyType>();
 ```
 
 ### Batch multiple queries and commands onto a single connection and execute at once
 
 ```csharp
 var batch = runner.CreateBatch();
-var promise1 = batch.Add(new MyQueryObject());
-var promise2 = batch.Add(new MyQueryObject(), new MyResultMaterializer());
+var promise1 = batch.Add(new MyQueryObject1());
+var promise2 = batch.Add(new MyQueryObject2(), new MyResultMaterializer());
 var promise3 = batch.Add<MyResultType>("SELECT * FROM MyTable");
 batch.Add(new MyCommandObject());
 

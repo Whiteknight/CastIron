@@ -1,6 +1,6 @@
 # Building Complex Objects
 
-One of the design challenges of EntityFramework is that queries of any complexity are mapped into a single  SQL `SELECT` statement with a single result set. Even modest LINQ queries can turn into huge queries with result sets that are huge and unintelligible to normal human observers. Errors are hard to find and performance is completely outside of the developer's control.
+One of the design challenges of EntityFramework is that queries of any complexity are mapped into a single  SQL `SELECT` statement with a single result set. Even modest LINQ queries can turn into huge SQL queries with result sets that are large and unintelligible to normal human observers. Errors are hard to find and performance is completely outside of the developer's control.
 
 CastIron instead embraces and encourages the idea of using multiple result sets in a query. Each individual query can be small, simple and focused on doing one thing right. The difficulty in this approach arises when we need to combine multiple result sets together to form a complex hierarchy of objects.
 
@@ -92,7 +92,7 @@ We can execute this query using our `ISqlRunner`:
 var people = runner.Query(new LoadOnePersonQuery(5));
 ```
 
-## Example: Load People with `ForEachInnerJoin`
+## Example: Load Many People with `ForEachInnerJoin`
 
 The above example is clean and simple, but now we want to look at the case where we load multiple people by some criteria. For the sake of simplicity, we will do a simple paging operation, which we may use to display a large list of people on a webpage, only a few at a time. First, let's look at the SQL query we will want to use:
 
@@ -117,9 +117,9 @@ SELECT
             ON p.Id = cm.PersonId;
 ```
 
-Notice first that this query was deliberately structured to be readable and extendable in the future. Different types of search criteria can be used to populate the `@persons` table, which then fuels the remainder of the query.
+Notice first that this query was deliberately structured to be produceable from C# code. Different types of search criteria can be used to populate the `@persons` table, which then fuels the remainder of the query which can remain constant.
 
-To combine these two result sets into a single enumerable of objects, we have a few options. We could do something like a `.Join()` on these two result sets:
+To combine these two result sets into a single enumerable of objects, we have a few options. We could do something like a `.Join()` on these two result sets (notice that `.ToList()` is mandatory here, the enumerables terminate when the results are advanced to the next result set):
 
 ```csharp
 var persons = results.AsEnumerable<Person>().ToList();
@@ -207,7 +207,7 @@ public class LoadPageOfPersonsQuery : ISqlQuery<IReadOnlyList<Person>>
     public IReadOnlyList<Person> GetResults(IDataResults results)
     {
         var persons = results.AsEnumerable<Person>().ToList();
-        var contacts = results.GetNextEnumerable<ContactMethod();
+        var contacts = results.GetNextEnumerable<ContactMethod>();
         persons.ForEachInnerJoin(contacts, p => p.Id, cm => cm.PersonId, (p, cm) => p.ContactMethods.Add(cm));
         return persons;
     }

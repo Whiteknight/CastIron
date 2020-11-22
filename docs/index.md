@@ -3,7 +3,7 @@
 **CastIron** is a Micro ORM with particular focus on three ideas:
 
 1. The *Query Object* pattern to encapsulate database accesses as reusable objects,
-1. Deep modularity where you can use the parts you want and ignore or replace everything, and
+1. Deep modularity where you can use the parts you want and ignore or replace everything else, and
 1. Developer centricity with discoverable interfaces, easy fallbacks to tried-and-true `System.Data`, and helpful error messages.
 
 CastIron doesn't impose any required structure onto your program, nor require you to use any feature you don't want. It is opinionated, however, and intends to encourage good software design.

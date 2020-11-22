@@ -8,7 +8,7 @@ Stored procs can be an optimization, but not necesarily a huge one. What you sav
 1. Many organizations also demand extensive boiler-plate templates for stored procs, which can wipe out any performance gains (sometimes there are good reasons for this, often times it's just cargo-cult nonsense).
 1. Cached execution plans may become suboptimal as data characteristics change and will require manual intervention to recompile
 
-Stored Procs can be an optimization, but for most work they are a premature optimization.
+Stored Procs can be an optimization, but often that optimization is premature.
 
 CastIron easily supports calling stored procs from your query and command classes, so it should be an easy transition to prototype the raw SQL in a query and then move that to a stored proc call later as required. It's probably worthwhile to do some benchmarking to make sure that the change of query to stored proc actually does lead to performance benefits, and not just maintainability headaches.
 
@@ -41,18 +41,18 @@ Mapping between the relational database and the object-oriented data models is a
 1. Adjust the text of the SQL query to better fit the structure of the objects you want to populate
 1. Adjust the structure of your objects to better fit the data which is being returned by the query
 1. Use `IDataReader` directly to take full control over the mapping logic
-1. Write your own `IMapCompiler` implementation (code contributions welcome!) to create better mappings for your use-case
-1. Use the Object Mapper pattern to manually map a temporary Data Model to a better structure
+1. Write your own `IMapCompiler`, `ICompiler` or `IScalarMapCompiler` implementations (code contributions welcome!) to create better mappings for your use-case
+1. Use the Object Mapper pattern to manually map a temporary Data Model to a better model for your domain
 
 **Can CastIron help with SQL query generation?**
 
-It seems obvious that if we can map from columns in a result set to objects, that we should also be able to map from properties on an object to columns in a `SELECT` query or an `INSERT` statement. CastIron does offer a very modest amount of help here, but it's really quite a large problem and cannot be solved automatically (even with aggressive heuristics) like result set mapping can be. 
+It seems obvious that if we can map from columns in a result set to objects, that we should also be able to map from properties on an object to columns in a `SELECT` query or an `INSERT` statement. Unfortunately CastIron doesn't offer much help here, because the problem is too large for a package like CastIron or most other Micro-ORMs.
 
 Consider a case of a single logical object being spread across two or more tables with matching primary keys. There's no obvious way for CastIron to know that we need to `INNER JOIN` these tables to get a complete object (and, if all of the involved tables have a column called `Id`, which one do we use as the object's `.Id` property?). Now consider a larger and more common case of mapping a heirarchy of objects into a large group of tables joined by foreign keys. CastIron can't know which foreign keys to follow and how to map all these objects in a general case without the user having to supply a significant amount of metadata. All this complicated metadata is exactly what separates an ORM like EntityFramework from a Micro-ORM like CastIron. 
 
 Even if CastIron did manage enough metadata to map object hierarchies to tables and foreign keys, we'd only be able to generate `SELECT`, `INSERT` and `DELETE` statements. In order to automatically generate good `UPDATE` statements, we'd need to implement a change-tracking mechanism also. Again, this is a big complicated chunk of code and it's what separates the heavier ORMs from the lighter Micro-ORMs. 
 
-The CastIron philosophy is that SQL is a powerful and expressive tool, and using an abstraction like an ORM to hide the power and expressivity of SQL from the programmer is not best practice. CastIron doesn't want to generate SQL, because CastIron will never be able to generate it as well as a skilled human practitioner can. If you want to be able to query the database from pure C# code without writing any SQL, other technologies will probably be better than CastIron.
+The CastIron philosophy is that SQL is a powerful and expressive tool, and using an abstraction like an ORM to hide the power and expressivity of SQL from the programmer is not best practice. Philosophically, CastIron doesn't generate SQL, because the whole purpose is to let developers write their own SQL. If you absolutely need SQL generation capabilities, you should probably consider a larger ORM project like EntityFramework.
 
 **Can CastIron help with creating Tables?**
 
