@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using System.Reflection;
@@ -23,6 +24,16 @@ namespace CastIron.Sqlite
         public IDbCommand Command { get; }
 
         public bool IsValid => !string.IsNullOrEmpty(Command?.CommandText);
+
+        public IDataInteraction AddParameter(Action<IDbDataParameter> setup)
+        {
+            Argument.NotNull(setup, nameof(setup));
+            var param = Command.CreateParameter();
+            setup.Invoke(param);
+            param.ParameterName = NormalizeParameterName(param.ParameterName);
+            Command.Parameters.Add(param);
+            return this;
+        }
 
         public IDataInteraction AddParameterWithValue(string name, object value)
         {
@@ -49,7 +60,9 @@ namespace CastIron.Sqlite
         {
             Argument.NotNull(parameters, nameof(parameters));
 
-            var properties = parameters.GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public).ToDictionary(p => p.Name, p => p.GetValue(parameters));
+            var properties = parameters.GetType()
+                .GetProperties(BindingFlags.Instance | BindingFlags.Public)
+                .ToDictionary(p => p.Name, p => p.GetValue(parameters));
             return AddParametersWithValues(properties);
         }
 

@@ -16,6 +16,8 @@ namespace CastIron.Sql
         /// </summary>
         IDbCommand Command { get; }
 
+        IDataInteraction AddParameter(Action<IDbDataParameter> setup);
+
         /// <summary>
         /// Add a new input parameter with a value. The provider may mangle the name to add a '@' prefix or
         /// other decoration if required.
@@ -26,7 +28,7 @@ namespace CastIron.Sql
         IDataInteraction AddParameterWithValue(string name, object value);
 
         /// <summary>
-        /// Add several new input parameters with values from a dictionary or other key/value set. The 
+        /// Add several new input parameters with values from a dictionary or other key/value set. The
         /// provider may mangle the name to add a '@' prefix or other decoration if required.
         /// </summary>
         /// <param name="parameters"></param>
@@ -34,7 +36,7 @@ namespace CastIron.Sql
         IDataInteraction AddParametersWithValues(IEnumerable<KeyValuePair<string, object>> parameters);
 
         /// <summary>
-        /// Add several new input parameters with values from the public properties of an object. The 
+        /// Add several new input parameters with values from the public properties of an object. The
         /// provider may mangle the name to add a '@' prefix or other decoration if required.
         /// </summary>
         /// <param name="parameters"></param>

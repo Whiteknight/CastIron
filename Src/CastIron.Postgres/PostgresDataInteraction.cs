@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using System.Reflection;
@@ -8,7 +9,7 @@ using CastIron.Sql.Utility;
 namespace CastIron.Postgres
 {
     /// <summary>
-    /// Postgres-specific IDataInteraction. 
+    /// Postgres-specific IDataInteraction.
     /// </summary>
     public class PostgresDataInteraction : IDataInteraction
     {
@@ -21,6 +22,15 @@ namespace CastIron.Postgres
         public IDbCommand Command { get; }
 
         public bool IsValid => !string.IsNullOrEmpty(Command?.CommandText);
+
+        public IDataInteraction AddParameter(Action<IDbDataParameter> setup)
+        {
+            Argument.NotNull(setup, nameof(setup));
+            var param = Command.CreateParameter();
+            setup.Invoke(param);
+            Command.Parameters.Add(param);
+            return this;
+        }
 
         public IDataInteraction AddParameterWithValue(string name, object value)
         {
