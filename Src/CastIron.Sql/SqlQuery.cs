@@ -36,6 +36,15 @@ namespace CastIron.Sql
 
         public static ISqlQuery<T> Combine<T>(ISqlQuery query, Func<IDataResults, T> materialize, bool cacheMappings = false)
             => new SqlQueryCombined<T>(query, new DelegateResultMaterializer<T>(materialize), cacheMappings);
+
+        public static ISqlQuery FromDelegate(Func<IDataInteraction, bool> setup)
+            => new SqlQueryFromDelegate(setup);
+
+        public static ISqlQuery<T> FromDelegate<T>(Func<IDataInteraction, bool> setup, IResultMaterializer<T> materializer)
+            => new SqlQueryFromDelegate<T>(setup, materializer);
+
+        public static ISqlQuery<T> FromDelegate<T>(Func<IDataInteraction, bool> setup, Func<IDataResults, T> materialize)
+            => new SqlQueryFromDelegate<T>(setup, new DelegateResultMaterializer<T>(materialize));
     }
 
     public static class Materializer

@@ -60,6 +60,12 @@ namespace CastIron.Sql
 
         public ISqlResultPromise<T> Add<T>(ISqlQuery<T> query) => Add(query, query);
 
+        public ISqlResultPromise<T> Add<T>(Func<IDataInteraction, bool> setup, IResultMaterializer<T> materializer)
+            => Add(SqlQuery.FromDelegate(setup), materializer);
+
+        public ISqlResultPromise<T> Add<T>(Func<IDataInteraction, bool> setup, Func<IDataResults, T> materialize)
+            => Add(SqlQuery.FromDelegate(setup), Materializer.FromDelegate(materialize));
+
         public ISqlResultPromise Add(ISqlCommandSimple command)
         {
             Argument.NotNull(command, nameof(command));
@@ -107,6 +113,9 @@ namespace CastIron.Sql
             Argument.NotNullOrEmpty(sql, nameof(sql));
             return Add(SqlQuery.FromString<T>(sql));
         }
+
+        public ISqlResultPromise Add(Func<IDataInteraction, bool> setup)
+            => Add(new SqlCommandFromDelegate(setup));
 
         private void AddExecutor(Action<IExecutionContext, int> executor)
         {

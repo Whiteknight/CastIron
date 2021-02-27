@@ -1,15 +1,16 @@
-﻿using CastIron.Sql.Execution;
-using CastIron.Sql.Statements;
-using CastIron.Sql.Utility;
+﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
+using CastIron.Sql.Execution;
+using CastIron.Sql.Statements;
+using CastIron.Sql.Utility;
 
 namespace CastIron.Sql
 {
     public static partial class SqlRunnerExtensions
     {
         /// <summary>
-        /// Execute a raw string of SQL and return no result. Maps internally to a call to 
+        /// Execute a raw string of SQL and return no result. Maps internally to a call to
         /// IDbCommand.ExecuteNonQuery()
         /// </summary>
         /// <param name="runner"></param>
@@ -22,7 +23,7 @@ namespace CastIron.Sql
         }
 
         /// <summary>
-        /// Execute the command and return no result. Maps internally to a call to 
+        /// Execute the command and return no result. Maps internally to a call to
         /// IDbCommand.ExecuteNonQuery()
         /// </summary>
         /// <param name="runner"></param>
@@ -51,7 +52,7 @@ namespace CastIron.Sql
         }
 
         /// <summary>
-        /// Execute the command and return no result. Maps internally to a call to 
+        /// Execute the command and return no result. Maps internally to a call to
         /// IDbCommand.ExecuteNonQuery()
         /// </summary>
         /// <param name="runner"></param>
@@ -79,8 +80,15 @@ namespace CastIron.Sql
             return runner.Execute(c => new SqlCommandStrategy(runner.InteractionFactory).Execute(command, c, 0));
         }
 
+        public static void Execute(this ISqlRunner runner, Func<IDataInteraction, bool> setup)
+        {
+            Argument.NotNull(runner, nameof(runner));
+            Argument.NotNull(setup, nameof(setup));
+            runner.Execute(new SqlCommandFromDelegate(setup));
+        }
+
         /// <summary>
-        /// Execute the command asynchronously and return no result. Maps internally to a call to 
+        /// Execute the command asynchronously and return no result. Maps internally to a call to
         /// IDbCommand.ExecuteNonQuery()
         /// </summary>
         /// <param name="runner"></param>
@@ -110,7 +118,7 @@ namespace CastIron.Sql
         }
 
         /// <summary>
-        /// Execute the command asynchronously and return no result. Maps internally to a call to 
+        /// Execute the command asynchronously and return no result. Maps internally to a call to
         /// IDbCommand.ExecuteNonQuery()
         /// </summary>
         /// <param name="runner"></param>

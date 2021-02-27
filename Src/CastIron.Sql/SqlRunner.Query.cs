@@ -12,7 +12,7 @@ namespace CastIron.Sql
     public static partial class SqlRunnerExtensions
     {
         /// <summary>
-        /// Execute the SQL code query and return the result. Maps internally to a call to 
+        /// Execute the SQL code query and return the result. Maps internally to a call to
         /// IDbCommand.ExecuteReader()
         /// </summary>
         /// <typeparam name="T"></typeparam>
@@ -45,7 +45,7 @@ namespace CastIron.Sql
         }
 
         /// <summary>
-        /// Execute the query object and return the result. Maps internally to a call to 
+        /// Execute the query object and return the result. Maps internally to a call to
         /// IDbCommand.ExecuteReader()
         /// </summary>
         /// <typeparam name="T"></typeparam>
@@ -89,7 +89,7 @@ namespace CastIron.Sql
         }
 
         /// <summary>
-        /// Execute the query object and return the result. Maps internally to a call to 
+        /// Execute the query object and return the result. Maps internally to a call to
         /// IDbCommand.ExecuteReader()
         /// </summary>
         /// <typeparam name="T"></typeparam>
@@ -100,6 +100,22 @@ namespace CastIron.Sql
         {
             Argument.NotNull(runner, nameof(runner));
             return runner.Query(query, query);
+        }
+
+        public static T Query<T>(this ISqlRunner runner, Func<IDataInteraction, bool> setup, IResultMaterializer<T> materializer)
+        {
+            Argument.NotNull(runner, nameof(runner));
+            Argument.NotNull(setup, nameof(setup));
+            Argument.NotNull(materializer, nameof(materializer));
+            return runner.Query(SqlQuery.FromDelegate(setup, materializer));
+        }
+
+        public static T Query<T>(this ISqlRunner runner, Func<IDataInteraction, bool> setup, Func<IDataResults, T> reader)
+        {
+            Argument.NotNull(runner, nameof(runner));
+            Argument.NotNull(setup, nameof(setup));
+            Argument.NotNull(reader, nameof(reader));
+            return runner.Query(SqlQuery.FromDelegate(setup, reader));
         }
 
         /// <summary>
@@ -193,6 +209,22 @@ namespace CastIron.Sql
         {
             Argument.NotNull(runner, nameof(runner));
             return runner.QueryAsync(query, query);
+        }
+
+        public static Task<T> QueryAsync<T>(this ISqlRunner runner, Func<IDataInteraction, bool> setup, IResultMaterializer<T> materializer)
+        {
+            Argument.NotNull(runner, nameof(runner));
+            Argument.NotNull(setup, nameof(setup));
+            Argument.NotNull(materializer, nameof(materializer));
+            return runner.QueryAsync(SqlQuery.FromDelegate(setup, materializer));
+        }
+
+        public static Task<T> QueryAsync<T>(this ISqlRunner runner, Func<IDataInteraction, bool> setup, Func<IDataResults, T> reader)
+        {
+            Argument.NotNull(runner, nameof(runner));
+            Argument.NotNull(setup, nameof(setup));
+            Argument.NotNull(reader, nameof(reader));
+            return runner.QueryAsync(SqlQuery.FromDelegate(setup, reader));
         }
     }
 }
