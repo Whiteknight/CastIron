@@ -55,12 +55,8 @@ The `IDataResults` object contains the raw `IDataReader` object, any output para
 
 Please see the existing unit tests for additional, in-depth examples of using CastIron.Sql.
 
-## Limitations
-
-CastIron is still considered "pre-release" and requires a lot of new unit test coverage and real-world testing.
-
-Providers for other databases such as MySql, SQLite and PostgreSQL are all in development.
-
 ## Status
 
-CastIron.Sql has all major features and is undergoing testing and usability improvements. During pre-1.0 development many interfaces are still fluid and undergoing change.
+CastIron.Sql is stable, in active development, and used in production deployments. v2.0.0 is released to nuget and is preferred over all previous versions.
+
+Providers are available for SQL Server, SQLite and PostgreSQL. Providers for other databases such as MySql are in development.
